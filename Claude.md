@@ -1,0 +1,23 @@
+# Claude Code Instructions
+
+## General Rules
+- Do not delete, reformat, or reorganise any existing code unless explicitly instructed
+- Only make the specific changes listed in the prompt
+- Do not add comments or change whitespace outside the modified lines
+- Do not "improve" or "clean up" code that was not mentioned in the prompt
+- Show me what you plan to do before making any changes
+- After making changes, run the test suite: `php artisan test`
+
+## Project Context
+- Laravel application on Debian 12
+- Test suite: Pest PHP — run with `php artisan test`
+- Always follow existing conventions — reference nearby files for patterns
+- Never modify .env or .env.adminlasallesoftwareca
+
+## Git
+- Do not run git add, git commit, or git push — that is the developer's responsibility
+
+## Project Documentation
+Before making any changes, read these files for context:
+- docs/ARCHITECTURE.md
+- docs/CONVENTIONS.md
