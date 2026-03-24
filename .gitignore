@@ -38,5 +38,5 @@ docker-compose.override.yml
 /storage/debugbar
 
 /docs/readmes
-/GIT
+/ETL
 
