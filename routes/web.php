@@ -39,4 +39,14 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/AdHocPrompt/Routes/ad_hoc_prom
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/HealthChecks/Routes/health_checks_routes.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/DatabaseBackup/Routes/routes.php';
 
+// Podcast Studio — Management
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_episode_status_lookup.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_shows.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_episodes.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_links.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_guests.php';
+
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/PhpServerlessProjectSponsors/Routes/phpserverlessproject_sponsors.php';
+
+
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

@@ -1,6 +1,6 @@
 {{--
     ============================================================================
-    FILE: views/digests/digest-webpage.blade.php
+    FILE: views/media_platform/digest/digest-webpage.blade.php
     ============================================================================
 
     Standalone HTML page uploaded via SFTP.

@@ -10,7 +10,7 @@
 
 ## Project Context
 - Laravel application on Debian 12
-- Test suite: Pest PHP — run with `php artisan test`
+- Test suite: PHPUnit — run with `php artisan test`
 - Always follow existing conventions — reference nearby files for patterns
 - Never modify .env or .env.adminlasallesoftwareca
 

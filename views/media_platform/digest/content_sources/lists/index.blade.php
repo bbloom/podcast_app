@@ -55,9 +55,9 @@
 
                             <span class="mx-1.5">·</span>
 
-                            @if ($list->output_type === 'email')
+                            @if ($list->output_type->value === 'email')
                                 Email
-                            @elseif ($list->output_type === 'wordpress')
+                            @elseif ($list->output_type->value === 'wordpress')
                                 WordPress
                             @else
                                 Web page

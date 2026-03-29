@@ -36,6 +36,8 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/media_platform/digests/processing'),
             database_path('migrations/media_platform/digests/lists_and_feeds'),
             database_path('migrations/media_platform/tools/database_backup'),
+            database_path('migrations/media_platform/podcast_studio/management'),
+            database_path('migrations/media_platform/tools/phpserverlessproject_sponsors'),
         ]);
 
         // -------------------------------------------------------------------------

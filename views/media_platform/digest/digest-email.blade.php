@@ -1,6 +1,6 @@
 {{--
     ============================================================================
-    FILE: views/digests/digest-email.blade.php
+    FILE: views/media_platform/digest/digest-email.blade.php
     ============================================================================
 
     Full HTML email shell for the digest.

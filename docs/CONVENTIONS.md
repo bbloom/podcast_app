@@ -43,8 +43,8 @@ MEDIA_PLATFORM/
 │   ├── Processing/
 │   ├── Publishing/
 │   └── Services/
-├── PodcastStudio/         ← future development
-│   ├── Management/
+├── PodcastStudio/
+│   ├── Management/        ← active (Controllers, Models, Requests, Routes)
 │   ├── PreProduction/
 │   └── PostProduction/
 ├── PsnContentManager/     ← future development
@@ -61,6 +61,7 @@ MEDIA_PLATFORM/
 - Dot-notation prefix: `media_platform.`
 - Example: `view('media_platform.digest.content_sources.podcasts.index')`
 - Shared components: `views/components/`
+- Digest items partial: `media_platform.digest._items`
 - Note: the views folder hierarchy does not fully mirror `MEDIA_PLATFORM/` — intermediate subfolders are omitted where they add no value
 
 ### Migrations
@@ -91,6 +92,10 @@ MEDIA_PLATFORM/
 - Never use `Str::slug()`
 - Always use the custom `makeSlug()` helper (preserves dots)
 
+## Seeding
+- Seeding of admin/sensitive data is gated behind `ADMIN_SEEDING_ENABLED` in `.env`
+- Checked via `config/admin.php` — seeders should read this value and bail early if it is not `true`
+
 ## UI & Blade
 - Purple / `purple-700` accent theme throughout
 - No modals — use dedicated confirmation pages for destructive actions
@@ -98,11 +103,12 @@ MEDIA_PLATFORM/
 - Wizards used for multi-step create flows
 
 ## Testing
-- Pest is used for all tests
-- CSRF is bypassed in `bootstrap/app.php` via `defined('PHPUNIT_COMPOSER_INSTALL')`
+- PHPUnit class-based tests are used for all tests.
+- Extend Tests\TestCase and use the RefreshDatabase trait per class.
+- CSRF is bypassed in bootstrap/app.php via defined('PHPUNIT_COMPOSER_INSTALL').
 - Pest does not define this constant automatically, so it is manually defined at the top of `tests/Pest.php` with `define('PHPUNIT_COMPOSER_INSTALL', true)`
-- Test namespaces mirror folder paths: `Tests\Feature\MEDIA_PLATFORM\Digest\ContentSources\Youtube\`
-- Note: the tests folder hierarchy does not fully mirror `MEDIA_PLATFORM/`
+- Test namespaces mirror folder paths: Tests\Feature\MEDIA_PLATFORM\Digest\ContentSources\Youtube\
+- Note: the tests folder hierarchy does not fully mirror MEDIA_PLATFORM/
 
 ## Gemini Integration
 - Client package: `gemini-php/laravel`

@@ -18,6 +18,8 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `summaries` — AI-generated summaries, polymorphic to source type
 - `output_destinations` — where digests are delivered (e.g. SFTP)
 - `language_models` — available AI models for summarisation
+- `podcast_guest_episode` — pivot table joining guests to episodes (PodcastStudio)
+- `podcast_link_episode` — pivot table joining links to episodes (PodcastStudio)
 
 ## Polymorphic Relationships
 Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to lists and summaries via polymorphic relationships using morph aliases.
@@ -28,6 +30,13 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - A `language_models` table stores available models and providers
 - Summarisation is abstracted behind a service/interface so the provider can be changed or configured per user without touching pipeline logic
 - Future candidates: OpenAI, GitHub Copilot, Anthropic, or others
+
+## PodcastStudio
+- Active feature — `PodcastStudio/Management/` is in use with Controllers, Models, Requests, and Routes
+- Manages shows, episodes, statuses, links, and guests
+- Episodes relate to guests via the `podcast_guest_episode` pivot table
+- Episodes relate to links via the `podcast_link_episode` pivot table
+- Pre-production and post-production subfolders are planned for future phases
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible

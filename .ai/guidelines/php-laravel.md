@@ -46,7 +46,7 @@
 
 ### Helpers & Directives
 - Use Laravel helpers over facade imports: `auth()->id()` not `Auth::id()`, `redirect()->route()` not `Redirect::route()`.
-- Never use `Str::slug()` — always use the custom `makeSlug()` helper (preserves dots).
+- Never use Str::slug() in production code — always use the custom makeSlug() helper (preserves dots); or, for podcasts, there is a custom slug helper. Str::slug() is acceptable in test factories only.
 - In Blade, always use `@selected()` and `@checked()` directives instead of inline ternaries.
 - Always use `@session()` directive instead of `@if(session())` for flash messages.
 
@@ -90,5 +90,8 @@
 - The test suite serves as a regression safety net — if Laravel, PHP, or any dependency, updates and something breaks, the tests should catch it. Run the full test suite after every `composer update`.
 
 ### General
-- Always use Pest.
-- CSRF is bypassed via `defined('PHPUNIT_COMPOSER_INSTALL')` in `bootstrap/app.php`. Pest does not define this constant automatically — it is defined at the top of `tests/Pest.php`.
+- Always use PHPUnit class-based tests, following the pattern in YoutubeChannelWizardControllerTest.
+- Use `use RefreshDatabase;` as a trait on the test class.
+- Test class names mirror the controller they test, suffixed with `Test`.
+- Test method names are prefixed with `test_` and describe the behaviour being tested.
+- CSRF is bypassed via `defined('PHPUNIT_COMPOSER_INSTALL')` in `bootstrap/app.php`.

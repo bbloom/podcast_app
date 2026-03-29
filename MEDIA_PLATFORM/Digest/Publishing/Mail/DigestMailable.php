@@ -49,7 +49,7 @@ class DigestMailable extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'digests.digest-email',
+            view: 'media_platform.digest.digest-email',
             with: [
                 'digestData' => $this->digestData,
                 'list'       => $this->list,

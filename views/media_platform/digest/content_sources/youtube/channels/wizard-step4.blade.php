@@ -96,7 +96,11 @@
                                             Monthly · {{ $list->schedule_day }}{{ match(true) { $list->schedule_day==1||$list->schedule_day==21||$list->schedule_day==31=>'st', $list->schedule_day==2||$list->schedule_day==22=>'nd', $list->schedule_day==3||$list->schedule_day==23=>'rd', default=>'th' } }} at {{ $list->schedule_time }}
                                         @endif
                                         <span class="mx-1">·</span>
-                                        {{ $list->output_type === 'email' ? 'Email' : 'Web page' }}
+                                        {{ match(strtolower($list->output_type->value) ?? $list->output_type) {
+                                            'email'     => 'Email',
+                                            'wordpress' => 'WordPress',
+                                            default     => 'Web page',
+                                        } }}
                                     </p>
                                 </div>
                             </label>

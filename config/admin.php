@@ -24,4 +24,16 @@ return [
     |
     */
     'pagination_show' => env('ADMIN_PAGINATION_SHOW', 10),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allow db:seed to seed
+    |--------------------------------------------------------------------------
+    |
+    | Explicit permission is needed to seed database. 
+    | For the express purpose of preventing seeding in production.
+    | Used in databases/seeders/DatabaseSeeder.php
+    |
+    */
+    'seeding_enabled' => env('ADMIN_SEEDING_ENABLED', false),
 ];

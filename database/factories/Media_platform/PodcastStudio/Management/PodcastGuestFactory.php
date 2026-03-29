@@ -1,0 +1,37 @@
+<?php
+
+namespace Database\Factories\Media_platform\PodcastStudio\Management;
+
+use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class PodcastGuestFactory extends Factory
+{
+    protected $model = PodcastGuest::class;
+
+    /**
+     * Define the model's default state.
+     */
+    public function definition(): array
+    {
+        return [
+            'full_name'            => fake()->unique()->name(),
+            'image_url'            => fake()->optional()->imageUrl(400, 400),
+            'image_thumbnail_url'  => fake()->optional()->imageUrl(100, 100),
+            'profile_full'         => fake()->paragraphs(2, true),
+            'profile_short'        => fake()->optional()->sentence(),
+            'link_to_guest_website'=> fake()->optional()->url(),
+            'email_address'        => fake()->safeEmail(),
+            'internal_comment'     => fake()->optional()->sentence(),
+            'enabled'              => true,
+        ];
+    }
+
+    /**
+     * Mark this guest as disabled.
+     */
+    public function disabled(): static
+    {
+        return $this->state(fn () => ['enabled' => false]);
+    }
+}

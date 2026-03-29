@@ -1,6 +1,6 @@
 {{--
     ============================================================================
-    FILE: views/digests/digest-wp.blade.php
+    FILE: views/media_platform/digest/digest-wp.blade.php
     ============================================================================
 
     WordPress post body — a clean HTML fragment with NO outer shell.

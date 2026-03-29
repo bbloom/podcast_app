@@ -90,9 +90,37 @@
     <div class="mb-8">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Podcast Studio</h2>
         <div class="space-y-2 pl-4">
-            <div>
-                <span class="text-gray-400">Management <em class="text-xs">(future development)</em></span>
+            
+            {{-- Management --}}
+            <div class="mb-1">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
             </div>
+            <div class="pl-4 space-y-2 mb-3">
+                <div>
+                    <a href="{{ route('podcast_shows.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Shows</a>
+                </div>
+                <div>
+                    <a href="{{ route('podcast_episodes.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Episodes</a>
+                </div>
+                @can('admin')
+                <div>
+                    <a href="{{ route('podcast_episode_status_lookup.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Episode Status Lookup</a>
+                </div>
+                 <div>
+                    <a href="{{ route('podcast_guests.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Guests</a>
+                </div>
+                @endcan
+                <div>
+                    <a href="{{ route('podcast_links.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Links</a>
+                </div>
+            </div>
+
+
             <div>
                 <span class="text-gray-400">Pre-Production <em class="text-xs">(future development)</em></span>
             </div>
@@ -131,6 +159,10 @@
                 &nbsp;(<a href="/admin/health-checks/readme"
                    class="text-blue-600 hover:underline hover:text-gray-900">Readme</a>)
             </div>
+            <div>
+                <a href="{{ route('phpserverlessproject_sponsors.index') }}"
+                   class="text-blue-600 hover:underline hover:text-gray-900">PHP Serverless Project Sponsors</a>
+            </div>            
         </div>
     </div>
     @endcan
