@@ -4,8 +4,8 @@ namespace Database\Factories\Media_platform\PodcastStudio\Management;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisodeStatusLookup;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 
 class PodcastEpisodeFactory extends Factory
@@ -23,9 +23,9 @@ class PodcastEpisodeFactory extends Factory
         $title = $this->faker->unique()->words(4, true);
 
         return [
-            'podcast_show_id'                  => PodcastShow::factory(),
-            'user_id'                          => User::factory(),
-            'podcast_episode_status_lookup_id' => PodcastEpisodeStatusLookup::factory(),
+            'podcast_show_id' => PodcastShow::factory(),
+            'user_id'         => User::factory(),
+            'status'          => PodcastEpisodeStatus::created,
 
             // Core
             'title'                    => $title,

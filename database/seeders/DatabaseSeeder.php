@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UsersSeeder::class,
             LlmSeeder::class,
-            Podcast_episode_status_lookupSeeder::class,
             Podcast_showsSeeder::class,
             Podcast_episodes1Seeder::class,
             Podcast_episodes2Seeder::class,

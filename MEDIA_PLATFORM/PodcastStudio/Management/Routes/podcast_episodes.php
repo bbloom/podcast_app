@@ -12,13 +12,9 @@ Route::get('/podcast-episodes', [PodcastEpisodeController::class, 'index'])
     ->middleware(['auth'])
     ->name('podcast_episodes.index');
 
-Route::get('/podcast-episodes/create', [PodcastEpisodeController::class, 'create'])
-    ->middleware(['auth'])
-    ->name('podcast_episodes.create');
 
-Route::post('/podcast-episodes', [PodcastEpisodeController::class, 'store'])
-    ->middleware(['auth'])
-    ->name('podcast_episodes.store');
+    // The CREATE and STORE routes are handled by the Create Podcast Episode wizard
+
 
 Route::get('/podcast-episodes/{podcast_episode}', [PodcastEpisodeController::class, 'show'])
     ->middleware(['auth'])

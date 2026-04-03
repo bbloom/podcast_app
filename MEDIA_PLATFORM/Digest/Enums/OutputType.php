@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaPlatform\Enums;
+namespace MediaPlatform\Digest\Enums;
 
 /**
  * OutputType — the delivery mechanism for a digest.

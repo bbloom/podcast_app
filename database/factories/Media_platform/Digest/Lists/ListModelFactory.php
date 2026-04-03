@@ -2,7 +2,7 @@
 
 namespace Database\Factories\Media_platform\Digest\Lists;
 
-use MediaPlatform\Enums\OutputType;
+use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;

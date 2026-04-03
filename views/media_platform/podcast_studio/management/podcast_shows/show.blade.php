@@ -132,7 +132,7 @@
             Episodes
             <span class="ml-1 text-sm font-normal text-gray-400">({{ $show->episodes()->count() }})</span>
         </h2>
-        <a href="{{ route('podcast_episodes.create') }}"
+        <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
             + New Episode
         </a>

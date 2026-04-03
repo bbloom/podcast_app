@@ -2,7 +2,7 @@
 
     <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-bold text-gray-800">Podcast Episodes</h1>
-        <a href="{{ route('podcast_episodes.create') }}"
+        <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
             + New Episode
         </a>
@@ -22,7 +22,7 @@
             </svg>
             <p class="text-sm font-semibold text-gray-500 mb-1">No episodes yet</p>
             <p class="text-sm text-gray-400 mb-6">Create your first podcast episode to get started.</p>
-            <a href="{{ route('podcast_episodes.create') }}"
+            <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
                class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
                 Create an Episode
             </a>
@@ -62,7 +62,7 @@
                                     >
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-gray-600">{{ $episode->status?->title ?? '—' }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ $episode->status?->label() ?? '—' }}</td>
                             <td class="px-6 py-4 text-gray-500">{{ $episode->scheduled_date?->format('M d Y') ?? '—' }}</td>
                             <td class="px-6 py-4">
                                 @if ($episode->rss_feed_enabled)

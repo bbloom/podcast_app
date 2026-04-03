@@ -3,11 +3,10 @@
 namespace MediaPlatform\PodcastStudio\Management\Controllers;
 
 use App\Http\Controllers\Controller;
+use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisodeStatusLookup;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\Management\Requests\PodcastEpisodeRequest;
-
 use Illuminate\Support\Str;
 
 class PodcastEpisodeController extends Controller
@@ -19,53 +18,16 @@ class PodcastEpisodeController extends Controller
     public function index()
     {
         $episodes = PodcastEpisode::where('user_id', auth()->id())
-            ->with(['show', 'status'])
+            ->with(['show'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
         return view('media_platform.podcast_studio.management.podcast_episodes.index', compact('episodes'));
     }
 
-    /**
-     * Show the form for creating a new podcast episode.
-     * Passes the authenticated user's shows and all enabled statuses.
-     */
-    public function create()
-    {
-        $shows    = PodcastShow::where('user_id', auth()->id())->orderBy('title')->get();
-        $statuses = PodcastEpisodeStatusLookup::where('enabled', true)->orderBy('title')->get();
 
-        return view(
-            'media_platform.podcast_studio.management.podcast_episodes.create',
-            compact('shows', 'statuses')
-        );
-    }
+    // The CREATE and STORE methods are handled in the CREATE EPISODE wizard
 
-    /**
-     * Persist a new podcast episode for the authenticated user.
-     */
-    public function store(PodcastEpisodeRequest $request)
-    {
-        // Ownership: ensure the selected show belongs to this user.
-        $show = PodcastShow::findOrFail($request->validated()['podcast_show_id']);
-        abort_if($show->user_id !== auth()->id(), 403);
-
-        $data            = $request->validated();
-        $data['user_id'] = auth()->id();
-        $data['slug']    = Str::slug($data['title']);
-
-        // Cast checkboxes — unchecked boxes are absent from the request.
-        $data['itunes_explicit']  = $request->boolean('itunes_explicit');
-        $data['itunes_block']     = $request->boolean('itunes_block');
-        $data['rss_feed_enabled'] = $request->boolean('rss_feed_enabled');
-        $data['website_enabled']  = $request->boolean('website_enabled');
-
-        PodcastEpisode::create($data);
-
-        return redirect()
-            ->route('podcast_episodes.index')
-            ->with('success', 'Podcast episode created successfully.');
-    }
 
     /**
      * Display a single podcast episode.
@@ -75,7 +37,7 @@ class PodcastEpisodeController extends Controller
     {
         abort_if($podcast_episode->user_id !== auth()->id(), 403);
 
-        $podcast_episode->load(['show', 'status']);
+        $podcast_episode->load(['show']);
 
         return view(
             'media_platform.podcast_studio.management.podcast_episodes.show',
@@ -91,7 +53,9 @@ class PodcastEpisodeController extends Controller
         abort_if($podcast_episode->user_id !== auth()->id(), 403);
 
         $shows    = PodcastShow::where('user_id', auth()->id())->orderBy('title')->get();
-        $statuses = PodcastEpisodeStatusLookup::where('enabled', true)->orderBy('title')->get();
+
+        // All enum cases are available for selection in the edit form.
+        $statuses = PodcastEpisodeStatus::cases();
 
         return view(
             'media_platform.podcast_studio.management.podcast_episodes.edit',
@@ -133,9 +97,13 @@ class PodcastEpisodeController extends Controller
     {
         abort_if($podcast_episode->user_id !== auth()->id(), 403);
 
+        $podcast_episode->load(['show', 'links', 'guests']);
+
+        $blockingReason = $this->deleteBlockingReason($podcast_episode);
+
         return view(
             'media_platform.podcast_studio.management.podcast_episodes.delete_confirm',
-            ['episode' => $podcast_episode]
+            ['episode' => $podcast_episode, 'blockingReason' => $blockingReason]
         );
     }
 
@@ -146,10 +114,37 @@ class PodcastEpisodeController extends Controller
     {
         abort_if($podcast_episode->user_id !== auth()->id(), 403);
 
+        if ($reason = $this->deleteBlockingReason($podcast_episode)) {
+            return redirect()
+                ->route('podcast_episodes.show', $podcast_episode)
+                ->with('error', $reason);
+        }
+
         $podcast_episode->delete();
 
         return redirect()
             ->route('podcast_episodes.index')
             ->with('success', 'Podcast episode deleted successfully.');
+    }
+
+    /**
+     * Return a blocking reason string if the episode cannot be deleted, or null if it can.
+     */
+    private function deleteBlockingReason(PodcastEpisode $episode): ?string
+    {
+        // Status is a cast enum — compare directly against the enum case.
+        if ($episode->status === PodcastEpisodeStatus::published) {
+            return "This episode cannot be deleted because it is Published.";
+        }
+
+        if ($episode->links()->exists()) {
+            return "This episode cannot be deleted because it has links attached. Please detach them first.";
+        }
+
+        if ($episode->guests()->exists()) {
+            return "This episode cannot be deleted because it has guests attached. Please detach them first.";
+        }
+
+        return null;
     }
 }

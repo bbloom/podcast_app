@@ -36,7 +36,12 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - Manages shows, episodes, statuses, links, and guests
 - Episodes relate to guests via the `podcast_guest_episode` pivot table
 - Episodes relate to links via the `podcast_link_episode` pivot table
-- Pre-production and post-production subfolders are planned for future phases
+- Pre-production wizard (`PreProduction/CreateEpisode/`) is complete — `Step1Controller`, `Step2Controller`, and `Step3Controller` handle show selection, episode details, and full field population including all RSS-critical fields
+- Post-production foundation is in place — `PostProduction/` contains enums, a dashboard controller, and routes
+- Post-production pipeline status is tracked via the `PodcastEpisodeStatus` enum on the `podcast_episodes.status` column
+- Cloud storage credentials live in `config/podcast_post_production.php`, read from `.env`
+- Bucket names, providers, file types, and Auphonic preset UUIDs are defined as PHP enums under `PostProduction/Enums/`
+- The first post-production feature to be built is Upload Recording to S3
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible

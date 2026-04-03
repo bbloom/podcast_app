@@ -6,44 +6,70 @@
         Welcome, <strong>{{ auth()->user()->name }}</strong>!
     </p>
 
-    @can('admin')
-    {{-- Configuration --}}
+    {{-- Podcast Studio --}}
     <div class="mb-8">
-        <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Configuration</h2>
+        <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Podcast Studio</h2>
+
         <div class="space-y-2 pl-4">
+
+            {{-- Pre-Production --}}
             <div>
-                <a href="{{ route('language_models.providers.index') }}"
-                   class="text-blue-600 hover:underline hover:text-gray-900">Providers</a>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pre-Production </span>
             </div>
+            <div class="pl-4 space-y-2 mb-3">
+                <div>
+                    <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Create a podcast episode</a>
+                </div>
+            </div>
+
+            {{-- Post Production --}}
             <div>
-                <a href="{{ route('language_models.languagemodel.index') }}"
-                   class="text-blue-600 hover:underline hover:text-gray-900">Language Models</a>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Post-Production</span>
             </div>
-            <div>
-                <a href="{{ route('language_models.usecases.index') }}"
-                   class="text-blue-600 hover:underline hover:text-gray-900">Use Cases</a>
+            <div class="pl-4 space-y-2 mb-3">
+                <div>
+                    <a href="{{ route('post_production.dashboard') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Post-Production Dashboard</a>
+                </div>
             </div>
-            <div>
-                <span class="text-gray-400">Auphonic <em class="text-xs">(future development)</em></span>
+                
+            {{-- Management --}}
+            <div class="mb-1">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
             </div>
-            <div>
-                <span class="text-gray-400">AWS <em class="text-xs">(future development)</em></span>
+            <div class="pl-4 space-y-2 mb-3">
+                <div>
+                    <a href="{{ route('podcast_shows.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Shows</a>
+                </div>
+                <div>
+                    <a href="{{ route('podcast_episodes.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Episodes</a>
+                </div>
+                @can('admin')
+                 <div>
+                    <a href="{{ route('podcast_guests.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Guests</a>
+                </div>
+                @endcan
+                <div>
+                    <a href="{{ route('podcast_links.index') }}"
+                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Links</a>
+                </div>
             </div>
-            <div>
-                <span class="text-gray-400">Cloudflare <em class="text-xs">(future development)</em></span>
-            </div>
+
         </div>
     </div>
-    @endcan
 
     {{-- Digest --}}
     <div class="mb-8">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Digest</h2>
         <div class="space-y-2 pl-4">
 
-            {{-- Content Sources --}}
+            {{-- Lists and Destinations --}}
             <div class="mb-1">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Content Sources</span>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lists and Destinations</span>
             </div>
             <div class="pl-4 space-y-2 mb-3">
                 <div>
@@ -54,6 +80,13 @@
                     <a href="{{ route('output_destinations.index') }}"
                        class="text-blue-600 hover:underline hover:text-gray-900">Output Destinations</a>
                 </div>
+            </div>
+
+            {{-- Content Sources --}}
+            <div class="mb-1">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Content Sources</span>
+            </div>
+            <div class="pl-4 space-y-2 mb-3"> 
                 <div>
                     <a href="{{ route('youtube.channels.index') }}"
                        class="text-blue-600 hover:underline hover:text-gray-900">Youtube Channels</a>
@@ -86,50 +119,6 @@
         </div>
     </div>
 
-    {{-- Podcast Studio --}}
-    <div class="mb-8">
-        <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Podcast Studio</h2>
-        <div class="space-y-2 pl-4">
-            
-            {{-- Management --}}
-            <div class="mb-1">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
-            </div>
-            <div class="pl-4 space-y-2 mb-3">
-                <div>
-                    <a href="{{ route('podcast_shows.index') }}"
-                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Shows</a>
-                </div>
-                <div>
-                    <a href="{{ route('podcast_episodes.index') }}"
-                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Episodes</a>
-                </div>
-                @can('admin')
-                <div>
-                    <a href="{{ route('podcast_episode_status_lookup.index') }}"
-                       class="text-blue-600 hover:underline hover:text-gray-900">Episode Status Lookup</a>
-                </div>
-                 <div>
-                    <a href="{{ route('podcast_guests.index') }}"
-                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Guests</a>
-                </div>
-                @endcan
-                <div>
-                    <a href="{{ route('podcast_links.index') }}"
-                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Links</a>
-                </div>
-            </div>
-
-
-            <div>
-                <span class="text-gray-400">Pre-Production <em class="text-xs">(future development)</em></span>
-            </div>
-            <div>
-                <span class="text-gray-400">Post-Production <em class="text-xs">(future development)</em></span>
-            </div>
-        </div>
-    </div>
-
     {{-- PSN Content Manager --}}
     <div class="mb-8">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">PSN Content Manager</h2>
@@ -139,6 +128,36 @@
             </div>
         </div>
     </div>
+
+    @can('admin')
+    {{-- Configuration --}}
+    <div class="mb-8">
+        <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Configuration</h2>
+        <div class="space-y-2 pl-4">
+            <div>
+                <a href="{{ route('language_models.providers.index') }}"
+                   class="text-blue-600 hover:underline hover:text-gray-900">Providers</a>
+            </div>
+            <div>
+                <a href="{{ route('language_models.languagemodel.index') }}"
+                   class="text-blue-600 hover:underline hover:text-gray-900">Language Models</a>
+            </div>
+            <div>
+                <a href="{{ route('language_models.usecases.index') }}"
+                   class="text-blue-600 hover:underline hover:text-gray-900">Use Cases</a>
+            </div>
+            <div>
+                <span class="text-gray-400">Auphonic <em class="text-xs">(future development)</em></span>
+            </div>
+            <div>
+                <span class="text-gray-400">AWS <em class="text-xs">(future development)</em></span>
+            </div>
+            <div>
+                <span class="text-gray-400">Cloudflare <em class="text-xs">(future development)</em></span>
+            </div>
+        </div>
+    </div>
+    @endcan
 
     @can('admin')
     {{-- Tools --}}

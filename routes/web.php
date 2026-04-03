@@ -48,5 +48,11 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podc
 
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/PhpServerlessProjectSponsors/Routes/phpserverlessproject_sponsors.php';
 
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PreProduction/Routes/create_episode.php';
+
+
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/dashboard.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/upload_recording.php';
+
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

@@ -11,9 +11,10 @@
 
 ## PHP Instructions
 - Use `match` operator over `switch` whenever possible.
-- Generate Enums always in `app/Enums/`, never in the root `app/` folder unless instructed otherwise.
+- PHP Enums live in an `Enums/` subfolder within their feature folder, co-located with the feature they belong to. The namespace mirrors the folder path — e.g. `MediaPlatform\Digest\Enums\` or `MediaPlatform\PodcastStudio\PostProduction\Enums\`.
 - When a database column only accepts a fixed set of values (e.g. a status column), create a PHP Enum for those values. In the migration, set the Enum's value as the column default. In the Model, cast that column to the Enum type so Laravel automatically converts it. Then use the Enum everywhere — in routes, Blade files, tests, seeds, and configs — instead of hardcoding raw strings.
 - Don't create temporary variables like `$currentUser = auth()->user()` if that variable is only used once.
+- In seeders, use the enum's backing value as a plain string (e.g. `'status' => 'published'`) rather than referencing the enum class, to avoid autoloader issues during seeding.
 
 ---
 
@@ -43,6 +44,7 @@
 - Migration paths are registered explicitly in `AppServiceProvider` — Laravel does not scan subfolders automatically.
 - Every table must have a comment using `$table->comment('...')` describing its purpose.
 - Every column must have a `->comment('...')` describing what it stores.
+- `database/migrations/media_platform/podcast_studio/management/` — podcast studio management migrations
 
 ### Helpers & Directives
 - Use Laravel helpers over facade imports: `auth()->id()` not `Auth::id()`, `redirect()->route()` not `Redirect::route()`.
@@ -63,7 +65,7 @@
 - Views: `/app/views`
 - Features: `app/app/FeatureName/Controllers|Models|Services|Requests`
 - Tests: `tests/Feature/FeatureName/`
-- Enums: `app/Enums/`
+- Enums: co-located in `Enums/` within their feature folder, e.g. `MEDIA_PLATFORM/Digest/Enums/` or `MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/`
 - Migrations: `database/migrations/language_models/` and `database/migrations/lists_and_feeds/`
 
 ---

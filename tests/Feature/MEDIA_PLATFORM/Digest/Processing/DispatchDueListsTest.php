@@ -5,7 +5,7 @@
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\Processing\Jobs\DispatchDueLists;
 use MediaPlatform\Digest\Processing\Jobs\ProcessList;
-use MediaPlatform\Enums\OutputType;
+use MediaPlatform\Digest\Enums\OutputType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;

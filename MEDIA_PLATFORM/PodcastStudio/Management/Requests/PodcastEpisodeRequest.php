@@ -3,6 +3,8 @@
 namespace MediaPlatform\PodcastStudio\Management\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
+use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 
 class PodcastEpisodeRequest extends FormRequest
 {
@@ -21,8 +23,10 @@ class PodcastEpisodeRequest extends FormRequest
     {
         return [
             // Relationships — required
-            'podcast_show_id'                  => ['required', 'integer', 'exists:podcast_shows,id'],
-            'podcast_episode_status_lookup_id' => ['required', 'integer', 'exists:podcast_episode_status_lookup,id'],
+            'podcast_show_id' => ['required', 'integer', 'exists:podcast_shows,id'],
+
+            // Status — required, must be a valid PodcastEpisodeStatus enum value
+            'status' => ['required', new Enum(PodcastEpisodeStatus::class)],
 
             // Core — required
             'title' => ['required', 'string', 'max:255'],
@@ -36,7 +40,7 @@ class PodcastEpisodeRequest extends FormRequest
             'itunes_title_tag'        => ['nullable', 'string', 'max:255'],
             'itunes_enclosure_url'    => ['nullable', 'url', 'max:255'],
             'itunes_enclosure_length' => ['nullable', 'string', 'max:255'],
-            'itunes_enclosure_type'   => ['nullable', 'string', 'max:255'],
+            'itunes_enclosure_type'   => ['nullable', 'string', 'in:audio/x-m4a,audio/mpeg,video/quicktime,video/mp4,video/x-m4v,application/pdf'],
             'itunes_guid'             => ['nullable', 'string', 'max:255'],
             'itunes_pubdate'          => ['nullable', 'date'],
             'itunes_description'      => ['nullable', 'string'],

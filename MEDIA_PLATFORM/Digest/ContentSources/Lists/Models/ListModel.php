@@ -5,7 +5,7 @@ namespace MediaPlatform\Digest\ContentSources\Lists\Models;
 use Database\Factories\Media_platform\Digest\Lists\ListModelFactory;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListSource;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
-use MediaPlatform\Enums\OutputType;
+use MediaPlatform\Digest\Enums\OutputType;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

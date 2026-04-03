@@ -45,10 +45,10 @@ MEDIA_PLATFORM/
 │   └── Services/
 ├── PodcastStudio/
 │   ├── Management/        ← active (Controllers, Models, Requests, Routes)
-│   ├── PreProduction/
-│   └── PostProduction/
+│   ├── PreProduction/     ← active (CreateEpisode wizard — Step1, Step2, Step3)
+│   └── PostProduction/    ← active (Dashboard, Enums — upload recording feature next)
 ├── PsnContentManager/     ← future development
-└── Enums/
+└── (no top-level Enums/ folder — enums are co-located within their feature)
 ```
 
 ### Namespaces
@@ -92,6 +92,14 @@ MEDIA_PLATFORM/
 - Never use `Str::slug()`
 - Always use the custom `makeSlug()` helper (preserves dots)
 
+## Enums
+- Enums are co-located within their feature folder under an `Enums/` subfolder
+- The namespace mirrors the folder path exactly
+- Examples:
+  - `MEDIA_PLATFORM/Digest/Enums/OutputType.php` → `MediaPlatform\Digest\Enums\OutputType`
+  - `MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/Bucket.php` → `MediaPlatform\PodcastStudio\PostProduction\Enums\Bucket`
+- There is no global top-level `Enums/` folder
+
 ## Seeding
 - Seeding of admin/sensitive data is gated behind `ADMIN_SEEDING_ENABLED` in `.env`
 - Checked via `config/admin.php` — seeders should read this value and bail early if it is not `true`
@@ -101,6 +109,9 @@ MEDIA_PLATFORM/
 - No modals — use dedicated confirmation pages for destructive actions
 - No bulk delete on index pages
 - Wizards used for multi-step create flows
+- Wizard step dots: each wizard has its own dedicated `_step_dots.blade.php` partial — never share step dot partials between wizards
+- Section headers in show/edit views use `<div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">` above a `border border-purple-500 rounded-lg` card
+- Informational hint text below form fields uses `<ul class="mt-3 ml-3 space-y-1 text-xs text-gray-400 list-disc list-outside pl-5">`
 
 ## Testing
 - PHPUnit class-based tests are used for all tests.
@@ -109,6 +120,31 @@ MEDIA_PLATFORM/
 - Pest does not define this constant automatically, so it is manually defined at the top of `tests/Pest.php` with `define('PHPUNIT_COMPOSER_INSTALL', true)`
 - Test namespaces mirror folder paths: Tests\Feature\MEDIA_PLATFORM\Digest\ContentSources\Youtube\
 - Note: the tests folder hierarchy does not fully mirror MEDIA_PLATFORM/
+- One test class per controller — e.g. `Step1ControllerTest`, `Step2ControllerTest`, `Step3ControllerTest`
+
+## Controller method visibility
+- Population methods in wizard Step3 controllers are `public` to allow direct unit testing of individual field population logic
+- This is intentional — do not change them to `private` or `protected`
+
+## Wizard conventions
+- Each wizard step has its own dedicated controller: `Step1Controller`, `Step2Controller`, `Step3Controller`
+- Session key pattern for wizard state: `wizard.<wizard-name>.<field>` — e.g. `wizard.create_episode.podcast_show_id`
+- The final step controller owns all population methods and the database persist
+- Population methods are named `get_field_name()` in snake_case
+- Population methods are grouped and commented by section (General, Status, iTunes, Website, etc.)
+- Section headings use `// --- SECTION NAME ---` style dividers
+- Individual method headings use the box-drawing style:
+```
+// ┌────────────────────────────────────────────────────────────────────────┐
+// │  method_name()                                                         │
+// └────────────────────────────────────────────────────────────────────────┘
+```
+- Major section headings (Population Methods, Helper Methods) use:
+```
+// ╔════════════════════════════════════════════════════════════════════════╗
+// ║  SECTION NAME                                                          ║
+// ╚════════════════════════════════════════════════════════════════════════╝
+```
 
 ## Gemini Integration
 - Client package: `gemini-php/laravel`

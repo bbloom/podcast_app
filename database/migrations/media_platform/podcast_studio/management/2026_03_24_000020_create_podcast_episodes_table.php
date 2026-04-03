@@ -13,6 +13,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 
 return new class extends Migration
 {
@@ -38,9 +39,15 @@ return new class extends Migration
                   ->cascadeOnDelete()
                   ->comment('The user who owns this episode.');
 
-            $table->foreignId('podcast_episode_status_lookup_id')
-                  ->constrained('podcast_episode_status_lookup')
-                  ->comment('The current status of this episode, e.g. Draft, Scheduled, Published.');
+            // ------------------------------------------------------------------
+            // Status
+            //
+            // see: MEDIA_PLATFORM/PodcastStudio/Management/Enums/PodcastEpisodeStatus.php
+            // ------------------------------------------------------------------
+
+            $table->string('status')
+                  ->default(PodcastEpisodeStatus::created->value)
+                  ->comment('The current status of this episode. Backed by the PodcastEpisodeStatus enum.');
 
             // ------------------------------------------------------------------
             // Core

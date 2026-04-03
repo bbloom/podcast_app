@@ -12,7 +12,7 @@ use MediaPlatform\Digest\Processing\Services\ProcessingGate;
 use MediaPlatform\Digest\Publishing\Mail\DigestMailable;
 use MediaPlatform\Digest\Publishing\Notifications\DigestEmptyNotification;
 use MediaPlatform\Digest\Publishing\Notifications\DigestReadyNotification;
-use MediaPlatform\Enums\OutputType;
+use MediaPlatform\Digest\Enums\OutputType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;

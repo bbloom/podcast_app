@@ -3,6 +3,7 @@
 namespace MediaPlatform\PodcastStudio\Management\Models;
 
 use Database\Factories\Media_platform\PodcastStudio\Management\PodcastEpisodeFactory;
+use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
 use App\Models\User;
 
@@ -26,7 +27,7 @@ class PodcastEpisode extends Model
     protected $fillable = [
         'podcast_show_id',
         'user_id',
-        'podcast_episode_status_lookup_id',
+        'status',
 
         // Core
         'title',
@@ -74,6 +75,7 @@ class PodcastEpisode extends Model
     // Type casts.
     // -------------------------------------------------------------------------
     protected $casts = [
+        'status'           => PodcastEpisodeStatus::class,
         'scheduled_date'   => 'date',
         'itunes_pubdate'   => 'datetime',
         'itunes_explicit'  => 'boolean',
@@ -109,14 +111,6 @@ class PodcastEpisode extends Model
     public function show(): BelongsTo
     {
         return $this->belongsTo(PodcastShow::class, 'podcast_show_id');
-    }
-
-    /**
-     * The status lookup record assigned to this episode.
-     */
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(PodcastEpisodeStatusLookup::class, 'podcast_episode_status_lookup_id');
     }
 
     /**

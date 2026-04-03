@@ -1,6 +1,6 @@
 <?php
 
-use MediaPlatform\Enums\OutputType;
+use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use App\Models\User;
