@@ -16,6 +16,17 @@ enum PodcastEpisodeStatus: string
     // Raw recording is uploaded — episode is ready to be submitted to Auphonic for processing.
     case ready_for_auphonic              = 'ready-for-auphonic';
 
+    // Episode has been submitted to Auphonic and is currently being processed.
+    // The Auphonic production UUID is stored on the episode record.
+    // This status is set immediately after the API call succeeds.
+    // Auphonic will call the webhook when processing is complete.
+    case processing_at_auphonic          = 'processing-at-auphonic';
+
+    // Auphonic has finished processing and called the webhook.
+    // The episode is waiting for the user to review the MP3 in the Auphonic
+    // console, or proceed directly to the next step.
+    case auphonic_complete               = 'auphonic-complete';
+
     // Auphonic processing is complete — production audio file is ready to be uploaded to S3 and R2.
     case ready_to_upload_production_file = 'ready-to-upload-production-file';
 
@@ -46,6 +57,8 @@ enum PodcastEpisodeStatus: string
             self::working_on_draft                => 'Working on Draft',
             self::ready_to_upload_recording       => 'Ready to Upload Recording to S3',
             self::ready_for_auphonic              => 'Ready for Auphonic',
+            self::processing_at_auphonic          => 'Processing at Auphonic',
+            self::auphonic_complete               => 'Auphonic Complete',
             self::ready_to_upload_production_file => 'Ready to Upload Production File to S3 & R2',
             self::ready_to_generate_rss_feed      => 'Ready to Generate RSS Feed',
             self::ready_to_upload_rss_feed        => 'Ready to Upload RSS Feed to S3 & R2',

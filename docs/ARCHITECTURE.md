@@ -41,7 +41,9 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - Post-production pipeline status is tracked via the `PodcastEpisodeStatus` enum on the `podcast_episodes.status` column
 - Cloud storage credentials live in `config/podcast_post_production.php`, read from `.env`
 - Bucket names, providers, file types, and Auphonic preset UUIDs are defined as PHP enums under `PostProduction/Enums/`
-- The first post-production feature to be built is Upload Recording to S3
+- `UploadRecording` is complete — handles pre-signed S3 PUT upload, S3 file confirmation, and status advancement to `ready_for_auphonic`
+- `AuphonicProcessing` is complete — handles S3 file verification, Auphonic submission, webhook processing, MP3 download, and clean-up; see `AuphonicProcessing/README.md` for full detail
+- The next post-production feature to be built is Upload Production File to S3 & R2
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible

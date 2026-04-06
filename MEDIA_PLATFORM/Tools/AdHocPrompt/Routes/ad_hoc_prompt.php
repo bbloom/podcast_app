@@ -10,7 +10,7 @@ Route::get('/adhocprompt',  [AdHocPromptController::class, 'index'])
     ->middleware(['auth', 'can:admin'])
     ->name('adhocprompt.index')
 ;
-Route::post('/adhocprompt', [AdHocPromptControllers::class, 'prompt'])
+Route::post('/adhocprompt', [AdHocPromptController::class, 'prompt'])
     ->middleware(['auth', 'can:admin'])
     ->name('adhocprompt.prompt')
 ;

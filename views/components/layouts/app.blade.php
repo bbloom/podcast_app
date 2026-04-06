@@ -79,7 +79,6 @@
                          class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
                         <a href="{{ route('podcast_shows.index') }}" class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Shows</a>
                         <a href="{{ route('podcast_episodes.index') }}" class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Episodes</a>
-                        @can('admin')<a href="{{ route('podcast_episode_status_lookup.index') }}" class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Episode Status</a>@endcan
                     </div>
                 </div>
 

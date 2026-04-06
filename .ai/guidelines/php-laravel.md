@@ -4,7 +4,7 @@
 - Every method should have a brief docblock comment summarising what it does.
 - Every migration table should have a `->comment()` on the table and on each column, explaining its purpose.
 - Don't add docblock comments when defining variables unless instructed, like `/** @var \App\Models\User $currentUser */`.
-- For new features, always generate Pest automated tests.
+- For new features, always generate PHPUnit class-based automated tests.
 - Never hard-code AI provider logic directly — summarisation must go through an abstracted service/interface so providers (Gemini, OpenAI, etc.) are swappable via config.
 
 ---

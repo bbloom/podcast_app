@@ -23,10 +23,12 @@
             </div>
         </div>
 
-
         {{-- Submit to Auphonic --}}
-        <div>
-            <span class="text-gray-400">Submit to Auphonic <em class="text-xs">(future development)</em></span>
+        <div class="space-y-2 mb-3">
+            <div>
+                <a href="{{ route('post_production.auphonic_processing.index') }}"
+                    class="text-blue-600 hover:underline hover:text-gray-900">Submit to Auphonic</a>
+            </div>
         </div>
 
         {{-- Upload Production File to S3 & R2 --}}

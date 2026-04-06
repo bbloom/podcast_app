@@ -1,6 +1,6 @@
 <?php 
 
-namespace MediaPlatform\PodcastStudio\PostProduction\Auphonic;
+namespace MediaPlatform\PodcastStudio\PostProduction\AuphonicProcessing\Presets;
 
 class Auphonic_preset
 {

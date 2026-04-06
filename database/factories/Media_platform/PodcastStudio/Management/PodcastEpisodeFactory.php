@@ -27,6 +27,8 @@ class PodcastEpisodeFactory extends Factory
             'user_id'         => User::factory(),
             'status'          => PodcastEpisodeStatus::created,
 
+            'auphonic_production_uuid' => null,
+
             // Core
             'title'                    => $title,
             'slug'                     => \Illuminate\Support\Str::slug($title),

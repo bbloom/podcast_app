@@ -36,6 +36,9 @@ class PodcastEpisode extends Model
         'draft',
         'raw_input_audio_filename',
 
+        // Auphonic post-production
+        'auphonic_production_uuid',
+
         // iTunes
         'itunes_title_tag',
         'itunes_enclosure_url',

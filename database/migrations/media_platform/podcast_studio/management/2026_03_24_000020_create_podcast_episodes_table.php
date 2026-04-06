@@ -28,7 +28,6 @@ return new class extends Migration
             // ------------------------------------------------------------------
             // Ownership & relationships
             // ------------------------------------------------------------------
-
             $table->foreignId('podcast_show_id')
                   ->constrained('podcast_shows')
                   ->cascadeOnDelete()
@@ -44,7 +43,6 @@ return new class extends Migration
             //
             // see: MEDIA_PLATFORM/PodcastStudio/Management/Enums/PodcastEpisodeStatus.php
             // ------------------------------------------------------------------
-
             $table->string('status')
                   ->default(PodcastEpisodeStatus::created->value)
                   ->comment('The current status of this episode. Backed by the PodcastEpisodeStatus enum.');
@@ -52,7 +50,6 @@ return new class extends Migration
             // ------------------------------------------------------------------
             // Core
             // ------------------------------------------------------------------
-
             $table->string('title')
                   ->comment('The episode title.');
 
@@ -72,10 +69,22 @@ return new class extends Migration
                   ->nullable()
                   ->comment('Filename of the raw unedited audio file before post-production.');
 
+
+            // ------------------------------------------------------------------
+            // Auphonic post-production
+            //
+            // Tracks the Auphonic production UUID assigned when a production is
+            // submitted to Auphonic for audio processing. Cleared after clean-up.
+            // ------------------------------------------------------------------
+            $table->string('auphonic_production_uuid')
+                  ->nullable()
+                  ->comment('UUID assigned by Auphonic when a production is created. Cleared after post-production clean-up.');
+
+            
+            
             // ------------------------------------------------------------------
             // iTunes / Apple Podcasts
             // ------------------------------------------------------------------
-
             $table->string('itunes_title_tag')
                   ->nullable()
                   ->comment('iTunes-specific title tag for the episode, if different from the main title.');
@@ -155,7 +164,6 @@ return new class extends Migration
             // ------------------------------------------------------------------
             // RSS feed
             // ------------------------------------------------------------------
-
             $table->boolean('rss_feed_enabled')
                   ->default(false)
                   ->comment('Master toggle for whether this episode appears in the RSS feed.');
@@ -163,7 +171,6 @@ return new class extends Migration
             // ------------------------------------------------------------------
             // Website
             // ------------------------------------------------------------------
-
             $table->text('website_content')
                   ->nullable()
                   ->comment('Full HTML content for the episode\'s page on the website.');

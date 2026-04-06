@@ -429,8 +429,15 @@
         </div>
     @endif
 
-    <div class="mt-6 text-sm">
-        <a href="{{ route('podcast_episodes.index') }}" class="hover:text-purple-700 transition">← Episodes</a>
-    </div>
 
+<div class="mt-6 flex items-center justify-between text-sm">
+    <a href="{{ route('podcast_episodes.index') }}" class="hover:text-purple-700 transition">
+        ← Episodes
+    </a>
+
+    <a href="{{ route('post_production.dashboard') }}"
+       class="bg-purple-800 hover:bg-purple-400 text-white text-sm font-bold px-5 py-2.5 rounded-lg transition">
+        Podcast Post Production Dashboard
+    </a>
+</div>
 </x-layouts.app>
