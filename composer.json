@@ -10,6 +10,7 @@
         "embed/embed": "^4.4",
         "fivefilters/readability.php": ">=3.0",
         "google-gemini-php/client": "^2.0",
+        "james-heinrich/getid3": "*",
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.0",
         "league/flysystem-sftp-v3": "^3.31"

@@ -1,208 +1,429 @@
 <?php
 
-// =============================================================================
-// SubmitController
-//
-// Handles two actions:
-//
-//   show()   — displays the episode detail page with a "Submit to Auphonic"
-//               button. Before rendering, lists the files in the episode's
-//               S3 folder and compares against the expected filename. If the
-//               file is missing, mismatched, or there are multiple files, a
-//               warning is shown instead of the Submit button.
-//
-//   submit() — receives the form POST, calls the Auphonic API to create and
-//              start a production, stores the returned UUID on the episode,
-//              advances the status to `processing_at_auphonic`, and renders
-//              the processing waiting view.
-//
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
-// =============================================================================
+namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PostProduction\AuphonicProcessing;
 
-namespace MediaPlatform\PodcastStudio\PostProduction\AuphonicProcessing\Controllers;
-
-use App\Http\Controllers\Controller;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
-use MediaPlatform\PodcastStudio\PostProduction\AuphonicProcessing\Services\AuphonicService;
+use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\CloudStorage\S3_work_in_progress_audio;
+use Tests\TestCase;
 
-class SubmitController extends Controller
+class SubmitControllerTest extends TestCase
 {
+    use RefreshDatabase;
+
     // -------------------------------------------------------------------------
-    // S3_work_in_progress_audio is injected via the constructor so Laravel's
-    // container resolves it — this allows the mock to bind correctly in tests.
-    // Direct `new` instantiation bypasses the container and makes the class
-    // impossible to mock.
+    // A fake Auphonic production UUID returned by the mocked API response.
+    // -------------------------------------------------------------------------
+    private const FAKE_PRODUCTION_UUID = 'TestAuphonicUUID1234567890';
+
+    // -------------------------------------------------------------------------
+    // The expected WAV filename — matches what Step3Controller would generate.
+    // -------------------------------------------------------------------------
+    private const EXPECTED_FILENAME = 'episode-001.wav';
+
+    // -------------------------------------------------------------------------
+    // Helper
     // -------------------------------------------------------------------------
 
     /**
-     * Inject the S3 storage helper.
+     * Create a user, show, and episode linked together with the given status.
      */
-    public function __construct(private readonly S3_work_in_progress_audio $s3Storage)
+    private function makeEpisode(PodcastEpisodeStatus $status, ?User $user = null): PodcastEpisode
     {
-        //
-    }
+        $user = $user ?? User::factory()->create();
 
-    // -------------------------------------------------------------------------
-    // S3 check status constants — passed to the view to drive conditional UI.
-    // -------------------------------------------------------------------------
+        // Use a known slug so Auphonic_preset::getPreset() and
+        // S3_work_in_progress_audio::getFolderPath() can resolve it.
+        $show = PodcastShow::factory()->create([
+            'user_id' => $user->id,
+            'slug'    => 'bob-bloom-show',
+        ]);
 
-    // The expected file is present and is the only file in the folder.
-    public const S3_STATUS_MATCH    = 'match';
-
-    // A file is present but its name does not match raw_input_audio_filename.
-    public const S3_STATUS_MISMATCH = 'mismatch';
-
-    // More than one file is present in the folder — ambiguous, cannot confirm.
-    public const S3_STATUS_MULTIPLE = 'multiple';
-
-    // No files found in the folder at all.
-    public const S3_STATUS_EMPTY    = 'empty';
-
-    // ┌────────────────────────────────────────────────────────────────────────┐
-    // │  show()                                                                │
-    // └────────────────────────────────────────────────────────────────────────┘
-
-    /**
-     * Display the episode detail page with a "Submit to Auphonic" button.
-     *
-     * Before rendering, lists the files in the episode's S3 folder and
-     * compares against the expected filename (raw_input_audio_filename).
-     * The result is passed to the view as $s3Status, which controls whether
-     * the Submit button or a warning panel is shown.
-     *
-     * If the episode is already `processing_at_auphonic`, the processing
-     * waiting view is rendered instead. If Auphonic has already completed,
-     * the user is redirected to the complete page.
-     *
-     * Ownership is enforced — redirects with an error if the episode belongs
-     * to another user.
-     */
-    public function show(PodcastEpisode $podcastEpisode): View|RedirectResponse
-    {
-        if ($podcastEpisode->user_id !== auth()->id()) {
-            return redirect()
-                ->route('post_production.auphonic_processing.index')
-                ->with('error', 'You do not have permission to access that episode.');
-        }
-
-        // If somehow the episode is already processing, show the waiting screen.
-        if ($podcastEpisode->status === PodcastEpisodeStatus::processing_at_auphonic) {
-            return view('media_platform.podcast_studio.post_production.auphonic_processing.processing', [
-                'episode' => $podcastEpisode,
-            ]);
-        }
-
-        // If Auphonic has already completed (webhook already fired), redirect
-        // to the complete view so the user can act on it.
-        if ($podcastEpisode->status === PodcastEpisodeStatus::auphonic_complete) {
-            return redirect()->route('post_production.auphonic_processing.complete', $podcastEpisode);
-        }
-
-        // ── S3 file check ─────────────────────────────────────────────────────
-        // List what is actually in the show's S3 folder and compare against
-        // the expected filename stored on the episode record. The result drives
-        // the conditional UI in the view.
-        $filesInS3  = $this->s3Storage->listFiles($podcastEpisode->show->slug);
-        $consoleUrl = $this->s3Storage->buildConsoleUrl($podcastEpisode->show->slug);
-        $expected   = $podcastEpisode->raw_input_audio_filename;
-
-        $s3Status = match(true) {
-            count($filesInS3) === 0                                => self::S3_STATUS_EMPTY,
-            count($filesInS3) > 1                                  => self::S3_STATUS_MULTIPLE,
-            count($filesInS3) === 1 && $filesInS3[0] === $expected => self::S3_STATUS_MATCH,
-            default                                                => self::S3_STATUS_MISMATCH,
-        };
-
-        return view('media_platform.podcast_studio.post_production.auphonic_processing.show', [
-            'episode'    => $podcastEpisode,
-            's3Status'   => $s3Status,
-            'filesInS3'  => $filesInS3,
-            'consoleUrl' => $consoleUrl,
+        return PodcastEpisode::factory()->create([
+            'user_id'                  => $user->id,
+            'podcast_show_id'          => $show->id,
+            'status'                   => $status,
+            'raw_input_audio_filename' => self::EXPECTED_FILENAME,
         ]);
     }
 
-    // ┌────────────────────────────────────────────────────────────────────────┐
-    // │  submit()                                                              │
-    // └────────────────────────────────────────────────────────────────────────┘
+    /**
+     * Mock S3_work_in_progress_audio::listFiles() to return a matching file.
+     * Used in show() tests where we want the happy-path S3 check.
+     */
+    private function fakeS3Match(): void
+    {
+        $this->mock(S3_work_in_progress_audio::class, function ($mock) {
+            $mock->shouldReceive('listFiles')->andReturn([self::EXPECTED_FILENAME]);
+            $mock->shouldReceive('buildConsoleUrl')->andReturn('https://s3.console.aws.amazon.com/s3/buckets/podcast-work-in-progress');
+            $mock->shouldReceive('getFolderPath')->andReturn('bobbloomshow/raw_input_files/');
+            $mock->shouldReceive('getBucket')->andReturn('podcast-work-in-progress');
+        });
+    }
 
     /**
-     * Submit the episode to Auphonic for processing.
-     *
-     * Steps:
-     *   1. Ownership check.
-     *   2. Guard against double-submission.
-     *   3. Call the Auphonic API (create + start production in one request).
-     *   4. On success: store the production UUID, advance status, show waiting view.
-     *   5. On failure: redirect back with a descriptive error message.
-     *
-     * Ownership is enforced — redirects with an error if the episode belongs
-     * to another user.
+     * Fake a successful Auphonic API response.
      */
-    public function submit(PodcastEpisode $podcastEpisode, AuphonicService $auphonic): RedirectResponse|View
+    private function fakeAuphonicSuccess(): void
     {
-        if ($podcastEpisode->user_id !== auth()->id()) {
-            return redirect()
-                ->route('post_production.auphonic_processing.index')
-                ->with('error', 'You do not have permission to access that episode.');
-        }
+        Http::fake([
+            '*auphonic.com/api/productions.json' => Http::response([
+                'status_code'   => 200,
+                'error_message' => '',
+                'data'          => [
+                    'uuid' => self::FAKE_PRODUCTION_UUID,
+                ],
+            ], 200),
+        ]);
+    }
 
-        // Guard: prevent double-submission if the episode is already processing.
-        if ($podcastEpisode->status === PodcastEpisodeStatus::processing_at_auphonic) {
-            return view('media_platform.podcast_studio.post_production.auphonic_processing.processing', [
-                'episode' => $podcastEpisode,
-            ]);
-        }
+    /**
+     * Fake a failed Auphonic API response.
+     */
+    private function fakeAuphonicError(string $message = 'URL does not exist.'): void
+    {
+        Http::fake([
+            '*auphonic.com/api/productions.json' => Http::response([
+                'status_code'   => 400,
+                'error_message' => $message,
+                'data'          => [],
+            ], 400),
+        ]);
+    }
 
-        // Guard: only allow submission from `ready_for_auphonic` status.
-        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_for_auphonic) {
-            return redirect()
-                ->route('post_production.auphonic_processing.index')
-                ->with('error', 'Episode "' . $podcastEpisode->title . '" is not ready for Auphonic submission.');
-        }
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  SHOW — S3 CHECK                                                       ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
 
-        // ── Call the Auphonic API ─────────────────────────────────────────────
-        try {
-            $response = $auphonic->submitProduction($podcastEpisode);
-        } catch (\Throwable $e) {
-            // Network-level failure (connection refused, DNS failure, timeout, etc.)
-            return redirect()
-                ->route('post_production.auphonic_processing.show', $podcastEpisode)
-                ->with('error', 'Could not reach the Auphonic API. Please check your connection and try again. Error: ' . $e->getMessage());
-        }
+    /**
+     * Show renders the Submit button when S3 contains the expected file.
+     */
+    public function test_show_renders_submit_button_when_s3_file_matches(): void
+    {
+        $this->fakeS3Match();
 
-        // ── Handle API error responses ────────────────────────────────────────
-        if ($response->failed()) {
-            $body        = $response->json();
-            $errorDetail = $body['error_message'] ?? ('HTTP ' . $response->status());
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
 
-            return redirect()
-                ->route('post_production.auphonic_processing.show', $podcastEpisode)
-                ->with('error', "Auphonic returned an error: {$errorDetail}. Please check the filename in S3 and try again.");
-        }
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('Submit to Auphonic')
+            ->assertSee('confirmed in S3');
+    }
 
-        // ── Extract the Auphonic production UUID ──────────────────────────────
-        $body                   = $response->json();
-        $auphonicProductionUuid = $body['data']['uuid'] ?? null;
+    /**
+     * Show hides the Submit button and shows a warning when S3 is empty.
+     */
+    public function test_show_shows_warning_when_s3_is_empty(): void
+    {
+        $this->mock(S3_work_in_progress_audio::class, function ($mock) {
+            $mock->shouldReceive('listFiles')->andReturn([]);
+            $mock->shouldReceive('buildConsoleUrl')->andReturn('https://s3.console.aws.amazon.com/s3/buckets/podcast-work-in-progress');
+            $mock->shouldReceive('getFolderPath')->andReturn('bobbloomshow/raw_input_files/');
+            $mock->shouldReceive('getBucket')->andReturn('podcast-work-in-progress');
+        });
 
-        if (! $auphonicProductionUuid) {
-            return redirect()
-                ->route('post_production.auphonic_processing.show', $podcastEpisode)
-                ->with('error', 'Auphonic did not return a production UUID. The submission may have failed. Please try again.');
-        }
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
 
-        // ── Persist the UUID and advance the status ───────────────────────────
-        $podcastEpisode->update([
-            'auphonic_production_uuid' => $auphonicProductionUuid,
-            'status'                   => PodcastEpisodeStatus::processing_at_auphonic,
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('No recording file was found in S3')
+            ->assertDontSee('post_production.auphonic_processing.submit');
+    }
+
+    /**
+     * Show hides the Submit button and shows a warning when S3 has a mismatched file.
+     */
+    public function test_show_shows_warning_when_s3_file_mismatches(): void
+    {
+        $this->mock(S3_work_in_progress_audio::class, function ($mock) {
+            $mock->shouldReceive('listFiles')->andReturn(['wrong-episode.wav']);
+            $mock->shouldReceive('buildConsoleUrl')->andReturn('https://s3.console.aws.amazon.com/s3/buckets/podcast-work-in-progress');
+            $mock->shouldReceive('getFolderPath')->andReturn('bobbloomshow/raw_input_files/');
+            $mock->shouldReceive('getBucket')->andReturn('podcast-work-in-progress');
+        });
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('does not match the expected recording')
+            ->assertSee('wrong-episode.wav')
+            ->assertDontSee('post_production.auphonic_processing.submit');
+    }
+
+    /**
+     * Show hides the Submit button and shows a warning when multiple files are in S3.
+     */
+    public function test_show_shows_warning_when_multiple_s3_files_found(): void
+    {
+        $this->mock(S3_work_in_progress_audio::class, function ($mock) {
+            $mock->shouldReceive('listFiles')->andReturn(['episode-001.wav', 'episode-002.wav']);
+            $mock->shouldReceive('buildConsoleUrl')->andReturn('https://s3.console.aws.amazon.com/s3/buckets/podcast-work-in-progress');
+            $mock->shouldReceive('getFolderPath')->andReturn('bobbloomshow/raw_input_files/');
+            $mock->shouldReceive('getBucket')->andReturn('podcast-work-in-progress');
+        });
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('Multiple files were found in S3')
+            ->assertDontSee('post_production.auphonic_processing.submit');
+    }
+
+    /**
+     * Show includes the AWS console link in all non-match states.
+     */
+    public function test_show_includes_aws_console_link_when_s3_check_fails(): void
+    {
+        $this->mock(S3_work_in_progress_audio::class, function ($mock) {
+            $mock->shouldReceive('listFiles')->andReturn([]);
+            $mock->shouldReceive('buildConsoleUrl')->andReturn('https://s3.console.aws.amazon.com/s3/buckets/podcast-work-in-progress');
+            $mock->shouldReceive('getFolderPath')->andReturn('bobbloomshow/raw_input_files/');
+            $mock->shouldReceive('getBucket')->andReturn('podcast-work-in-progress');
+        });
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('s3.console.aws.amazon.com');
+    }
+
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  SHOW — EXISTING BEHAVIOUR                                             ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    /**
+     * Show returns 200 for the episode owner when status is ready_for_auphonic.
+     */
+    public function test_show_returns_200_for_correct_owner(): void
+    {
+        $this->fakeS3Match();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee($episode->title);
+    }
+
+    /**
+     * Show redirects with an error when the episode belongs to another user.
+     */
+    public function test_show_returns_403_for_wrong_owner(): void
+    {
+        $user    = User::factory()->create();
+        $other   = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $other);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.index'))
+            ->assertSessionHas('error');
+    }
+
+    /**
+     * Show renders the processing view when the episode is already processing.
+     */
+    public function test_show_renders_processing_view_when_already_processing(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::processing_at_auphonic, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertOk()
+            ->assertSee('Processing at Auphonic');
+    }
+
+    /**
+     * Show redirects to the complete page when status is auphonic_complete.
+     */
+    public function test_show_redirects_to_complete_when_auphonic_complete(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::auphonic_complete, $user);
+
+        $this->actingAs($user)
+            ->get(route('post_production.auphonic_processing.show', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.complete', $episode));
+    }
+
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  SUBMIT                                                                ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    /**
+     * Submit calls the Auphonic API and stores the production UUID on the episode.
+     */
+    public function test_submit_stores_auphonic_production_uuid(): void
+    {
+        $this->fakeAuphonicSuccess();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode));
+
+        $this->assertDatabaseHas('podcast_episodes', [
+            'id'                       => $episode->id,
+            'auphonic_production_uuid' => self::FAKE_PRODUCTION_UUID,
+        ]);
+    }
+
+    /**
+     * Submit advances the episode status to processing_at_auphonic.
+     */
+    public function test_submit_advances_status_to_processing_at_auphonic(): void
+    {
+        $this->fakeAuphonicSuccess();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode));
+
+        $this->assertDatabaseHas('podcast_episodes', [
+            'id'     => $episode->id,
+            'status' => PodcastEpisodeStatus::processing_at_auphonic->value,
+        ]);
+    }
+
+    /**
+     * Submit renders the processing view on success.
+     */
+    public function test_submit_renders_processing_view_on_success(): void
+    {
+        $this->fakeAuphonicSuccess();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertOk()
+            ->assertSee('Processing at Auphonic');
+    }
+
+    /**
+     * Submit redirects with an error when the episode belongs to another user.
+     */
+    public function test_submit_returns_403_for_wrong_owner(): void
+    {
+        $user    = User::factory()->create();
+        $other   = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $other);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.index'))
+            ->assertSessionHas('error');
+    }
+
+    /**
+     * Submit redirects with an error when the episode has the wrong status.
+     */
+    public function test_submit_redirects_with_error_for_wrong_status(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_to_upload_recording, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.index'))
+            ->assertSessionHas('error');
+    }
+
+    /**
+     * Submit renders the processing view without a new API call when already processing.
+     */
+    public function test_submit_renders_processing_view_without_api_call_when_already_processing(): void
+    {
+        Http::fake();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::processing_at_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertOk()
+            ->assertSee('Processing at Auphonic');
+
+        Http::assertNothingSent();
+    }
+
+    /**
+     * Submit redirects with an error when Auphonic returns a non-success response.
+     */
+    public function test_submit_redirects_with_error_when_auphonic_returns_error(): void
+    {
+        $this->fakeAuphonicError('URL does not exist.');
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.show', $episode))
+            ->assertSessionHas('error');
+    }
+
+    /**
+     * Submit does not advance the status when Auphonic returns an error.
+     */
+    public function test_submit_does_not_advance_status_when_auphonic_returns_error(): void
+    {
+        $this->fakeAuphonicError();
+
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode));
+
+        $this->assertDatabaseHas('podcast_episodes', [
+            'id'     => $episode->id,
+            'status' => PodcastEpisodeStatus::ready_for_auphonic->value,
+        ]);
+    }
+
+    /**
+     * Submit redirects with an error when Auphonic response contains no UUID.
+     */
+    public function test_submit_redirects_with_error_when_uuid_missing_from_response(): void
+    {
+        Http::fake([
+            '*auphonic.com/api/productions.json' => Http::response([
+                'status_code' => 200,
+                'data'        => [],
+            ], 200),
         ]);
 
-        // ── Render the waiting screen ─────────────────────────────────────────
-        return view('media_platform.podcast_studio.post_production.auphonic_processing.processing', [
-            'episode' => $podcastEpisode->fresh(),
-        ]);
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::ready_for_auphonic, $user);
+
+        $this->actingAs($user)
+            ->post(route('post_production.auphonic_processing.submit', $episode))
+            ->assertRedirect(route('post_production.auphonic_processing.show', $episode))
+            ->assertSessionHas('error');
     }
 }

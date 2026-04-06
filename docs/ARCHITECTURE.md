@@ -43,7 +43,10 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - Bucket names, providers, file types, and Auphonic preset UUIDs are defined as PHP enums under `PostProduction/Enums/`
 - `UploadRecording` is complete — handles pre-signed S3 PUT upload, S3 file confirmation, and status advancement to `ready_for_auphonic`
 - `AuphonicProcessing` is complete — handles S3 file verification, Auphonic submission, webhook processing, MP3 download, and clean-up; see `AuphonicProcessing/README.md` for full detail
-- The next post-production feature to be built is Upload Production File to S3 & R2
+- `UploadRecording` is complete — handles pre-signed S3 PUT upload, S3 file confirmation, and status advancement to `ready_for_auphonic`
+- `AuphonicProcessing` is complete — handles S3 file verification, Auphonic submission, webhook processing, MP3 download, and clean-up; see `AuphonicProcessing/README.md` for full detail
+- `UploadProductionAudio` is complete — handles the two-path MP3 upload (Auphonic download or manual upload from local machine), getID3 metadata extraction, S3 and R2 upload, and clean-up; see `UploadProductionAudio/README.md` for full detail
+- The next post-production feature to be built is Generate RSS Feed File
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible

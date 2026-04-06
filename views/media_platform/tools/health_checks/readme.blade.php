@@ -92,6 +92,22 @@
                     <td>Disk space critical</td>
                     <td>Free up space immediately — clean logs, temp files, or increase disk size.</td>
                 </tr>
+                <tr>
+                    <td>PHP upload_max_filesize too low</td>
+                    <td>Update <code>upload_max_filesize</code> to at least <code>600M</code> in your <code>php.ini</code> or FrankenPHP config and restart the server.</td>
+                </tr>
+                <tr>
+                    <td>PHP post_max_size too low</td>
+                    <td>Update <code>post_max_size</code> to at least <code>600M</code> in your <code>php.ini</code> or FrankenPHP config and restart the server.</td>
+                </tr>
+                <tr>
+                    <td>PHP memory_limit too low</td>
+                    <td>Update <code>memory_limit</code> to at least <code>1G</code> in your <code>php.ini</code> or FrankenPHP config and restart the server.</td>
+                </tr>
+                <tr>
+                    <td>PHP max_execution_time too low</td>
+                    <td>Update <code>max_execution_time</code> to at least <code>300</code> in your <code>php.ini</code> or FrankenPHP config and restart the server.</td>
+                </tr>
             </tbody>
         </table>
 
@@ -124,6 +140,10 @@
                 <tr><td>Database</td><td>Runs <code>SELECT 1</code></td><td>Tier 3</td></tr>
                 <tr><td>Queue</td><td>Verifies the queue driver is connected</td><td>Tier 3</td></tr>
                 <tr><td>Disk space</td><td>Checks free space on the server</td><td>Tier 2/3</td></tr>
+                <tr><td>PHP upload_max_filesize</td><td>Checks value is at least 500M</td><td>Tier 3</td></tr>
+                <tr><td>PHP post_max_size</td><td>Checks value is at least 500M</td><td>Tier 3</td></tr>
+                <tr><td>PHP memory_limit</td><td>Checks value is at least 1G (0 or -1 = unlimited = pass)</td><td>Tier 3</td></tr>
+                <tr><td>PHP max_execution_time</td><td>Checks value is at least 300s (0 = unlimited = pass)</td><td>Tier 3</td></tr>
             </tbody>
         </table>
 

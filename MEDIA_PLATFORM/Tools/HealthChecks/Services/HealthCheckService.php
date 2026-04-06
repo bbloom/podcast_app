@@ -14,6 +14,16 @@ class HealthCheckService
 {
     private const USE_CASE_SLUG = 'digest-processing';
 
+    // -------------------------------------------------------------------------
+    // Minimum thresholds for PHP upload-related ini settings.
+    // These reflect the requirements of the podcast post-production pipeline,
+    // where WAV and MP3 files can reach 500 MB or more.
+    // -------------------------------------------------------------------------
+    private const MIN_UPLOAD_BYTES     = 524_288_000; // 500 MB in bytes
+    private const MIN_POST_BYTES       = 524_288_000; // 500 MB in bytes
+    private const MIN_MEMORY_BYTES     = 1_073_741_824; // 1 GB in bytes
+    private const MIN_EXECUTION_SECS   = 300;           // 5 minutes
+
     private AlertService $alertService;
     private LlmService $llmService;
     private array $results = [];
@@ -40,6 +50,7 @@ class HealthCheckService
         $this->checkPythonScript();
         $this->checkPythonDependencies();
         $this->checkDiskSpace();
+        $this->checkPhpUploadLimits();
 
         $this->alertService->sendPendingNotifications();
 
@@ -170,7 +181,7 @@ class HealthCheckService
             ]);
 
             if ($response->status() === 403) {
-                $body = $response->json();
+                $body   = $response->json();
                 $reason = $body['error']['errors'][0]['reason'] ?? 'unknown';
 
                 if ($reason === 'quotaExceeded') {
@@ -230,7 +241,7 @@ class HealthCheckService
     {
         try {
             $freeBytes = disk_free_space('/');
-            $freeMb = round($freeBytes / 1024 / 1024);
+            $freeMb    = round($freeBytes / 1024 / 1024);
 
             if ($freeMb > 500) {
                 $this->pass('disk_space', 'infrastructure', "Disk space OK ({$freeMb} MB free)");
@@ -244,6 +255,85 @@ class HealthCheckService
         } catch (\Throwable $e) {
             $this->fail(2, 'infrastructure', 'Cannot check disk space',
                 'disk_free_space() failed. Error: ' . $e->getMessage());
+        }
+    }
+
+    // ┌────────────────────────────────────────────────────────────────────────┐
+    // │  checkPhpUploadLimits()                                                │
+    // └────────────────────────────────────────────────────────────────────────┘
+
+    /**
+     * Check that PHP ini settings are sufficient for large podcast file uploads.
+     *
+     * The podcast post-production pipeline handles WAV and MP3 files that can
+     * reach 500 MB or more. Four ini settings must be configured generously:
+     *
+     *   - upload_max_filesize  — max size of a single uploaded file
+     *   - post_max_size        — max size of an entire POST request body
+     *   - memory_limit         — PHP memory available during the request
+     *   - max_execution_time   — max seconds before PHP kills the request
+     *                            (0 = unlimited, which is acceptable)
+     *
+     * All four are Tier 3 — if any are too low, large file uploads will fail
+     * silently or mid-transfer, which is confusing and unrecoverable without
+     * a config fix.
+     *
+     * Configure these in your Docker php.ini or FrankenPHP configuration.
+     */
+    private function checkPhpUploadLimits(): void
+    {
+        // ── upload_max_filesize ───────────────────────────────────────────────
+        $uploadMaxBytes = $this->iniToBytes(ini_get('upload_max_filesize'));
+        $uploadMaxHuman = ini_get('upload_max_filesize');
+
+        if ($uploadMaxBytes >= self::MIN_UPLOAD_BYTES) {
+            $this->pass('php_upload_max_filesize', 'infrastructure',
+                "upload_max_filesize OK ({$uploadMaxHuman})");
+        } else {
+            $this->fail(3, 'infrastructure', 'PHP upload_max_filesize too low',
+                "Current value: {$uploadMaxHuman}. Must be at least 500M for podcast file uploads. " .
+                "Update upload_max_filesize in your php.ini or FrankenPHP config and restart the server.");
+        }
+
+        // ── post_max_size ─────────────────────────────────────────────────────
+        $postMaxBytes = $this->iniToBytes(ini_get('post_max_size'));
+        $postMaxHuman = ini_get('post_max_size');
+
+        if ($postMaxBytes >= self::MIN_POST_BYTES) {
+            $this->pass('php_post_max_size', 'infrastructure',
+                "post_max_size OK ({$postMaxHuman})");
+        } else {
+            $this->fail(3, 'infrastructure', 'PHP post_max_size too low',
+                "Current value: {$postMaxHuman}. Must be at least 500M for podcast file uploads. " .
+                "Update post_max_size in your php.ini or FrankenPHP config and restart the server.");
+        }
+
+        // ── memory_limit ──────────────────────────────────────────────────────
+        $memoryLimitBytes = $this->iniToBytes(ini_get('memory_limit'));
+        $memoryLimitHuman = ini_get('memory_limit');
+
+        // -1 means unlimited — treat as a pass.
+        if ($memoryLimitBytes === -1 || $memoryLimitBytes >= self::MIN_MEMORY_BYTES) {
+            $this->pass('php_memory_limit', 'infrastructure',
+                "memory_limit OK ({$memoryLimitHuman})");
+        } else {
+            $this->fail(3, 'infrastructure', 'PHP memory_limit too low',
+                "Current value: {$memoryLimitHuman}. Must be at least 1G for large podcast file uploads. " .
+                "Update memory_limit in your php.ini or FrankenPHP config and restart the server.");
+        }
+
+        // ── max_execution_time ────────────────────────────────────────────────
+        $maxExecution = (int) ini_get('max_execution_time');
+
+        // 0 means unlimited — treat as a pass.
+        if ($maxExecution === 0 || $maxExecution >= self::MIN_EXECUTION_SECS) {
+            $label = $maxExecution === 0 ? 'unlimited' : "{$maxExecution}s";
+            $this->pass('php_max_execution_time', 'infrastructure',
+                "max_execution_time OK ({$label})");
+        } else {
+            $this->fail(3, 'infrastructure', 'PHP max_execution_time too low',
+                "Current value: {$maxExecution}s. Must be at least 300 seconds (5 minutes) for large podcast file uploads. " .
+                "Update max_execution_time in your php.ini or FrankenPHP config and restart the server.");
         }
     }
 
@@ -273,5 +363,37 @@ class HealthCheckService
 
         AdminAlert::raiseIfNew($tier, $category, $title, $message);
         Log::warning("HealthCheck FAIL (Tier {$tier}): {$title} — {$message}");
+    }
+
+    // ┌────────────────────────────────────────────────────────────────────────┐
+    // │  iniToBytes()                                                          │
+    // └────────────────────────────────────────────────────────────────────────┘
+
+    /**
+     * Converts a PHP ini shorthand value (e.g. "2M", "512K", "1G") to bytes.
+     *
+     * Returns -1 if the value is "-1" (unlimited).
+     * PHP's shorthand suffixes: K = kilobytes, M = megabytes, G = gigabytes.
+     *
+     * @param  string  $value  Raw ini value, e.g. "500M"
+     * @return int  Value in bytes, or -1 for unlimited.
+     */
+    public function iniToBytes(string $value): int
+    {
+        $value = trim($value);
+
+        if ($value === '-1') {
+            return -1;
+        }
+
+        $suffix = strtoupper(substr($value, -1));
+        $number = (int) $value;
+
+        return match ($suffix) {
+            'G'     => $number * 1_073_741_824,
+            'M'     => $number * 1_048_576,
+            'K'     => $number * 1_024,
+            default => $number,
+        };
     }
 }

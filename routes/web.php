@@ -53,6 +53,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PreProduction/Routes/c
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/dashboard.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/upload_recording.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/auphonic_processing.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/upload_production_audio.php';
 
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

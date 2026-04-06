@@ -32,8 +32,11 @@
         </div>
 
         {{-- Upload Production File to S3 & R2 --}}
-        <div>
-            <span class="text-gray-400">Upload Production File to S3 &amp; R2 <em class="text-xs">(future development)</em></span>
+        <div class="space-y-2 mb-3">
+            <div>
+                <a href="{{ route('post_production.upload_production_audio.index') }}"
+                    class="text-blue-600 hover:underline hover:text-gray-900">Upload the Production Audio File</a>
+            </div>
         </div>
 
         {{-- Generate RSS Feed --}}
