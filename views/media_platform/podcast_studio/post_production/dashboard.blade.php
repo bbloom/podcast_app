@@ -40,17 +40,24 @@
         </div>
 
         {{-- Generate RSS Feed --}}
-        <a href="{{ route('post_production.generate_rss_feed.index') }}"
-            class="text-blue-600 hover:underline hover:text-gray-900">Generate RSS Feed File</a>
+        <div class="space-y-2 mb-3">
+            <div>
+                <a href="{{ route('post_production.generate_rss_feed.index') }}"
+                    class="text-blue-600 hover:underline hover:text-gray-900">Generate RSS Feed File</a>
+            </div>
+        </div>
 
         {{-- Upload RSS Feed to S3 & R2 --}}
-        <div>
-            <span class="text-gray-400">Upload RSS Feed to S3 &amp; R2 <em class="text-xs">(future development)</em></span>
+        <div class="space-y-2 mb-3">
+            <div>
+                <span class="text-gray-400">Upload RSS Feed to S3 &amp; R2 <em class="text-xs">(future development)</em></span>
+            </div>
         </div>
 
         {{-- Publish on Website --}}
         <div>
-            <span class="text-gray-400">Publish on Website <em class="text-xs">(future development)</em></span>
+            <a href="{{ route('post_production.publish_on_website.index') }}"
+                class="text-blue-600 hover:underline hover:text-gray-900">Publish on Website</a>
         </div>
 
     </div>
