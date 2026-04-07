@@ -56,6 +56,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/upload_production_audio.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/generate_rss_feed.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/publish_on_website.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/regenerate_rss_feed.php';
 
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

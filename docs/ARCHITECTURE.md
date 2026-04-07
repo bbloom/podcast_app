@@ -46,6 +46,7 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - `UploadProductionAudio` is complete — handles the two-path MP3 upload (Auphonic download or manual upload from local machine), getID3 metadata extraction, S3 and R2 upload, and clean-up; see `UploadProductionAudio/README.md` for full detail
 - `GenerateRssFeed` is complete — generates the RSS XML feed, validates it, uploads to staging for external validation, promotes to live S3 and R2, and advances the episode status to `ready_to_publish`; see `GenerateRssFeed/README.md` for full detail
 - `PublishOnWebsite` is complete — sets `website_enabled = true` and advances the episode status to `published`; the final step in the post-production pipeline
+- `RegenerateRssFeed` is complete — a show-level maintenance flow that rebuilds the entire RSS feed from all eligible episodes, uploads to staging for external validation, and promotes to live S3 and R2; operates independently of any episode's pipeline status
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible

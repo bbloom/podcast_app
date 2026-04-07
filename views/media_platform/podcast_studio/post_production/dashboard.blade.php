@@ -62,4 +62,22 @@
 
     </div>
 
+    {{-- ================================================================ --}}
+    {{-- MAINTENANCE                                                       --}}
+    {{-- ================================================================ --}}
+    <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Maintenance</div>
+    <div class="border border-purple-500 rounded-lg p-6 mb-8 space-y-4">
+
+        {{-- Regenerate RSS Feed --}}
+        <div>
+            <a href="{{ route('post_production.regenerate_rss_feed.index') }}"
+                class="text-blue-600 hover:underline hover:text-gray-900">Regenerate RSS Feed</a>
+            <p class="mt-1 text-xs text-gray-400">
+                Rebuild and republish the RSS feed for any show — independent of the episode pipeline.
+            </p>
+        </div>
+
+    </div>
+
+
 </x-layouts.app>
