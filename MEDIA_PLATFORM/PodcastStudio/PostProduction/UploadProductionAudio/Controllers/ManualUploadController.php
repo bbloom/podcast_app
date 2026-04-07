@@ -11,7 +11,7 @@
 // If the wrong file is uploaded, the user is redirected back with a message
 // telling them exactly which filename is expected.
 //
-// On success the file is saved to storage_path('podcasts/{filename}'), which
+// On success the file is saved to storage_path('appp/podcasts/{filename}'), which
 // is the same location used by the Auphonic download. From this point on,
 // the UploadToStorageController handles the rest of the pipeline identically
 // regardless of how the file arrived on the server.
@@ -75,7 +75,7 @@ class ManualUploadController extends Controller
      * episode's raw_input_audio_filename. If the filename is wrong, redirects
      * back with a message specifying the expected filename.
      *
-     * On success, saves the file to storage_path('podcasts/{expectedFilename}')
+     * On success, saves the file to storage_path('app/podcasts/{expectedFilename}')
      * and redirects to the upload-to-storage step.
      */
     public function store(PodcastEpisode $podcastEpisode, Request $request): RedirectResponse
@@ -113,9 +113,9 @@ class ManualUploadController extends Controller
                 ->with('error', 'Wrong file uploaded. The filename does not match. Please upload: ' . $expectedFilename);
         }
 
-        // ── Save the file to storage_path('podcasts/') ────────────────────────
+        // ── Save the file to storage_path('app/podcasts/') ────────────────────────
         // The destination directory is created automatically if it does not exist.
-        $destinationDir = storage_path('podcasts');
+        $destinationDir = storage_path('app/podcasts');
 
         if (! is_dir($destinationDir)) {
             mkdir($destinationDir, 0755, recursive: true);

@@ -123,7 +123,7 @@ class AuphonicService
      * the /api/ path as a fallback. Auphonic has historically served downloads
      * from both, but the availability of each has varied over time.
      *
-     * The file is saved to storage_path('podcasts/{filename}'). The directory
+     * The file is saved to storage_path('app/podcasts/{filename}'). The directory
      * is created automatically if it does not exist.
      *
      * Returns the absolute local path to the saved file on success.
@@ -141,7 +141,7 @@ class AuphonicService
         $apiKey       = config('podcast_post_production.auphonic.api_key');
 
         // ── Ensure the destination directory exists ───────────────────────────
-        $destinationDir = storage_path('podcasts');
+        $destinationDir = storage_path('app/podcasts');
 
         if (! is_dir($destinationDir)) {
             mkdir($destinationDir, 0755, recursive: true);

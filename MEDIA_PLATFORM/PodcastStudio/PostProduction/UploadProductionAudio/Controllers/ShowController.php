@@ -6,9 +6,9 @@
 // Displays the decision page for a specific episode.
 //
 // The user must decide whether the production MP3 is already on the server
-// (in storage_path('podcasts/')) or still on their local machine.
+// (in storage_path('app/podcasts/')) or still on their local machine.
 //
-// For admin users, a list of files currently in storage_path('podcasts/') is
+// For admin users, a list of files currently in storage_path('app/podcasts/') is
 // displayed as a convenience — filenames, sizes, and modified timestamps.
 // This list is informational only. Because files are not scoped per user,
 // the admin makes the Yes/No decision manually.
@@ -36,7 +36,7 @@ class ShowController extends Controller
      * Display the decision page for the given episode.
      *
      * Checks ownership and status, then builds the file listing from
-     * storage_path('podcasts/') for display to admin users.
+     * storage_path('app/podcasts/') for display to admin users.
      */
     public function __invoke(PodcastEpisode $podcastEpisode): View|RedirectResponse
     {
@@ -55,7 +55,7 @@ class ShowController extends Controller
         }
 
         // ── Build file listing for admin users ────────────────────────────────
-        // Lists all files in storage_path('podcasts/'). This cannot be scoped
+        // Lists all files in storage_path('app/podcasts/'). This cannot be scoped
         // per user — the listing is for convenience only. The admin decides
         // manually whether their file is present.
         $serverFiles = $this->getServerFiles();
@@ -79,7 +79,7 @@ class ShowController extends Controller
     // └────────────────────────────────────────────────────────────────────────┘
 
     /**
-     * Returns an array of file metadata for all files in storage_path('podcasts/').
+     * Returns an array of file metadata for all files in storage_path('app/podcasts/').
      *
      * Each entry contains:
      *   - name     (string)  — the filename
@@ -90,7 +90,7 @@ class ShowController extends Controller
      */
     private function getServerFiles(): array
     {
-        $dir = storage_path('podcasts');
+        $dir = storage_path('app/podcasts');
 
         if (! is_dir($dir)) {
             return [];

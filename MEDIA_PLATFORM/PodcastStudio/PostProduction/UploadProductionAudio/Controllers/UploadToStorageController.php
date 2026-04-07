@@ -9,12 +9,12 @@
 //
 // This controller is reached from two paths:
 //   1. The happy path — the MP3 was downloaded from Auphonic automatically
-//      and is already in storage_path('podcasts/').
+//      and is already in storage_path('app/podcasts/').
 //   2. The manual upload path — the user uploaded the file from their local
 //      machine via ManualUploadController, which saved it to the same location.
 //
 // In both cases this controller behaves identically — it simply expects the
-// file to exist at storage_path('podcasts/{expectedFilename}').
+// file to exist at storage_path('app/podcasts/{expectedFilename}').
 //
 // Steps performed:
 //   1. Confirm the file exists on the server.
@@ -70,7 +70,7 @@ class UploadToStorageController extends Controller
         }
 
         $expectedFilename = pathinfo($podcastEpisode->raw_input_audio_filename, PATHINFO_FILENAME) . '.mp3';
-        $filePath         = storage_path('podcasts/' . $expectedFilename);
+        $filePath         = storage_path('app/podcasts/' . $expectedFilename);
         $fileExists       = file_exists($filePath);
 
         return view('media_platform.podcast_studio.post_production.upload_production_audio.upload_to_storage', [
@@ -112,7 +112,7 @@ class UploadToStorageController extends Controller
 
         $showSlug         = $podcastEpisode->show->slug;
         $expectedFilename = pathinfo($podcastEpisode->raw_input_audio_filename, PATHINFO_FILENAME) . '.mp3';
-        $filePath         = storage_path('podcasts/' . $expectedFilename);
+        $filePath         = storage_path('app/podcasts/' . $expectedFilename);
 
         // ── Step 1: Confirm the file exists on the server ─────────────────────
         if (! file_exists($filePath)) {

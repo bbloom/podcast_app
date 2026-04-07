@@ -72,7 +72,7 @@ class UploadToStorageControllerTest extends TestCase
         ]);
 
         // Ensure the file does not exist on the server.
-        $filePath = storage_path('podcasts/my-episode.mp3');
+        $filePath = storage_path('app/podcasts/my-episode.mp3');
         if (file_exists($filePath)) {
             unlink($filePath);
         }

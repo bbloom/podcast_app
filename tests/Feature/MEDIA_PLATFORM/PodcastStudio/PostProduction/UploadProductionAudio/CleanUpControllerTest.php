@@ -72,7 +72,7 @@ class CleanUpControllerTest extends TestCase
         ]);
 
         // Create the file on disk so the controller can delete it.
-        $dir = storage_path('podcasts');
+        $dir = storage_path('app/podcasts');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -95,7 +95,7 @@ class CleanUpControllerTest extends TestCase
         ]);
 
         // Ensure the file does not exist.
-        $filePath = storage_path('podcasts/my-episode.mp3');
+        $filePath = storage_path('app/podcasts/my-episode.mp3');
         if (file_exists($filePath)) {
             unlink($filePath);
         }

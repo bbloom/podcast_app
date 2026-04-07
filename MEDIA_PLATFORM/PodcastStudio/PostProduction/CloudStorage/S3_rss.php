@@ -34,8 +34,23 @@ class S3_rss
         throw new \RuntimeException("No S3 RSS bucket was found for show slug: {$podcast_show_slug}");
     }
 
-    public function getFolderPath(): string
+    /**
+     * The shared work-in-progress S3 bucket used for RSS validation.
+     * This bucket is public so external validators (castfeedvalidator.com etc.)
+     * can fetch the file. It is NOT the live RSS bucket — podcast directories
+     * do not know this URL.
+     */
+    public function getWorkInProgressBucket(): string
     {
-       return "rss";
+        return 'podcast-work-in-progress';
+    }
+
+    /**
+     * The folder within the work-in-progress bucket where RSS validation
+     * files are stored.
+     */
+    public function getWorkInProgressFolder(): string
+    {
+        return 'rss';
     }
 }

@@ -6,7 +6,7 @@
 // Handles the clean-up step after the production audio file has been uploaded
 // to S3 and R2.
 //
-// Clean-up deletes the MP3 from local server storage (storage_path('podcasts/'))
+// Clean-up deletes the MP3 from local server storage (storage_path('app/podcasts/'))
 // and advances the episode status to `ready_to_generate_rss_feed`.
 //
 // A confirmation page is shown before anything is deleted, consistent with
@@ -14,7 +14,7 @@
 // confirmation page.
 //
 // Steps performed on confirm:
-//   1. Delete the MP3 from storage_path('podcasts/').
+//   1. Delete the MP3 from storage_path('app/podcasts/').
 //   2. Advance the episode status to `ready_to_generate_rss_feed`.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
@@ -63,7 +63,7 @@ class CleanUpController extends Controller
         }
 
         $expectedFilename = pathinfo($podcastEpisode->raw_input_audio_filename, PATHINFO_FILENAME) . '.mp3';
-        $filePath         = storage_path('podcasts/' . $expectedFilename);
+        $filePath         = storage_path('app/podcasts/' . $expectedFilename);
         $fileExists       = file_exists($filePath);
 
         return view('media_platform.podcast_studio.post_production.upload_production_audio.cleanup_confirm', [
@@ -101,7 +101,7 @@ class CleanUpController extends Controller
         }
 
         $expectedFilename = pathinfo($podcastEpisode->raw_input_audio_filename, PATHINFO_FILENAME) . '.mp3';
-        $filePath         = storage_path('podcasts/' . $expectedFilename);
+        $filePath         = storage_path('app/podcasts/' . $expectedFilename);
 
         // ── Delete the local MP3 ──────────────────────────────────────────────
         // Soft failure — if the file is missing it was already cleaned up or

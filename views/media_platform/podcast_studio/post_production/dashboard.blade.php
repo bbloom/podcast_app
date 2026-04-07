@@ -40,9 +40,8 @@
         </div>
 
         {{-- Generate RSS Feed --}}
-        <div>
-            <span class="text-gray-400">Generate RSS Feed File <em class="text-xs">(future development)</em></span>
-        </div>
+        <a href="{{ route('post_production.generate_rss_feed.index') }}"
+            class="text-blue-600 hover:underline hover:text-gray-900">Generate RSS Feed File</a>
 
         {{-- Upload RSS Feed to S3 & R2 --}}
         <div>

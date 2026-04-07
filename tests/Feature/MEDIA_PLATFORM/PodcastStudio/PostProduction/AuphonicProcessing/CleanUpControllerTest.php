@@ -54,7 +54,7 @@ class CleanUpControllerTest extends TestCase
     private function fakeExternalServices(): void
     {
         $this->mock(AuphonicService::class, function ($mock) {
-            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('podcasts/episode-001.mp3'));
+            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('app/podcasts/episode-001.mp3'));
             $mock->shouldReceive('deleteS3Recording')->once()->andReturn(null);
             $mock->shouldReceive('deleteProduction')->once()->andReturn(
                 new \Illuminate\Http\Client\Response(
@@ -280,7 +280,7 @@ class CleanUpControllerTest extends TestCase
     public function test_destroy_advances_status_even_when_auphonic_delete_returns_404(): void
     {
         $this->mock(AuphonicService::class, function ($mock) {
-            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('podcasts/episode-001.mp3'));
+            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('app/podcasts/episode-001.mp3'));
             $mock->shouldReceive('deleteS3Recording')->once()->andReturn(null);
             $mock->shouldReceive('deleteProduction')->once()->andReturn(
                 new \Illuminate\Http\Client\Response(
@@ -308,7 +308,7 @@ class CleanUpControllerTest extends TestCase
     public function test_destroy_advances_status_even_when_s3_delete_fails(): void
     {
         $this->mock(AuphonicService::class, function ($mock) {
-            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('podcasts/episode-001.mp3'));
+            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('app/podcasts/episode-001.mp3'));
             $mock->shouldReceive('deleteS3Recording')->once()->andThrow(
                 new \RuntimeException('S3 delete failed.')
             );

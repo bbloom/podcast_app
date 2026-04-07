@@ -6,7 +6,7 @@
 // Unit tests for AuphonicService.
 //
 // External HTTP calls are faked using Laravel's Http::fake(). Filesystem
-// operations in downloadMp3() write to storage_path('podcasts/') — the
+// operations in downloadMp3() write to storage_path('app/podcasts/') — the
 // directory is created by the service itself, so no test setup is needed.
 // Files written during tests are cleaned up in tearDown().
 //
@@ -62,21 +62,29 @@ class AuphonicServiceTest extends TestCase
     }
 
     /**
-     * Remove any MP3 files written to storage_path('podcasts/') during tests.
+     * Remove any MP3 files written to storage_path('app/podcasts/') during tests.
      */
     protected function tearDown(): void
     {
-        $path = storage_path('podcasts/episode-001.mp3');
+        $dir = storage_path('app/podcasts');
 
-        if (file_exists($path)) {
-            unlink($path);
-        }
+        if (is_dir($dir)) {
+            foreach (glob($dir . '/*') as $entry) {
+                if (is_file($entry)) {
+                    unlink($entry);
+                } elseif (is_dir($entry)) {
+                    foreach (glob($entry . '/*') as $subEntry) {
+                        if (is_file($subEntry)) {
+                            unlink($subEntry);
+                        }
+                    }
+                    rmdir($entry);
+                }
+            }
 
-        // Remove the directory only if it is now empty and was created by tests.
-        $dir = storage_path('podcasts');
-
-        if (is_dir($dir) && count(scandir($dir)) === 2) {
-            rmdir($dir);
+            if (count(scandir($dir)) === 2) {
+                rmdir($dir);
+            }
         }
 
         parent::tearDown();
@@ -149,7 +157,7 @@ class AuphonicServiceTest extends TestCase
     // ╚════════════════════════════════════════════════════════════════════════╝
 
     /**
-     * downloadMp3() saves the MP3 to storage_path('podcasts/') and returns
+     * downloadMp3() saves the MP3 to storage_path('app/podcasts/') and returns
      * the absolute path when the /engine/ endpoint succeeds.
      */
     public function test_download_mp3_saves_file_and_returns_path_on_engine_success(): void
@@ -214,13 +222,24 @@ class AuphonicServiceTest extends TestCase
         ]);
 
         // Ensure the directory does not exist before the call.
-        $dir = storage_path('podcasts');
+        $dir = storage_path('app/podcasts');
 
         if (is_dir($dir)) {
-            // Clean out any existing files so rmdir works in tearDown.
-            array_map('unlink', glob($dir . '/*'));
+            foreach (glob($dir . '/*') as $entry) {
+                if (is_file($entry)) {
+                    unlink($entry);
+                } elseif (is_dir($entry)) {
+                    foreach (glob($entry . '/*') as $subEntry) {
+                        if (is_file($subEntry)) {
+                            unlink($subEntry);
+                        }
+                    }
+                    rmdir($entry);
+                }
+            }
             rmdir($dir);
         }
+
 
         $this->assertDirectoryDoesNotExist($dir);
 
@@ -290,6 +309,6 @@ class AuphonicServiceTest extends TestCase
             // Expected — we just want to assert the file was not written.
         }
 
-        $this->assertFileDoesNotExist(storage_path('podcasts/episode-001.mp3'));
+        $this->assertFileDoesNotExist(storage_path('app/podcasts/episode-001.mp3'));
     }
 }
