@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Output Destinations</h1>
-            <p class="text-sm text-gray-500 mt-1">SFTP servers, and WordPress sites, where your digest web pages will be published.</p>
+            <p class="text-sm text-gray-500 mt-1">SFTP servers where your digest web pages will be published.</p>
         </div>
         <a href="{{ route('output_destinations.create.step1') }}"
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-3 rounded-lg transition">
@@ -46,41 +46,25 @@
                                 <span class="text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">Disabled</span>
                             @endif
                         </div>
-                        @if ($destination->type === 'sftp')
-                            <p class="text-xs text-gray-500">
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 mr-1">SFTP</span>
-                                <code class="font-mono">{{ $destination->username }}@{{ $destination->host }}:{{ $destination->port }}</code>
+                        <p class="text-xs text-gray-500">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 mr-1">SFTP</span>
+                            <code class="font-mono">{{ $destination->username }}@{{ $destination->host }}:{{ $destination->port }}</code>
+                            <span class="mx-1">·</span>
+                            <code class="font-mono">{{ $destination->path }}</code>
+                            @if ($destination->base_url)
                                 <span class="mx-1">·</span>
-                                <code class="font-mono">{{ $destination->path }}</code>
-                                @if ($destination->base_url)
-                                    <span class="mx-1">·</span>
-                                    <a href="{{ $destination->base_url }}" target="_blank" class="text-purple-700 hover:underline">{{ $destination->base_url }}</a>
-                                @endif
-                            </p>
-                            <p class="text-xs text-gray-400 mt-1">
-                                {{ $destination->auth_type === 'ssh_key' ? 'SSH Key' : 'Password' }} authentication
-                                @php $listCount = $destination->lists->count(); @endphp
-                                @if ($listCount > 0)
-                                    <span class="mx-1">·</span>
-                                    Used by {{ $listCount }} {{ Str::plural('list', $listCount) }}
-                                @endif
-                            </p>
-                        @else
-                            <p class="text-xs text-gray-500">
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 mr-1">WordPress</span>
-                                <a href="{{ $destination->wordpress_url }}" target="_blank" class="hover:text-purple-700 transition">{{ $destination->wordpress_url }}</a>
+                                <a href="{{ $destination->base_url }}" target="_blank" class="text-purple-700 hover:underline">{{ $destination->base_url }}</a>
+                            @endif
+                        </p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            {{ $destination->auth_type === 'ssh_key' ? 'SSH Key' : 'Password' }} authentication
+                            @php $listCount = $destination->lists->count(); @endphp
+                            @if ($listCount > 0)
                                 <span class="mx-1">·</span>
-                                {{ $destination->wordpress_username }}
-                            </p>
-                            <p class="text-xs text-gray-400 mt-1">
-                                Post status: {{ $destination->wordpress_post_status }}
-                                @php $listCount = $destination->lists->count(); @endphp
-                                @if ($listCount > 0)
-                                    <span class="mx-1">·</span>
-                                    Used by {{ $listCount }} {{ Str::plural('list', $listCount) }}
-                                @endif
-                            </p>
-                        @endif
+                                Used by {{ $listCount }} {{ Str::plural('list', $listCount) }}
+                            @endif
+                        </p>
+                    </div>
 
                     <div class="flex items-center gap-3 flex-shrink-0">
                         <a href="{{ route('output_destinations.show', $destination) }}"

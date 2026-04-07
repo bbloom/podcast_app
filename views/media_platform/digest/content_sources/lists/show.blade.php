@@ -55,11 +55,7 @@
                 <tr>
                     <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Output</td>
                     <td class="py-1 text-gray-800">
-                        {{ match(strtolower($list->output_type->value) ?? $list->output_type) {
-                            'email'     => 'Email',
-                            'wordpress' => 'WordPress',
-                            default     => 'Web page',
-                        } }}
+                        {{ $list->output_type->value === 'email' ? 'Email' : 'Web page' }}
                     </td>
                 </tr>
                 @if($list->last_run_at)

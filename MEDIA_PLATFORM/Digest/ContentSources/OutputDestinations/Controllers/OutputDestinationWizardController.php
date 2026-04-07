@@ -5,7 +5,6 @@ namespace MediaPlatform\Digest\ContentSources\OutputDestinations\Controllers;
 use App\Http\Controllers\Controller;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
-use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\WordPressService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,47 +13,30 @@ use Illuminate\Support\Facades\Route;
  *
  * WIZARD FLOW
  * ───────────
- * Step 1 — Name (shared)
- * Step 2 — Type selection: 'sftp' or 'wordpress' (shared, then branches)
+ * Step 1 — Name
+ * Step 2 — Type selection (currently only 'sftp')
+ * Step 3 — Host & port
+ * Step 4 — Username
+ * Step 5 — Authentication (password or SSH key)
+ * Step 6 — Path & base URL
+ * Step 7 — Test connection (AJAX)
+ * Step 8 — Confirm & save
+ * Step 9 — Done
  *
- * SFTP path:
- *   Step 3 — Host & port
- *   Step 4 — Username
- *   Step 5 — Authentication (password or SSH key)
- *   Step 6 — Path & base URL
- *   Step 7 — Test connection (AJAX)
- *   Step 8 — Confirm & save
- *   Step 9 — Done
- *
- * WordPress path:
- *   WP1 — Site URL & credentials
- *   WP2 — Post settings
- *   WP3 — Test connection & confirm
- *   Step 9 — Done (shared)
- *
- * Fix & retry flows (connection test failures) are handled by separate controllers:
+ * Fix & retry flows (connection test failures) are handled by:
  *   OutputDestinationSftpFixController
- *   OutputDestinationWordPressFixController
  *
- * SESSION KEYS (common)
+ * SESSION KEYS
  *   od_wizard.name        — destination name (step 1)
- *   od_wizard.type        — 'sftp' or 'wordpress' (step 2)
+ *   od_wizard.type        — 'sftp' (step 2)
  *   od_wizard.redirect_to — optional route name to return to after completion
- *
- * SESSION KEYS (SFTP)
  *   od_wizard.host, port, username, auth_type, password, private_key,
  *   passphrase, path, base_url, test_passed
- *
- * SESSION KEYS (WordPress)
- *   od_wizard.wordpress_url, wordpress_username, wordpress_app_password,
- *   wordpress_post_status, wordpress_category_ids, wordpress_tag_ids,
- *   wp_test_passed
  */
 class OutputDestinationWizardController extends Controller
 {
     public function __construct(
-        private SftpService      $sftp,
-        private WordPressService $wordpress,
+        private SftpService $sftp,
     ) {}
 
     // =========================================================================
@@ -74,7 +56,7 @@ class OutputDestinationWizardController extends Controller
     }
 
     // =========================================================================
-    // Step 1 — Name (shared)
+    // Step 1 — Name
     // =========================================================================
 
     /**
@@ -107,11 +89,11 @@ class OutputDestinationWizardController extends Controller
     }
 
     // =========================================================================
-    // Step 2 — Type selection (shared)
+    // Step 2 — Type selection
     // =========================================================================
 
     /**
-     * Show the destination type selector (SFTP or WordPress).
+     * Show the destination type selector.
      */
     public function step2(Request $request)
     {
@@ -123,12 +105,12 @@ class OutputDestinationWizardController extends Controller
     }
 
     /**
-     * Save the chosen type and branch to the correct next step.
+     * Save the chosen type and proceed to SFTP setup.
      */
     public function step2Submit(Request $request)
     {
         $request->validate([
-            'type' => ['required', 'in:sftp,wordpress'],
+            'type' => ['required', 'in:sftp'],
         ], [
             'type.required' => 'Please select a destination type.',
             'type.in'       => 'Please select a valid destination type.',
@@ -136,10 +118,7 @@ class OutputDestinationWizardController extends Controller
 
         $request->session()->put('od_wizard.type', $request->input('type'));
 
-        return match ($request->input('type')) {
-            'wordpress' => redirect()->route('output_destinations.create.wp1'),
-            default     => redirect()->route('output_destinations.create.step3'),
-        };
+        return redirect()->route('output_destinations.create.step3');
     }
 
     // =========================================================================
@@ -394,7 +373,7 @@ class OutputDestinationWizardController extends Controller
     }
 
     /**
-     * Step 9: Done — shared completion page for both SFTP and WordPress.
+     * Step 9: Done — completion page.
      */
     public function step9()
     {
@@ -402,153 +381,8 @@ class OutputDestinationWizardController extends Controller
     }
 
     // =========================================================================
-    // WordPress wizard — WP1, WP2, WP3
-    // =========================================================================
-
-    /**
-     * WP1: WordPress site URL and credentials.
-     */
-    public function wp1(Request $request)
-    {
-        if ($request->session()->get('od_wizard.type') !== 'wordpress') {
-            return redirect()->route('output_destinations.create.step1');
-        }
-
-        return view('media_platform.digest.content_sources.output_destinations.wizard-wp1');
-    }
-
-    /**
-     * Save the WordPress URL and credentials, proceed to post settings.
-     */
-    public function wp1Submit(Request $request)
-    {
-        $request->validate([
-            'wordpress_url'          => ['required', 'url', 'max:500'],
-            'wordpress_username'     => ['required', 'string', 'max:255'],
-            'wordpress_app_password' => ['required', 'string', 'max:500'],
-        ], [
-            'wordpress_url.required'          => 'Please enter your WordPress site URL.',
-            'wordpress_url.url'               => 'Please enter a valid URL, including https://.',
-            'wordpress_username.required'     => 'Please enter your WordPress username.',
-            'wordpress_app_password.required' => 'Please enter an Application Password.',
-        ]);
-
-        $request->session()->put('od_wizard.wordpress_url',          rtrim($request->input('wordpress_url'), '/'));
-        $request->session()->put('od_wizard.wordpress_username',     $request->input('wordpress_username'));
-        $request->session()->put('od_wizard.wordpress_app_password', $request->input('wordpress_app_password'));
-
-        return redirect()->route('output_destinations.create.wp2');
-    }
-
-    /**
-     * WP2: Post settings (status, categories, tags).
-     */
-    public function wp2(Request $request)
-    {
-        if (! $request->session()->has('od_wizard.wordpress_url')) {
-            return redirect()->route('output_destinations.create.step1');
-        }
-
-        return view('media_platform.digest.content_sources.output_destinations.wizard-wp2');
-    }
-
-    /**
-     * Save post settings and proceed to test & confirm.
-     */
-    public function wp2Submit(Request $request)
-    {
-        $request->validate([
-            'wordpress_post_status'  => ['required', 'in:publish,draft,private'],
-            'wordpress_category_ids' => ['nullable', 'string', 'max:500'],
-            'wordpress_tag_ids'      => ['nullable', 'string', 'max:500'],
-        ], [
-            'wordpress_post_status.required' => 'Please select a post status.',
-            'wordpress_post_status.in'       => 'Please select a valid post status.',
-        ]);
-
-        $request->session()->put('od_wizard.wordpress_post_status',  $request->input('wordpress_post_status', 'publish'));
-        $request->session()->put('od_wizard.wordpress_category_ids', $request->input('wordpress_category_ids'));
-        $request->session()->put('od_wizard.wordpress_tag_ids',      $request->input('wordpress_tag_ids'));
-
-        return redirect()->route('output_destinations.create.wp3');
-    }
-
-    /**
-     * WP3: Test connection and confirm before saving.
-     */
-    public function wp3(Request $request)
-    {
-        if (! $request->session()->has('od_wizard.wordpress_post_status')) {
-            return redirect()->route('output_destinations.create.step1');
-        }
-
-        return view('media_platform.digest.content_sources.output_destinations.wizard-wp3', [
-            'data' => $request->session()->get('od_wizard'),
-        ]);
-    }
-
-    /**
-     * AJAX endpoint: test the WordPress connection using session data.
-     */
-    public function testWordPressConnection(Request $request)
-    {
-        $session = $request->session();
-
-        $result = $this->wordpress->testConnection(
-            wordpressUrl: $session->get('od_wizard.wordpress_url'),
-            username:     $session->get('od_wizard.wordpress_username'),
-            appPassword:  $session->get('od_wizard.wordpress_app_password'),
-        );
-
-        $session->put('od_wizard.wp_test_passed', $result['success']);
-
-        return response()->json($result);
-    }
-
-    /**
-     * Save the WordPress destination and clear the wizard session.
-     */
-    public function wp3Submit(Request $request)
-    {
-        if (! $request->session()->get('od_wizard.wp_test_passed', false)) {
-            return back()->withErrors(['test' => 'Please test your WordPress connection successfully before saving.']);
-        }
-
-        $data = $request->session()->get('od_wizard');
-
-        OutputDestination::create([
-            'user_id'                => auth()->id(),
-            'name'                   => $data['name'],
-            'type'                   => 'wordpress',
-            'wordpress_url'          => $data['wordpress_url'],
-            'wordpress_username'     => $data['wordpress_username'],
-            'wordpress_app_password' => $data['wordpress_app_password'],
-            'wordpress_post_status'  => $data['wordpress_post_status']  ?? 'publish',
-            'wordpress_category_ids' => $data['wordpress_category_ids'] ?? null,
-            'wordpress_tag_ids'      => $data['wordpress_tag_ids']      ?? null,
-            'enabled'                => true,
-        ]);
-
-        $redirectTo = $data['redirect_to'] ?? null;
-        $request->session()->forget('od_wizard');
-
-        if ($redirectTo && Route::has($redirectTo)) {
-            return redirect()->route($redirectTo)
-                ->with('success', 'WordPress destination created. Now select it for your list.');
-        }
-
-        return redirect()->route('output_destinations.create.step9');
-    }
-
-
-    // =========================================================================
     // CRUD — Edit / Show / Update / Delete
     // =========================================================================
-
-
-    // -------------------------------------------------------------------------
-    // Edit
-    // -------------------------------------------------------------------------
 
     /**
      * Show the edit form for an existing destination.
@@ -561,85 +395,43 @@ class OutputDestinationWizardController extends Controller
     }
 
     /**
-     * Update an existing destination.
-     * SFTP and WordPress fields are validated conditionally based on type.
+     * Update an existing SFTP destination.
      */
     public function update(Request $request, OutputDestination $outputDestination)
     {
         abort_if($outputDestination->user_id !== auth()->id(), 403);
 
-        $rules = [
-            'name'    => ['required', 'string', 'max:255'],
-            'enabled' => ['nullable', 'boolean'],
-        ];
-
-        if ($outputDestination->type === 'sftp') {
-            $rules += [
-                'host'        => ['required', 'string', 'max:255'],
-                'port'        => ['required', 'integer', 'min:1', 'max:65535'],
-                'username'    => ['required', 'string', 'max:255'],
-                'auth_type'   => ['required', 'in:password,ssh_key'],
-                'password'    => ['nullable', 'string'],
-                'private_key' => ['nullable', 'string'],
-                'passphrase'  => ['nullable', 'string'],
-                'path'        => ['required', 'string', 'max:500'],
-                'base_url'    => ['nullable', 'url', 'max:500'],
-            ];
-        }
-
-        if ($outputDestination->type === 'wordpress') {
-            $rules += [
-                'wordpress_url'          => ['required', 'url', 'max:500'],
-                'wordpress_username'     => ['required', 'string', 'max:255'],
-                'wordpress_app_password' => ['nullable', 'string', 'max:500'],
-                'wordpress_post_status'  => ['required', 'in:publish,draft,private'],
-                'wordpress_category_ids' => ['nullable', 'string', 'max:500'],
-                'wordpress_tag_ids'      => ['nullable', 'string', 'max:500'],
-            ];
-        }
-
-        $request->validate($rules);
-
-        $outputDestination->update([
-            'name'    => $request->input('name'),
-            'enabled' => $request->boolean('enabled'),
+        $request->validate([
+            'name'        => ['required', 'string', 'max:255'],
+            'enabled'     => ['nullable', 'boolean'],
+            'host'        => ['required', 'string', 'max:255'],
+            'port'        => ['required', 'integer', 'min:1', 'max:65535'],
+            'username'    => ['required', 'string', 'max:255'],
+            'auth_type'   => ['required', 'in:password,ssh_key'],
+            'password'    => ['nullable', 'string'],
+            'private_key' => ['nullable', 'string'],
+            'passphrase'  => ['nullable', 'string'],
+            'path'        => ['required', 'string', 'max:500'],
+            'base_url'    => ['nullable', 'url', 'max:500'],
         ]);
 
-        if ($outputDestination->type === 'sftp') {
-            $outputDestination->update([
-                'host'        => $request->input('host'),
-                'port'        => $request->input('port'),
-                'username'    => $request->input('username'),
-                'auth_type'   => $request->input('auth_type'),
-                'password'    => $request->filled('password')    ? $request->input('password')         : $outputDestination->password,
-                'private_key' => $request->filled('private_key') ? trim($request->input('private_key')) : $outputDestination->private_key,
-                'passphrase'  => $request->filled('passphrase')  ? $request->input('passphrase')        : $outputDestination->passphrase,
-                'path'        => $request->input('path'),
-                'base_url'    => $request->input('base_url'),
-            ]);
-        }
-
-        if ($outputDestination->type === 'wordpress') {
-            $outputDestination->update([
-                'wordpress_url'          => rtrim($request->input('wordpress_url'), '/'),
-                'wordpress_username'     => $request->input('wordpress_username'),
-                'wordpress_app_password' => $request->filled('wordpress_app_password')
-                    ? $request->input('wordpress_app_password')
-                    : $outputDestination->wordpress_app_password,
-                'wordpress_post_status'  => $request->input('wordpress_post_status'),
-                'wordpress_category_ids' => $request->input('wordpress_category_ids'),
-                'wordpress_tag_ids'      => $request->input('wordpress_tag_ids'),
-            ]);
-        }
+        $outputDestination->update([
+            'name'        => $request->input('name'),
+            'enabled'     => $request->boolean('enabled'),
+            'host'        => $request->input('host'),
+            'port'        => $request->input('port'),
+            'username'    => $request->input('username'),
+            'auth_type'   => $request->input('auth_type'),
+            'password'    => $request->filled('password')    ? $request->input('password')          : $outputDestination->password,
+            'private_key' => $request->filled('private_key') ? trim($request->input('private_key'))  : $outputDestination->private_key,
+            'passphrase'  => $request->filled('passphrase')  ? $request->input('passphrase')         : $outputDestination->passphrase,
+            'path'        => $request->input('path'),
+            'base_url'    => $request->input('base_url'),
+        ]);
 
         return redirect()->route('output_destinations.index')
             ->with('success', 'Destination updated.');
     }
-
-
-    // -------------------------------------------------------------------------
-    // Show
-    // -------------------------------------------------------------------------
 
     /**
      * Display a single output destination with its associated lists.
@@ -653,10 +445,6 @@ class OutputDestinationWizardController extends Controller
 
         return view('media_platform.digest.content_sources.output_destinations.show', compact('outputDestination', 'lists'));
     }
-
-    // -------------------------------------------------------------------------
-    // Delete
-    // -------------------------------------------------------------------------
 
     /**
      * Show the delete confirmation page.

@@ -34,57 +34,31 @@
                 </tr>
                 <tr>
                     <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Type</td>
-                    <td class="py-1 text-gray-800">
-                        {{ $outputDestination->type === 'sftp' ? 'SFTP' : 'WordPress' }}
-                    </td>
+                    <td class="py-1 text-gray-800">SFTP</td>
                 </tr>
-
-                @if($outputDestination->type === 'sftp')
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Host</td>
+                    <td class="py-1"><code class="font-mono font-bold text-gray-800">{{ $outputDestination->username }}@{{ $outputDestination->host }}:{{ $outputDestination->port }}</code></td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Path</td>
+                    <td class="py-1"><code class="font-mono text-gray-800">{{ $outputDestination->path }}</code></td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Auth</td>
+                    <td class="py-1 text-gray-800">{{ $outputDestination->auth_type === 'ssh_key' ? 'SSH Key' : 'Password' }}</td>
+                </tr>
+                @if($outputDestination->base_url)
                     <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Host</td>
-                        <td class="py-1"><code class="font-mono font-bold text-gray-800">{{ $outputDestination->username }}@{{ $outputDestination->host }}:{{ $outputDestination->port }}</code></td>
-                    </tr>
-                    <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Path</td>
-                        <td class="py-1"><code class="font-mono text-gray-800">{{ $outputDestination->path }}</code></td>
-                    </tr>
-                    <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Auth</td>
-                        <td class="py-1 text-gray-800">{{ $outputDestination->auth_type === 'ssh_key' ? 'SSH Key' : 'Password' }}</td>
-                    </tr>
-                    @if($outputDestination->base_url)
-                        <tr>
-                            <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Public URL</td>
-                            <td class="py-1">
-                                <a href="{{ $outputDestination->base_url }}" target="_blank"
-                                   class="text-purple-700 hover:underline break-all">
-                                    {{ $outputDestination->base_url }}
-                                </a>
-                            </td>
-                        </tr>
-                    @endif
-                @endif
-
-                @if($outputDestination->type === 'wordpress')
-                    <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Site URL</td>
+                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Public URL</td>
                         <td class="py-1">
-                            <a href="{{ $outputDestination->wordpress_url }}" target="_blank"
+                            <a href="{{ $outputDestination->base_url }}" target="_blank"
                                class="text-purple-700 hover:underline break-all">
-                                {{ $outputDestination->wordpress_url }}
+                                {{ $outputDestination->base_url }}
                             </a>
                         </td>
                     </tr>
-                    <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Username</td>
-                        <td class="py-1 text-gray-800">{{ $outputDestination->wordpress_username }}</td>
-                    </tr>
-                    <tr>
-                        <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Post Status</td>
-                        <td class="py-1 text-gray-800 capitalize">{{ $outputDestination->wordpress_post_status }}</td>
-                    </tr>
                 @endif
-
                 <tr>
                     <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Added</td>
                     <td class="py-1 text-gray-800">{{ $outputDestination->created_at->format('d M Y') }}</td>

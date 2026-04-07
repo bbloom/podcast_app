@@ -57,8 +57,6 @@
 
                             @if ($list->output_type->value === 'email')
                                 Email
-                            @elseif ($list->output_type->value === 'wordpress')
-                                WordPress
                             @else
                                 Web page
                             @endif

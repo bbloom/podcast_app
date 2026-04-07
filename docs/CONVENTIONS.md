@@ -1,7 +1,7 @@
 # Conventions
 
 ## Stack
-- PHP 8.5, Laravel 12, PostgreSQL, Docker
+- PHP 8.5, Laravel 13, PostgreSQL, Docker
 - FrankenPHP (Caddy Server)
 - VS Code with devcontainer
 - Alpine.js for reactive UI

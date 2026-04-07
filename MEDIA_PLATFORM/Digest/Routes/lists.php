@@ -10,20 +10,16 @@ use Illuminate\Support\Facades\Route;
 // =========================================================================
 
 // -------------------------------------------------------------------------
-// AJAX — connection test endpoints (placed first to avoid route conflicts)
+// AJAX — connection test endpoint (placed first to avoid route conflicts)
 // -------------------------------------------------------------------------
 
 Route::post('/output-destinations/wizard/test-connection', [OutputDestinationWizardController::class, 'testConnection'])
     ->middleware(['auth'])
     ->name('output_destinations.wizard.test');
 
-Route::post('/output-destinations/wizard/test-wordpress-connection', [OutputDestinationWizardController::class, 'testWordPressConnection'])
-    ->middleware(['auth'])
-    ->name('output_destinations.wizard.test_wordpress');
-
 
 // -------------------------------------------------------------------------
-// Output Destination Wizard — shared steps
+// Output Destination Wizard — steps 1–9 (SFTP)
 // -------------------------------------------------------------------------
 
 Route::get('/output-destinations/create/step1', [OutputDestinationWizardController::class, 'step1'])
@@ -43,10 +39,6 @@ Route::post('/output-destinations/create/step2', [OutputDestinationWizardControl
     ->middleware(['auth'])
     ->name('output_destinations.create.step2.submit');
 
-
-// -------------------------------------------------------------------------
-// Output Destination Wizard — SFTP steps (3–9)
-// -------------------------------------------------------------------------
 
 Route::get('/output-destinations/create/step3', [OutputDestinationWizardController::class, 'step3'])
     ->middleware(['auth'])
@@ -108,37 +100,6 @@ Route::get('/output-destinations/create/step9', [OutputDestinationWizardControll
 
 
 // -------------------------------------------------------------------------
-// Output Destination Wizard — WordPress steps (wp1–wp3)
-// -------------------------------------------------------------------------
-
-Route::get('/output-destinations/create/wp1', [OutputDestinationWizardController::class, 'wp1'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp1');
-
-Route::post('/output-destinations/create/wp1', [OutputDestinationWizardController::class, 'wp1Submit'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp1.submit');
-
-
-Route::get('/output-destinations/create/wp2', [OutputDestinationWizardController::class, 'wp2'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp2');
-
-Route::post('/output-destinations/create/wp2', [OutputDestinationWizardController::class, 'wp2Submit'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp2.submit');
-
-
-Route::get('/output-destinations/create/wp3', [OutputDestinationWizardController::class, 'wp3'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp3');
-
-Route::post('/output-destinations/create/wp3', [OutputDestinationWizardController::class, 'wp3Submit'])
-    ->middleware(['auth'])
-    ->name('output_destinations.create.wp3.submit');
-
-
-// -------------------------------------------------------------------------
 // Output Destination CRUD
 // -------------------------------------------------------------------------
 
@@ -164,7 +125,8 @@ Route::delete('/output-destinations/{outputDestination}', [OutputDestinationWiza
 
 Route::get('/output-destinations/{outputDestination}', [OutputDestinationWizardController::class, 'show'])
     ->middleware(['auth'])
-    ->name('output_destinations.show');    
+    ->name('output_destinations.show');
+
 
 // =========================================================================
 // LISTS
@@ -259,4 +221,4 @@ Route::delete('/lists/{list}', [ListWizardController::class, 'destroy'])
 
 Route::get('/lists/{list}', [ListWizardController::class, 'show'])
     ->middleware(['auth'])
-    ->name('lists.show');    
+    ->name('lists.show');

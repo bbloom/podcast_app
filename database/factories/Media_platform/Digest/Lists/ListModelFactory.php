@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  * ListModelFactory — generates test ListModel records.
  *
  * Default state produces an email-output daily list.
- * Use ->webpage($destId) or ->wordpress($destId) for other output types.
+ * Use ->webpage($destId) for SFTP/webpage output type.
  */
 class ListModelFactory extends Factory
 {
@@ -50,17 +50,6 @@ class ListModelFactory extends Factory
     {
         return $this->state(fn () => [
             'output_type'           => OutputType::Webpage,
-            'output_destination_id' => $destinationId,
-        ]);
-    }
-
-    /**
-     * WordPress output type state.
-     */
-    public function wordpress(int $destinationId): static
-    {
-        return $this->state(fn () => [
-            'output_type'           => OutputType::Wordpress,
             'output_destination_id' => $destinationId,
         ]);
     }

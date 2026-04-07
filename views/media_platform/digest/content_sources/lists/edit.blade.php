@@ -148,7 +148,7 @@
         <div class="mb-6">
             <label class="block text-sm font-semibold text-gray-700 mb-3">Delivery</label>
             <div class="flex gap-3">
-                @foreach (['webpage' => 'Web page', 'email' => 'Email', 'wordpress' => 'WordPress'] as $value => $label)
+                @foreach (['webpage' => 'Web page', 'email' => 'Email'] as $value => $label)
                     <label class="flex-1 cursor-pointer">
                         <input
                             type="radio"
@@ -168,7 +168,7 @@
         </div>
 
         {{-- Output destination (webpage only) --}}
-        <div class="mb-6" x-show="outputType === 'webpage' || outputType === 'wordpress'" x-cloak>
+        <div class="mb-6" x-show="outputType === 'webpage'" x-cloak>
             <label for="output_destination_id" class="block text-sm font-semibold text-gray-700 mb-2">Output Destination</label>
             @if ($destinations->isEmpty())
                 <p class="text-sm text-gray-500">

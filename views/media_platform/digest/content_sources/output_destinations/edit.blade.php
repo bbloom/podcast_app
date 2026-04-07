@@ -29,8 +29,6 @@
             @error('name') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
-        @if ($outputDestination->type === 'sftp')
-
         {{-- Host --}}
         <div class="mb-6">
             <label for="host" class="block text-sm font-semibold text-gray-700 mb-2">Host</label>
@@ -67,106 +65,6 @@
             >
             @error('base_url') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
-
-        @else {{-- WordPress --}}
-
-        {{-- Site URL --}}
-        <div class="mb-6">
-            <label for="wordpress_url" class="block text-sm font-semibold text-gray-700 mb-2">Site URL</label>
-            <input
-                type="url"
-                id="wordpress_url"
-                name="wordpress_url"
-                value="{{ old('wordpress_url', $outputDestination->wordpress_url) }}"
-                required
-                placeholder="https://example.com"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_url') border-red-400 @enderror"
-            >
-            @error('wordpress_url') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        {{-- WordPress username --}}
-        <div class="mb-6">
-            <label for="wordpress_username" class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-            <input
-                type="text"
-                id="wordpress_username"
-                name="wordpress_username"
-                value="{{ old('wordpress_username', $outputDestination->wordpress_username) }}"
-                required
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_username') border-red-400 @enderror"
-            >
-            @error('wordpress_username') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        {{-- Application Password — blank means keep existing --}}
-        <div class="mb-6">
-            <label for="wordpress_app_password" class="block text-sm font-semibold text-gray-700 mb-2">
-                Application Password
-                <span class="font-normal text-gray-400 text-xs ml-1">(leave blank to keep existing)</span>
-            </label>
-            <input
-                type="password"
-                id="wordpress_app_password"
-                name="wordpress_app_password"
-                autocomplete="new-password"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_app_password') border-red-400 @enderror"
-            >
-            @error('wordpress_app_password') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        {{-- Post status --}}
-        <div class="mb-6">
-            <label for="wordpress_post_status" class="block text-sm font-semibold text-gray-700 mb-2">Post Status</label>
-            <select
-                id="wordpress_post_status"
-                name="wordpress_post_status"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_post_status') border-red-400 @enderror"
-            >
-                @foreach (['publish' => 'Published', 'draft' => 'Draft', 'private' => 'Private'] as $value => $label)
-                    <option value="{{ $value }}" @selected(old('wordpress_post_status', $outputDestination->wordpress_post_status) === $value)>
-                        {{ $label }}
-                    </option>
-                @endforeach
-            </select>
-            @error('wordpress_post_status') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        {{-- Category IDs --}}
-        <div class="mb-6">
-            <label for="wordpress_category_ids" class="block text-sm font-semibold text-gray-700 mb-2">
-                Category IDs <span class="font-normal text-gray-400">(optional)</span>
-            </label>
-            <input
-                type="text"
-                id="wordpress_category_ids"
-                name="wordpress_category_ids"
-                value="{{ old('wordpress_category_ids', $outputDestination->wordpress_category_ids) }}"
-                placeholder="e.g. 3,14"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_category_ids') border-red-400 @enderror"
-            >
-            @error('wordpress_category_ids') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-            <p class="mt-2 text-xs text-gray-500">Comma-separated WordPress category IDs.</p>
-        </div>
-
-        {{-- Tag IDs --}}
-        <div class="mb-6">
-            <label for="wordpress_tag_ids" class="block text-sm font-semibold text-gray-700 mb-2">
-                Tag IDs <span class="font-normal text-gray-400">(optional)</span>
-            </label>
-            <input
-                type="text"
-                id="wordpress_tag_ids"
-                name="wordpress_tag_ids"
-                value="{{ old('wordpress_tag_ids', $outputDestination->wordpress_tag_ids) }}"
-                placeholder="e.g. 7,22"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('wordpress_tag_ids') border-red-400 @enderror"
-            >
-            @error('wordpress_tag_ids') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-            <p class="mt-2 text-xs text-gray-500">Comma-separated WordPress tag IDs.</p>
-        </div>
-
-        @endif {{-- end type branch --}}
 
         {{-- Enabled --}}
         <div class="mb-8">

@@ -32,21 +32,13 @@ enum OutputType: string
     case Email = 'email';
 
     // -------------------------------------------------------------------------
-    // The digest is published as a WordPress post via the REST API.
-    // Authentication uses WordPress Application Passwords (Basic Auth).
-    // The OutputDestination holds the WP site URL, username, and app password.
-    // -------------------------------------------------------------------------
-    case Wordpress = 'wordpress';
-
-    // -------------------------------------------------------------------------
     // Human-readable label for display in the UI.
     // -------------------------------------------------------------------------
     public function label(): string
     {
         return match ($this) {
-            self::Webpage   => 'Web Page (SFTP)',
-            self::Email     => 'Email',
-            self::Wordpress => 'WordPress',
+            self::Webpage => 'Web Page (SFTP)',
+            self::Email   => 'Email',
         };
     }
 
@@ -57,9 +49,8 @@ enum OutputType: string
     public function requiresDestination(): bool
     {
         return match ($this) {
-            self::Webpage   => true,
-            self::Wordpress => true,
-            self::Email     => false,
+            self::Webpage => true,
+            self::Email   => false,
         };
     }
 }

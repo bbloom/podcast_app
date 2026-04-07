@@ -7,7 +7,6 @@ use MediaPlatform\Tools\HealthChecks\Models\AdminAlert;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
-use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\WordPressService;
 use MediaPlatform\Digest\Publishing\Mail\DigestMailable;
 use MediaPlatform\Digest\Publishing\Notifications\DigestEmptyNotification;
 use MediaPlatform\Digest\Publishing\Notifications\DigestReadyNotification;
@@ -35,11 +34,10 @@ use Illuminate\Support\Facades\Mail;
  *   2. Loads the list and its output destination
  *   3. Uses DigestBuilderService to query pending summaries
  *   4. If nothing to publish → sends DigestEmptyNotification → exits
- *   5. Renders the appropriate Blade view (email / webpage / wordpress)
+ *   5. Renders the appropriate Blade view (email / webpage)
  *   6. Delivers via the correct channel:
- *        email     → sends DigestMailable
- *        webpage   → SftpService::upload(), then optional DigestReadyNotification
- *        wordpress → WordPressService::createPost()
+ *        email   → sends DigestMailable
+ *        webpage → SftpService::upload(), then optional DigestReadyNotification
  *   7. Calls DigestBuilderService::markAsIncluded() AFTER successful delivery
  *   8. Updates lists.last_run_at
  *
@@ -80,7 +78,6 @@ class PublishDigest implements ShouldQueue
         ProcessingGate       $gate,
         DigestBuilderService $builder,
         SftpService          $sftp,
-        WordPressService     $wordpress,
     ): void {
         Log::info("PublishDigest: Starting for list ID {$this->listId}.");
 
@@ -93,7 +90,7 @@ class PublishDigest implements ShouldQueue
         }
 
         // ── Gate check for publish-blocking alerts ────────────────────────────
-        // Only applies to SFTP and WordPress — email is never blocked by infra alerts.
+        // Only applies to SFTP — email is never blocked by infra alerts.
         if ($list->output_type !== OutputType::Email && ! $gate->canPublish()) {
             Log::warning("PublishDigest: Publish blocked by ProcessingGate for list '{$list->name}'. Summaries remain pending.");
             return;
@@ -112,9 +109,8 @@ class PublishDigest implements ShouldQueue
 
         // ── Route to the correct delivery channel ─────────────────────────────
         $success = match ($list->output_type) {
-            OutputType::Email     => $this->deliverEmail($list, $digestData),
-            OutputType::Webpage   => $this->deliverWebpage($list, $digestData, $builder, $sftp),
-            OutputType::Wordpress => $this->deliverWordpress($list, $digestData, $builder, $wordpress),
+            OutputType::Email   => $this->deliverEmail($list, $digestData),
+            OutputType::Webpage => $this->deliverWebpage($list, $digestData, $builder, $sftp),
         };
 
         if (! $success) {
@@ -234,73 +230,6 @@ class PublishDigest implements ShouldQueue
                 ]);
             }
         }
-
-        return true;
-    }
-
-    /**
-     * Publish the digest as a WordPress post via the REST API.
-     * No notification is sent — the post is publicly accessible.
-     */
-    private function deliverWordpress(
-        ListModel            $list,
-        array                $digestData,
-        DigestBuilderService $builder,
-        WordPressService     $wordpress,
-    ): bool {
-        $dest = $list->outputDestination;
-
-        if (! $dest) {
-            Log::error("PublishDigest: WordPress list '{$list->name}' has no output destination.");
-            return false;
-        }
-
-        // ── Build all the fields for the WordPress post ───────────────────────
-        $slug    = $builder->buildSlug($list, $digestData['date']);
-        $excerpt = $builder->buildExcerpt($digestData);
-        $title   = $list->name . ' — ' . $digestData['date']->format('D, M j Y');
-
-        // Render the WordPress-specific view (clean HTML fragment, no shell).
-        $html = view('media_platform.digest.digest-wp', [
-            'digestData' => $digestData,
-            'list'       => $list,
-        ])->render();
-
-        Log::info("PublishDigest: Publishing WordPress post for list '{$list->name}'.", [
-            'slug'   => $slug,
-            'dest'   => $dest->wordpress_url,
-            'status' => $dest->wordpress_post_status ?? 'publish',
-        ]);
-
-        // ── Post to WordPress ─────────────────────────────────────────────────
-        $result = $wordpress->createPost(
-            dest:        $dest,
-            title:       $title,
-            slug:        $slug,
-            htmlContent: $html,
-            excerpt:     $excerpt,
-            date:        $digestData['date'],
-        );
-
-        if (! $result['success']) {
-            Log::error("PublishDigest: WordPress post failed for list '{$list->name}'.", [
-                'message' => $result['message'],
-            ]);
-
-            AdminAlert::raiseIfNew(
-                tier: 2,
-                category: 'infrastructure',
-                title: "WordPress publish failed for list '{$list->name}'",
-                message: $result['message'],
-            );
-
-            return false;
-        }
-
-        Log::info("PublishDigest: WordPress post created.", [
-            'post_id' => $result['post_id'],
-            'url'     => $result['url'],
-        ]);
 
         return true;
     }

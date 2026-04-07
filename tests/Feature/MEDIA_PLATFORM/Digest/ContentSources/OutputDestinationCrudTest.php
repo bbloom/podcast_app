@@ -1,5 +1,7 @@
 <?php
 
+// tests/Feature/MEDIA_PLATFORM/Digest/ContentSources/OutputDestinationCrudTest.php
+
 use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
@@ -16,7 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * ───────────
  *   1. index
  *   2. edit
- *   3. update — happy paths (sftp, wordpress)
+ *   3. update — happy path (sftp)
  *   4. update — validation
  *   5. update — ownership
  *   6. confirmDelete
@@ -48,7 +50,7 @@ test('index only shows the current users destinations', function () {
     OutputDestination::factory()->forUser($this->user)->create(['name' => 'Mine']);
     OutputDestination::factory()->forUser($otherUser)->create(['name' => 'Theirs']);
 
-    $response = $this->get(route('output_destinations.index'));
+    $response     = $this->get(route('output_destinations.index'));
     $destinations = $response->viewData('destinations');
 
     expect($destinations)->toHaveCount(1);
@@ -103,7 +105,7 @@ test('show returns 404 for missing record', function () {
 });
 
 // =============================================================================
-// GROUP 3: update — happy paths
+// GROUP 3: update — happy path (sftp)
 // =============================================================================
 
 test('update saves sftp destination correctly', function () {
@@ -129,44 +131,25 @@ test('update saves sftp destination correctly', function () {
     expect($dest->host)->toBe('new.example.com');
 });
 
-test('update saves wordpress destination correctly', function () {
-    $dest = OutputDestination::factory()->forUser($this->user)->wordpress()->create();
-
-    $this->put(route('output_destinations.update', $dest), [
-        'name'                   => 'My WP Site',
-        'enabled'                => '1',
-        'wordpress_url'          => 'https://mynewsite.com',
-        'wordpress_username'     => 'admin',
-        'wordpress_app_password' => '',   // blank — should preserve existing
-        'wordpress_post_status'  => 'draft',
-        'wordpress_category_ids' => '1,2',
-        'wordpress_tag_ids'      => '',
-    ])->assertRedirect(route('output_destinations.index'));
-
-    $dest->refresh();
-    expect($dest->name)->toBe('My WP Site');
-    expect($dest->wordpress_url)->toBe('https://mynewsite.com');
-    expect($dest->wordpress_post_status)->toBe('draft');
-});
-
-test('update preserves wordpress app password when blank is submitted', function () {
-    $dest = OutputDestination::factory()->forUser($this->user)->wordpress()->create([
-        'wordpress_app_password' => 'original-secret',
+test('update preserves existing password when blank is submitted', function () {
+    $dest = OutputDestination::factory()->forUser($this->user)->create([
+        'auth_type' => 'password',
+        'password'  => 'original-secret',
     ]);
 
     $this->put(route('output_destinations.update', $dest), [
-        'name'                   => $dest->name,
-        'enabled'                => '1',
-        'wordpress_url'          => $dest->wordpress_url,
-        'wordpress_username'     => $dest->wordpress_username,
-        'wordpress_app_password' => '',   // blank
-        'wordpress_post_status'  => 'publish',
-        'wordpress_category_ids' => '',
-        'wordpress_tag_ids'      => '',
+        'name'      => $dest->name,
+        'enabled'   => '1',
+        'host'      => $dest->host,
+        'port'      => $dest->port,
+        'username'  => $dest->username,
+        'auth_type' => 'password',
+        'password'  => '',   // blank — should preserve existing
+        'path'      => $dest->path,
     ]);
 
     $dest->refresh();
-    expect($dest->wordpress_app_password)->toBe('original-secret');
+    expect($dest->password)->toBe('original-secret');
 });
 
 // =============================================================================
@@ -187,19 +170,18 @@ test('update rejects missing name', function () {
     ])->assertSessionHasErrors('name');
 });
 
-test('update rejects invalid wordpress post status', function () {
-    $dest = OutputDestination::factory()->forUser($this->user)->wordpress()->create();
+test('update rejects invalid port', function () {
+    $dest = OutputDestination::factory()->forUser($this->user)->create();
 
     $this->put(route('output_destinations.update', $dest), [
-        'name'                   => 'WP',
-        'enabled'                => '1',
-        'wordpress_url'          => 'https://example.com',
-        'wordpress_username'     => 'admin',
-        'wordpress_app_password' => '',
-        'wordpress_post_status'  => 'invalid_status',
-        'wordpress_category_ids' => '',
-        'wordpress_tag_ids'      => '',
-    ])->assertSessionHasErrors('wordpress_post_status');
+        'name'      => 'Test',
+        'enabled'   => '1',
+        'host'      => 'example.com',
+        'port'      => 99999,
+        'username'  => 'deploy',
+        'auth_type' => 'password',
+        'path'      => '/var/www',
+    ])->assertSessionHasErrors('port');
 });
 
 // =============================================================================

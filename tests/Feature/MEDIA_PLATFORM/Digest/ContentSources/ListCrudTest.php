@@ -1,5 +1,7 @@
 <?php
 
+// tests/Feature/MEDIA_PLATFORM/Digest/ContentSources/ListCrudTest.php
+
 use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
@@ -16,7 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * ───────────
  *   1. index
  *   2. edit
- *   3. update — happy paths (email, webpage, wordpress)
+ *   3. update — happy paths (email, webpage)
  *   4. update — validation
  *   5. update — ownership / authorization
  *   6. confirmDelete
@@ -160,21 +162,6 @@ test('update saves webpage list with destination', function () {
     expect($list->notify_by_email)->toBeTrue();
 });
 
-test('update saves wordpress list with destination', function () {
-    $dest = OutputDestination::factory()->forUser($this->user)->wordpress()->create();
-    $list = ListModel::factory()->forUser($this->user)->create();
-
-    $this->put(route('lists.update', $list), basePayload([
-        'output_type'           => 'wordpress',
-        'output_destination_id' => $dest->id,
-    ]))->assertRedirect(route('lists.index'));
-
-    $list->refresh();
-    expect($list->output_type)->toBe(OutputType::Wordpress);
-    expect($list->output_destination_id)->toBe($dest->id);
-    expect($list->notify_by_email)->toBeFalse();
-});
-
 test('update clears destination and notify_by_email when switching to email', function () {
     $dest = OutputDestination::factory()->forUser($this->user)->create();
     $list = ListModel::factory()->forUser($this->user)->webpage($dest->id)->create([
@@ -187,20 +174,6 @@ test('update clears destination and notify_by_email when switching to email', fu
 
     $list->refresh();
     expect($list->output_destination_id)->toBeNull();
-    expect($list->notify_by_email)->toBeFalse();
-});
-
-test('update clears notify_by_email for wordpress type', function () {
-    $dest = OutputDestination::factory()->forUser($this->user)->wordpress()->create();
-    $list = ListModel::factory()->forUser($this->user)->create();
-
-    $this->put(route('lists.update', $list), basePayload([
-        'output_type'           => 'wordpress',
-        'output_destination_id' => $dest->id,
-        'notify_by_email'       => '1', // should be ignored for wordpress
-    ]));
-
-    $list->refresh();
     expect($list->notify_by_email)->toBeFalse();
 });
 
@@ -218,7 +191,7 @@ test('update rejects missing name', function () {
 test('update rejects invalid output_type', function () {
     $list = ListModel::factory()->forUser($this->user)->create();
 
-    $this->put(route('lists.update', $list), basePayload(['output_type' => 'fax']))
+    $this->put(route('lists.update', $list), basePayload(['output_type' => 'wordpress']))
         ->assertSessionHasErrors('output_type');
 });
 

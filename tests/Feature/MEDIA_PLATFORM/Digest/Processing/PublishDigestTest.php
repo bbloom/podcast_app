@@ -5,7 +5,6 @@
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
-use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\WordPressService;
 use MediaPlatform\Digest\Processing\Jobs\PublishDigest;
 use MediaPlatform\Digest\Processing\Services\DigestBuilderService;
 use MediaPlatform\Digest\Processing\Services\ProcessingGate;
@@ -16,7 +15,6 @@ use MediaPlatform\Digest\Enums\OutputType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
@@ -29,7 +27,7 @@ use Illuminate\Support\Facades\Notification;
  * APPROACH
  * ────────
  * - DigestBuilderService is mocked to control what build() returns.
- * - SftpService and WordPressService are mocked to avoid real network calls.
+ * - SftpService is mocked to avoid real network calls.
  * - ProcessingGate is bound to the real implementation (uses the DB for alerts).
  * - Mail::fake() and Notification::fake() intercept deliveries.
  *
@@ -40,9 +38,8 @@ use Illuminate\Support\Facades\Notification;
  *   3.  Empty digest — sends DigestEmptyNotification, updates last_run_at
  *   4.  Email delivery — happy path, failure, markAsIncluded behaviour
  *   5.  Webpage delivery — happy path, SFTP failure, notify_by_email flag
- *   6.  WordPress delivery — happy path, API failure
- *   7.  markAsIncluded — only called on success, never on failure
- *   8.  last_run_at — always updated on success, even for empty digest
+ *   6.  markAsIncluded — only called on success, never on failure
+ *   7.  last_run_at — always updated on success, even for empty digest
  */
 
 uses(RefreshDatabase::class);
@@ -105,17 +102,14 @@ function fakeDigestData(ListModel $list): array
 function runPublishDigest(
     int                  $listId,
     DigestBuilderService $builder,
-    ?SftpService         $sftp      = null,
-    ?WordPressService    $wordpress  = null,
+    ?SftpService         $sftp = null,
 ): void {
-    $sftp      ??= app(SftpService::class);
-    $wordpress ??= app(WordPressService::class);
+    $sftp ??= app(SftpService::class);
 
     (new PublishDigest($listId))->handle(
         app(ProcessingGate::class),
         $builder,
         $sftp,
-        $wordpress,
     );
 }
 
@@ -125,28 +119,14 @@ function runPublishDigest(
 function makeSftpDest(User $user): OutputDestination
 {
     return OutputDestination::factory()->forUser($user)->create([
-        'type'     => 'sftp',
-        'host'     => 'sftp.example.com',
-        'port'     => 22,
-        'username' => 'deploy',
+        'type'      => 'sftp',
+        'host'      => 'sftp.example.com',
+        'port'      => 22,
+        'username'  => 'deploy',
         'auth_type' => 'password',
-        'password' => 'secret',
-        'path'     => '/digests',
-        'base_url' => 'https://example.com/digests',
-    ]);
-}
-
-/**
- * Create a WordPress OutputDestination for a user.
- */
-function makeWpDest(User $user): OutputDestination
-{
-    return OutputDestination::factory()->forUser($user)->create([
-        'type'                   => 'wordpress',
-        'wordpress_url'          => 'https://mysite.com',
-        'wordpress_username'     => 'admin',
-        'wordpress_app_password' => 'app-pass',
-        'wordpress_post_status'  => 'publish',
+        'password'  => 'secret',
+        'path'      => '/digests',
+        'base_url'  => 'https://example.com/digests',
     ]);
 }
 
@@ -160,9 +140,6 @@ it('aborts gracefully when the list does not exist', function () {
 
     runPublishDigest(99999, $builder);
 
-    // If we reach this point without an exception, the job handled the
-    // missing list gracefully. The shouldNotReceive expectation above
-    // also acts as an assertion — Mockery will fail if build() is called.
     expect(true)->toBeTrue();
 });
 
@@ -178,7 +155,6 @@ it('skips delivery when gate is blocked for webpage list', function () {
     $dest = makeSftpDest($user);
     $list = ListModel::factory()->forUser($user)->webpage($dest->id)->create(['enabled' => true]);
 
-    // Raise a Tier 3 infrastructure alert to block publishing.
     DB::table('admin_alerts')->insert([
         'tier'        => 3,
         'category'    => 'infrastructure',
@@ -211,7 +187,6 @@ it('does NOT skip delivery when gate is blocked for email list', function () {
         'enabled'     => true,
     ]);
 
-    // Raise a Tier 3 infrastructure alert — should NOT block email.
     DB::table('admin_alerts')->insert([
         'tier'        => 3,
         'category'    => 'infrastructure',
@@ -293,10 +268,8 @@ it('calls markAsIncluded after successful email delivery', function () {
     $user = User::factory()->create();
     $list = ListModel::factory()->forUser($user)->create(['output_type' => OutputType::Email]);
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('markAsIncluded')->once();
 
     runPublishDigest($list->id, $builder);
@@ -308,13 +281,10 @@ it('does not call markAsIncluded when email delivery fails', function () {
     $user = User::factory()->create();
     $list = ListModel::factory()->forUser($user)->create(['output_type' => OutputType::Email]);
 
-    $digestData = fakeDigestData($list);
-
-    // Simulate Mail::to()->send() throwing.
     Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP failure'));
 
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldNotReceive('markAsIncluded');
 
     runPublishDigest($list->id, $builder);
@@ -344,10 +314,8 @@ it('uploads via SFTP for webpage list', function () {
     $dest = makeSftpDest($user);
     $list = ListModel::factory()->forUser($user)->webpage($dest->id)->create(['notify_by_email' => false]);
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded')->once();
@@ -365,10 +333,8 @@ it('does not call markAsIncluded when SFTP upload fails', function () {
     $dest = makeSftpDest($user);
     $list = ListModel::factory()->forUser($user)->webpage($dest->id)->create();
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldNotReceive('markAsIncluded');
@@ -381,16 +347,13 @@ it('does not call markAsIncluded when SFTP upload fails', function () {
 
 it('aborts with error when webpage list has no output destination', function () {
     $user = User::factory()->create();
-    // Manually create a webpage list with no destination.
     $list = ListModel::factory()->forUser($user)->create([
         'output_type'           => OutputType::Webpage,
         'output_destination_id' => null,
     ]);
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldNotReceive('markAsIncluded');
@@ -408,10 +371,8 @@ it('sends DigestReadyNotification after SFTP upload when notify_by_email is true
     $dest = makeSftpDest($user);
     $list = ListModel::factory()->forUser($user)->webpage($dest->id)->create(['notify_by_email' => true]);
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded');
@@ -431,10 +392,8 @@ it('does not send DigestReadyNotification when notify_by_email is false', functi
     $dest = makeSftpDest($user);
     $list = ListModel::factory()->forUser($user)->webpage($dest->id)->create(['notify_by_email' => false]);
 
-    $digestData = fakeDigestData($list);
-
     $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
     $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded');
@@ -448,73 +407,7 @@ it('does not send DigestReadyNotification when notify_by_email is false', functi
 });
 
 // =============================================================================
-// GROUP 6: WordPress delivery
-// =============================================================================
-
-it('publishes a WordPress post for wordpress list', function () {
-    $user = User::factory()->create();
-    $dest = makeWpDest($user);
-    $list = ListModel::factory()->forUser($user)->wordpress($dest->id)->create();
-
-    $digestData = fakeDigestData($list);
-
-    $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
-    $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
-    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
-    $builder->shouldReceive('markAsIncluded')->once();
-
-    $wordpress = mock(WordPressService::class);
-    $wordpress->shouldReceive('createPost')
-        ->once()
-        ->andReturn(['success' => true, 'post_id' => 42, 'url' => 'https://mysite.com/my-list-digest-2026-03-25']);
-
-    runPublishDigest($list->id, $builder, wordpress: $wordpress);
-});
-
-it('does not call markAsIncluded when WordPress post fails', function () {
-    $user = User::factory()->create();
-    $dest = makeWpDest($user);
-    $list = ListModel::factory()->forUser($user)->wordpress($dest->id)->create();
-
-    $digestData = fakeDigestData($list);
-
-    $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
-    $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
-    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
-    $builder->shouldNotReceive('markAsIncluded');
-
-    $wordpress = mock(WordPressService::class);
-    $wordpress->shouldReceive('createPost')
-        ->andReturn(['success' => false, 'message' => 'Authentication failed']);
-
-    runPublishDigest($list->id, $builder, wordpress: $wordpress);
-});
-
-it('aborts with error when wordpress list has no output destination', function () {
-    $user = User::factory()->create();
-    $list = ListModel::factory()->forUser($user)->create([
-        'output_type'           => OutputType::Wordpress,
-        'output_destination_id' => null,
-    ]);
-
-    $digestData = fakeDigestData($list);
-
-    $builder = mock(DigestBuilderService::class);
-    $builder->shouldReceive('build')->andReturn($digestData);
-    $builder->shouldReceive('buildSlug')->andReturn('my-list-digest-2026-03-25');
-    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
-    $builder->shouldNotReceive('markAsIncluded');
-
-    $wordpress = mock(WordPressService::class);
-    $wordpress->shouldNotReceive('createPost');
-
-    runPublishDigest($list->id, $builder, wordpress: $wordpress);
-});
-
-// =============================================================================
-// GROUP 7: markAsIncluded — integration (real DigestBuilderService)
+// GROUP 6: markAsIncluded — integration (real DigestBuilderService)
 // =============================================================================
 
 it('marks summaries as included in DB after successful email delivery', function () {
@@ -523,7 +416,6 @@ it('marks summaries as included in DB after successful email delivery', function
     $user = User::factory()->create();
     $list = ListModel::factory()->forUser($user)->create(['output_type' => OutputType::Email]);
 
-    // Insert a real feed and list_source so DigestBuilderService can query them.
     $feedId = DB::table('text_based_rss_feeds')->insertGetId([
         'user_id'    => $user->id,
         'title'      => 'Test Feed',
@@ -545,7 +437,6 @@ it('marks summaries as included in DB after successful email delivery', function
 
     $summaryId = insertPendingSummary($user->id, $listSourceId);
 
-    // Use the real DigestBuilderService — this is the integration check.
     runPublishDigest($list->id, app(DigestBuilderService::class));
 
     $summary = DB::table('summaries')->find($summaryId);
@@ -554,7 +445,7 @@ it('marks summaries as included in DB after successful email delivery', function
 });
 
 // =============================================================================
-// GROUP 8: last_run_at is always updated
+// GROUP 7: last_run_at is always updated
 // =============================================================================
 
 it('updates last_run_at after successful webpage delivery', function () {

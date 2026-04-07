@@ -119,7 +119,7 @@ class ListWizardController extends Controller
     public function step3Submit(Request $request)
     {
         $request->validate([
-            'output_type' => ['required', 'in:webpage,email,wordpress'],
+            'output_type' => ['required', 'in:webpage,email'],
         ], [
             'output_type.required' => 'Please select how you want this list delivered.',
             'output_type.in'       => 'Please select a valid output type.',
@@ -131,17 +131,16 @@ class ListWizardController extends Controller
             return redirect()->route('lists.create.step6');
         }
 
-        // webpage and wordpress redir to step 4
         return redirect()->route('lists.create.step4');
     }
 
     // -------------------------------------------------------------------------
-    // Step 4: Output destination (webpage and wordpress)
+    // Step 4: Output destination (webpage only)
     // -------------------------------------------------------------------------
 
     public function step4(Request $request)
     {
-        if (! in_array($request->session()->get('list_wizard.output_type'), ['webpage', 'wordpress'])) {
+        if ($request->session()->get('list_wizard.output_type') !== 'webpage') {
             return redirect()->route('lists.create.step1');
         }
 
@@ -180,7 +179,7 @@ class ListWizardController extends Controller
 
     public function step5(Request $request)
     {
-        if (! in_array($request->session()->get('list_wizard.output_type'), ['webpage', 'wordpress'])) {
+        if ($request->session()->get('list_wizard.output_type') !== 'webpage') {
             return redirect()->route('lists.create.step1');
         }
 
@@ -217,7 +216,7 @@ class ListWizardController extends Controller
         $data        = $request->session()->get('list_wizard');
         $destination = null;
 
-        if (in_array($data['output_type'] ?? null, ['webpage', 'wordpress']) && ! empty($data['output_destination_id'])) {
+        if (($data['output_type'] ?? null) === 'webpage' && ! empty($data['output_destination_id'])) {
             $destination = OutputDestination::find($data['output_destination_id']);
         }
 
@@ -230,9 +229,8 @@ class ListWizardController extends Controller
             return redirect()->route('lists.create.step1');
         }
 
-        $data                = $request->session()->get('list_wizard');
-        $outputType          = $data['output_type'];
-        $requiresDestination = in_array($outputType, ['webpage', 'wordpress']);
+        $data       = $request->session()->get('list_wizard');
+        $outputType = $data['output_type'];
 
         ListModel::create([
             'user_id'               => auth()->id(),
@@ -244,7 +242,7 @@ class ListWizardController extends Controller
             'schedule_day'          => $data['schedule_day'] ?? null,
             'schedule_time'         => $data['schedule_time'],
             'output_type'           => $outputType,
-            'output_destination_id' => $requiresDestination ? ($data['output_destination_id'] ?? null) : null,
+            'output_destination_id' => $outputType === 'webpage' ? ($data['output_destination_id'] ?? null) : null,
             'notify_by_email'       => $outputType === 'webpage' ? ($data['notify_by_email'] ?? false) : false,
         ]);
 
@@ -259,7 +257,7 @@ class ListWizardController extends Controller
 
         return redirect()->route('lists.create.step7');
     }
-    
+
     // -------------------------------------------------------------------------
     // Step 7: Done
     // -------------------------------------------------------------------------
@@ -324,16 +322,15 @@ class ListWizardController extends Controller
             'schedule_frequency'    => ['required', 'in:daily,weekly,monthly'],
             'schedule_day'          => ['nullable', 'integer', 'min:1', 'max:31'],
             'schedule_time'         => ['required', 'date_format:H:i'],
-            'output_type'           => ['required', 'in:webpage,email,wordpress'],
+            'output_type'           => ['required', 'in:webpage,email'],
             'output_destination_id' => ['nullable', 'integer'],
             'notify_by_email'       => ['nullable', 'boolean'],
         ]);
 
-        $outputType          = $request->input('output_type');
-        $requiresDestination = in_array($outputType, ['webpage', 'wordpress']);
-        $destinationId       = null;
+        $outputType    = $request->input('output_type');
+        $destinationId = null;
 
-        if ($requiresDestination && $request->filled('output_destination_id')) {
+        if ($outputType === 'webpage' && $request->filled('output_destination_id')) {
             $destination = OutputDestination::where('id', $request->input('output_destination_id'))
                 ->where('user_id', auth()->id())
                 ->first();
@@ -351,7 +348,7 @@ class ListWizardController extends Controller
             'schedule_day'          => $request->input('schedule_day'),
             'schedule_time'         => $request->input('schedule_time'),
             'output_type'           => $outputType,
-            'output_destination_id' => $requiresDestination ? $destinationId : null,
+            'output_destination_id' => $outputType === 'webpage' ? $destinationId : null,
             'notify_by_email'       => $outputType === 'webpage' ? $request->boolean('notify_by_email') : false,
         ]);
 
