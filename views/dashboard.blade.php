@@ -6,6 +6,12 @@
         Welcome, <strong>{{ auth()->user()->name }}</strong>!
     </p>
 
+    @session('error')
+    <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-6 text-sm text-red-800">
+        {{ $value }}
+    </div>
+@endsession
+
     {{-- Podcast Studio --}}
     <div class="mb-8">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">Podcast Studio</h2>
@@ -146,18 +152,22 @@
                 <a href="{{ route('language_models.usecases.index') }}"
                    class="text-blue-600 hover:underline hover:text-gray-900">Use Cases</a>
             </div>
-            <div>
-                <span class="text-gray-400">Auphonic <em class="text-xs">(future development)</em></span>
-            </div>
-            <div>
-                <span class="text-gray-400">AWS <em class="text-xs">(future development)</em></span>
-            </div>
-            <div>
-                <span class="text-gray-400">Cloudflare <em class="text-xs">(future development)</em></span>
-            </div>
         </div>
     </div>
     @endcan
+
+    @can('admin')
+    {{-- API Management --}}
+    <div class="mb-8">
+        <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider mb-3">API Management</h2>
+        <div class="space-y-2 pl-4">
+            <div>
+                <a href="{{ route('api_management.dashboard') }}"
+                class="text-blue-600 hover:underline hover:text-gray-900">API Dashboard</a>
+            </div>
+        </div>
+    </div>
+    @endcan         
 
     @can('admin')
     {{-- Tools --}}
@@ -181,7 +191,7 @@
             <div>
                 <a href="{{ route('phpserverlessproject_sponsors.index') }}"
                    class="text-blue-600 hover:underline hover:text-gray-900">PHP Serverless Project Sponsors</a>
-            </div>            
+            </div>
         </div>
     </div>
     @endcan

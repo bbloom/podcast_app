@@ -37,7 +37,9 @@ use Illuminate\Foundation\Configuration\Middleware;
 // Force the testing environment when running under Pest.
 // See full explanation comment in the version that has it.
 // If you MUST use bootstrap/app.php
-// If you are determined to override the database via the bootstrap file, you have to override the config, not just the environment name.
+// If you are determined to override the database via the bootstrap file, you have to override the config, 
+// not just the environment name.
+
 if (str_contains($_SERVER['argv'][0] ?? '', 'pest')) {
     putenv('APP_ENV=testing');
     $_ENV['APP_ENV'] = 'testing';
@@ -58,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )

@@ -21,6 +21,8 @@
 ### MEDIA_PLATFORM structure
 ```
 MEDIA_PLATFORM/
+├── API/
+│   └── v1/                ← active (public podcast API — see README.md)
 ├── Tools/
 │   ├── AdHocPrompt/
 │   ├── DatabaseBackup/
@@ -28,10 +30,7 @@ MEDIA_PLATFORM/
 ├── Configuration/
 │   ├── LanguageModels/
 │   ├── Providers/
-│   ├── UseCases/
-│   ├── Auphonic/          ← future development
-│   ├── Aws/               ← future development
-│   └── Cloudflare/        ← future development
+│   └── UseCases/
 ├── Digest/
 │   ├── ContentSources/
 │   │   ├── Youtube/
@@ -46,7 +45,15 @@ MEDIA_PLATFORM/
 ├── PodcastStudio/
 │   ├── Management/        ← active (Controllers, Models, Requests, Routes)
 │   ├── PreProduction/     ← active (CreateEpisode wizard — Step1, Step2, Step3)
-│   └── PostProduction/    ← active (Dashboard, Enums — upload recording feature next)
+│   └── PostProduction/    ← active
+│       ├── AuphonicProcessing/
+│       │   └── Presets/   ← Auphonic_preset.php — per-show preset UUIDs
+│       └── CloudStorage/  ← S3 and R2 bucket/endpoint resolution classes
+│           ├── R2_production_audio.php
+│           ├── R2_rss.php
+│           ├── S3_production_audio.php
+│           ├── S3_rss.php
+│           └── S3_work_in_progress_audio.php
 ├── PsnContentManager/     ← future development
 └── (no top-level Enums/ folder — enums are co-located within their feature)
 ```
@@ -70,12 +77,14 @@ MEDIA_PLATFORM/
 - `database/migrations/media_platform/digests/processing/`
 - `database/migrations/media_platform/digests/lists_and_feeds/`
 - `database/migrations/media_platform/tools/database_backup/`
+- `database/migrations/media_platform/api/`
 - Note: the migrations folder hierarchy does not fully mirror `MEDIA_PLATFORM/`
 
 ### Routes
 - `routes/web.php` and `routes/console.php` are thin orchestrators that `require` feature route files
 - Feature route files live inside their feature folder under a `Routes/` subfolder
 - Example: `MEDIA_PLATFORM/Configuration/Routes/language_models.php`
+- API routes are loaded via `routes/api.php`, which Laravel automatically prefixes with `/api`
 
 ## Naming
 - "Youtube" not "YouTube" in code
@@ -102,7 +111,15 @@ MEDIA_PLATFORM/
 
 ## Seeding
 - Seeding of admin/sensitive data is gated behind `ADMIN_SEEDING_ENABLED` in `.env`
-- Checked via `config/admin.php` — seeders should read this value and bail early if it is not `true`
+- Checked via `config/admin.php` — the gate lives in `DatabaseSeeder.php`, not in individual seeders
+- Individual seeders do not need their own gate check
+
+## API
+- The public API uses a bearer token plus a `RequestingDomain` header for authentication
+- Bearer tokens are stored as bcrypt hashes — never as plain text
+- The API has an on/off switch persisted in the `api_controls` database table
+- Admin-only access checks in API management controllers use `if (! auth()->user()->can('admin'))` with a redirect, not `abort_if`, so non-admin users are redirected gracefully within the Admin UI
+- See `MEDIA_PLATFORM/API/v1/README.md` for full API documentation
 
 ## UI & Blade
 - Purple / `purple-700` accent theme throughout

@@ -29,6 +29,10 @@ return new class extends Migration
                   ->unique()
                   ->comment('First and last name of the guest.');
 
+            $table->string('slug')
+                  ->unique()
+                  ->comment('URL-friendly identifier generated automatically from full_name. Used as the guest page URL segment on the front-end.');
+
             $table->string('image_url')
                   ->nullable()
                   ->comment('URL to the guest\'s full-size profile image.');

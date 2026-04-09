@@ -20,6 +20,8 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `language_models` — available AI models for summarisation
 - `podcast_guest_episode` — pivot table joining guests to episodes (PodcastStudio)
 - `podcast_link_episode` — pivot table joining links to episodes (PodcastStudio)
+- `api_controls` — single-row on/off switch for the public API
+- `api_clients` — authorised front-end domains and their hashed bearer tokens
 
 ## Polymorphic Relationships
 Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to lists and summaries via polymorphic relationships using morph aliases.
@@ -30,6 +32,17 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - A `language_models` table stores available models and providers
 - Summarisation is abstracted behind a service/interface so the provider can be changed or configured per user without touching pipeline logic
 - Future candidates: OpenAI, GitHub Copilot, Anthropic, or others
+
+## Public Podcast API
+- A stateless, read-only JSON API that serves podcast data to Astro-based static site front-ends during their build process
+- Single endpoint: `GET /api/v1/podcastepisodes` — returns all published episodes, enabled guests, and enabled sponsors in one response
+- The API is off by default — enabled manually via the Admin UI before an Astro build, disabled again afterwards
+- Authentication uses a bearer token plus a `RequestingDomain` header, both validated against the `api_clients` table
+- Bearer tokens are stored as bcrypt hashes and shown only once at generation time
+- The API on/off state is persisted in the `api_controls` database table for durability across server restarts
+- Five front-end domains are registered as API clients: `bobbloomshow.com`, `bobbloominterviews.com`, `phpserverlessnews.com`, `phpserverlessprofiles.com`, `phpserverlessprojectupdates.com`
+- Managed via the Admin UI at Dashboard → API Management
+- See `MEDIA_PLATFORM/API/v1/README.md` for full detail
 
 ## PodcastStudio
 - Active feature — `PodcastStudio/Management/` is in use with Controllers, Models, Requests, and Routes

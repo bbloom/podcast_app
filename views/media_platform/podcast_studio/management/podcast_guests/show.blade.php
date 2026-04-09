@@ -89,6 +89,10 @@
             {{-- Record --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">Record</td></tr>
             <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Slug</td>
+                <td class="py-1 text-gray-800 font-mono text-xs">{{ $guest->slug }}</td>
+            </tr>
+            <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Created</td>
                 <td class="py-1 text-gray-800">{{ $guest->created_at->format('d M Y') }}</td>
             </tr>

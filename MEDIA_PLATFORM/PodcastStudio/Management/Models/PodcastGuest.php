@@ -21,6 +21,7 @@ class PodcastGuest extends Model
     // -------------------------------------------------------------------------
     protected $fillable = [
         'full_name',
+        'slug',
         'image_url',
         'image_thumbnail_url',
         'profile_full',
@@ -47,6 +48,23 @@ class PodcastGuest extends Model
     }
 
     // -------------------------------------------------------------------------
+    // Model events — auto-generate slug from full_name on create and update.
+    // -------------------------------------------------------------------------
+    protected static function booted(): void
+    {
+        static::creating(function (PodcastGuest $guest) {
+            $guest->slug = self::makeSlug($guest->full_name);
+        });
+
+        static::updating(function (PodcastGuest $guest) {
+            // Only regenerate the slug if full_name has actually changed.
+            if ($guest->isDirty('full_name')) {
+                $guest->slug = self::makeSlug($guest->full_name);
+            }
+        });
+    }
+
+    // -------------------------------------------------------------------------
     // Relationships
     // -------------------------------------------------------------------------
 
@@ -56,5 +74,18 @@ class PodcastGuest extends Model
     public function episodes(): BelongsToMany
     {
         return $this->belongsToMany(PodcastEpisode::class, 'podcast_guest_episode');
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Generate a URL-friendly slug from a given string.
+     * Lowercases, trims, and replaces spaces with hyphens.
+     */
+    private static function makeSlug(string $value): string
+    {
+        return str_replace(' ', '-', strtolower(trim($value)));
     }
 }

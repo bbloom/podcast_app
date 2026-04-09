@@ -117,6 +117,17 @@ class PodcastGuestControllerTest extends TestCase
         $this->assertDatabaseHas('podcast_guests', ['full_name' => 'Jane Smith']);
     }
 
+    public function test_store_auto_generates_slug_from_full_name(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->post(route('podcast_guests.store'), $this->guestPayload(['full_name' => 'Jane Smith']));
+
+        $this->assertDatabaseHas('podcast_guests', [
+            'full_name' => 'Jane Smith',
+            'slug'      => 'jane-smith',
+        ]);
+    }
+
     public function test_store_redirects_unauthenticated_users(): void
     {
         $this->post(route('podcast_guests.store'), $this->guestPayload())
@@ -170,7 +181,8 @@ class PodcastGuestControllerTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('podcast_guests.show', $guest))
             ->assertOk()
-            ->assertSee('Jane Smith');
+            ->assertSee('Jane Smith')
+            ->assertSee($guest->slug);
     }
 
     public function test_show_redirects_unauthenticated_users(): void
@@ -230,6 +242,36 @@ class PodcastGuestControllerTest extends TestCase
             ->assertRedirect(route('podcast_guests.show', $guest));
 
         $this->assertDatabaseHas('podcast_guests', ['id' => $guest->id, 'full_name' => 'New Name']);
+    }
+
+    public function test_update_regenerates_slug_when_full_name_changes(): void
+    {
+        $guest = PodcastGuest::factory()->create(['full_name' => 'Old Name']);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('podcast_guests.update', $guest), $this->guestPayload(['full_name' => 'New Name']));
+
+        $this->assertDatabaseHas('podcast_guests', [
+            'id'   => $guest->id,
+            'slug' => 'new-name',
+        ]);
+    }
+
+    public function test_update_does_not_change_slug_when_full_name_unchanged(): void
+    {
+        $guest = PodcastGuest::factory()->create(['full_name' => 'Jane Smith']);
+        $originalSlug = $guest->slug;
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('podcast_guests.update', $guest), $this->guestPayload([
+                'full_name'    => 'Jane Smith',
+                'profile_short' => 'Updated tagline',
+            ]));
+
+        $this->assertDatabaseHas('podcast_guests', [
+            'id'   => $guest->id,
+            'slug' => $originalSlug,
+        ]);
     }
 
     public function test_update_redirects_unauthenticated_users(): void
@@ -341,9 +383,9 @@ class PodcastGuestControllerTest extends TestCase
 
     public function test_attach_episode_index_shows_unattached_episodes(): void
     {
-        $user    = User::factory()->create();
-        $guest   = PodcastGuest::factory()->create();
-        $attached = $this->makeEpisode($user);
+        $user      = User::factory()->create();
+        $guest     = PodcastGuest::factory()->create();
+        $attached  = $this->makeEpisode($user);
         $available = $this->makeEpisode($user);
 
         $guest->episodes()->attach($attached->id);
@@ -448,8 +490,8 @@ class PodcastGuestControllerTest extends TestCase
 
     public function test_attach_guest_index_shows_enabled_unattached_guests(): void
     {
-        $user     = User::factory()->create();
-        $episode  = $this->makeEpisode($user);
+        $user      = User::factory()->create();
+        $episode   = $this->makeEpisode($user);
         $available = PodcastGuest::factory()->create(['full_name' => 'Available Guest', 'enabled' => true]);
         $disabled  = PodcastGuest::factory()->create(['full_name' => 'Disabled Guest',  'enabled' => false]);
         $attached  = PodcastGuest::factory()->create(['full_name' => 'Attached Guest',  'enabled' => true]);
