@@ -31,7 +31,12 @@ Thumbs.db
 /.devcontainer
 /.vscode
 /certs
+docker-compose.yml
+docker-entrypoint-app-container.sh 
+Dockerfile
 docker-compose.override.yml
+/docker
+/caddy
 
 /storage/debugbar
 
