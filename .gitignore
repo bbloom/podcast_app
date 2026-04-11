@@ -7,15 +7,6 @@
 .env.backup
 .env.development
 .env.production
-.env.adminlasallesoftwareca
-.env.bobbloomshow
-.env.bobbloominterviews
-.env.phpserverlessnews
-.env.phpserverlessprofiles
-.env.phpserverlessproject
-.env.phpserverlessprojectupdates
-.env.bobbloomme
-.env.aaronbloomcarpentry
 .env.testing
 .phpactor.json
 .phpunit.result.cache
@@ -40,11 +31,12 @@ Thumbs.db
 /.devcontainer
 /.vscode
 /certs
-composer.lock
 docker-compose.override.yml
 
 /storage/debugbar
 
 /docs/readmes
 /ETL
+/precious_media_server
+/env_files
 
