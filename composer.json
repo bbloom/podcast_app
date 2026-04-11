@@ -13,6 +13,7 @@
         "james-heinrich/getid3": "*",
         "laravel/fortify": "^1.34",
         "laravel/framework": "^13.0",
+        "laravel/octane": "^2.17",
         "league/flysystem-sftp-v3": "^3.31"
     },
     "require-dev": {
