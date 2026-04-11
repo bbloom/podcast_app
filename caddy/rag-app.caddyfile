@@ -1,5 +1,0 @@
-rag-app.test {
-    root * /app/public
-    tls /certs/rag-app.test.pem /certs/rag-app.test-key.pem
-    php_server
-}

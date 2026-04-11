@@ -46,6 +46,7 @@ RUN git config --global user.email "bob.bloom@lasallesoftware.ca" \
 RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
+    pcntl \
     xdebug
 
 # Set working directory

@@ -27,5 +27,10 @@ if [ "$1" = "php" ]; then
     exec "$@"
 fi
 
-# Step 4: Start FrankenPHP
-exec frankenphp run --config /etc/caddy/Caddyfile
+# Step 4: Start Octane with FrankenPHP in worker mode
+exec php artisan octane:start \
+    --server=frankenphp \
+    --host=0.0.0.0 \
+    --port=443 \
+    --admin-port=2019 \
+    --caddyfile=/etc/caddy/Caddyfile
