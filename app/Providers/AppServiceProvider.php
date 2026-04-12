@@ -80,5 +80,14 @@ class AppServiceProvider extends ServiceProvider
             \MediaPlatform\Tools\DatabaseBackup\Commands\BackupDatabaseCommand::class,
             \MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Console\Commands\GenerateRssFeedCommand::class,
         ]);
+
+        /**
+         * Force HTTPS when running behind a reverse proxy in production.
+         * Without this, Laravel generates HTTP URLs despite APP_URL being HTTPS,
+         * because it only sees the internal HTTP connection from Caddy on port 8080.
+         */
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }
