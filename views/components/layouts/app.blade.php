@@ -116,6 +116,8 @@
         {{ $slot }}
     </main>
 
+    <x-layouts.footer />
+
 @stack('scripts')
 </body>
 </html>
