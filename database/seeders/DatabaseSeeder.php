@@ -13,8 +13,9 @@ class DatabaseSeeder extends Seeder
     {
         if (! config('admin.seeding_enabled')) {
             $this->command->warn('Seeding is disabled. Set ADMIN_SEEDING_ENABLED=true in .env to enable.');
-        return;
-    }
+            return;
+        }
+        
         $this->call([
             UsersSeeder::class,
             LlmSeeder::class,
