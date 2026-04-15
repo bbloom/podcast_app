@@ -4,6 +4,8 @@ namespace MediaPlatform\Tools\HealthChecks\Controllers;
 
 use MediaPlatform\Tools\HealthChecks\Models\AdminAlert;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 
 class HealthCheckController extends Controller
 {
@@ -51,5 +53,48 @@ class HealthCheckController extends Controller
     public function readme()
     {
         return view('media_platform.tools.health_checks.readme');
+    }
+
+    /**
+     * Show the flush failed jobs confirmation page.
+     * Only reachable when there are actually failed jobs — the button
+     * in the UI is conditionally rendered — but we double-check here.
+     */
+    public function flushFailedJobsConfirm()
+    {
+        $count = DB::table('failed_jobs')->count();
+
+        if ($count === 0) {
+            return redirect()
+                ->route('admin.health-checks.index')
+                ->with('success', 'No failed jobs to flush.');
+        }
+
+        return view('media_platform.tools.health_checks.flush_failed_jobs_confirm', [
+            'count' => $count,
+        ]);
+    }
+
+    /**
+     * Flush all failed jobs and immediately resolve the related alert.
+     *
+     * Runs queue:flush to clear the failed_jobs table, then resolves any
+     * unresolved "Failed jobs detected" alert so the UI reflects the fix
+     * immediately without waiting for the next scheduled health check.
+     */
+    public function flushFailedJobs()
+    {
+        Artisan::call('queue:flush');
+
+        // Immediately resolve the alert rather than waiting for the next
+        // scheduled health check run to auto-resolve it.
+        AdminAlert::where('category', 'queue')
+            ->where('title', 'Failed jobs detected')
+            ->where('is_resolved', false)
+            ->each(fn ($alert) => $alert->markResolved());
+
+        return redirect()
+            ->route('admin.health-checks.index')
+            ->with('success', 'Failed jobs flushed and alert resolved.');
     }
 }

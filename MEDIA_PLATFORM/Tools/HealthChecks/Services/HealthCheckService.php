@@ -51,6 +51,7 @@ class HealthCheckService
         $this->checkPythonDependencies();
         $this->checkDiskSpace();
         $this->checkPhpUploadLimits();
+        $this->checkFailedJobs();
 
         $this->alertService->sendPendingNotifications();
 
@@ -335,6 +336,39 @@ class HealthCheckService
                 "Current value: {$maxExecution}s. Must be at least 300 seconds (5 minutes) for large podcast file uploads. " .
                 "Update max_execution_time in your php.ini or FrankenPHP config and restart the server.");
         }
+    }
+
+     /**
+     * Check whether the failed_jobs table contains any unprocessed failures.
+     *
+     * A non-empty failed_jobs table means one or more queued jobs have failed
+     * permanently and were not retried successfully. This is a Tier 2 alert —
+     * the system continues running but the failed jobs need human attention.
+     *
+     * Auto-resolves on the next health check run once the table is empty.
+     * Can also be resolved immediately via the "Flush Failed Jobs" UI action.
+     */
+    public function checkFailedJobs(): void
+    {
+        $count = DB::table('failed_jobs')->count();
+
+        if ($count === 0) {
+            $this->pass('failed_jobs', 'queue', 'No failed jobs');
+            return;
+        }
+
+        $latestFailedAt = DB::table('failed_jobs')
+            ->orderByDesc('failed_at')
+            ->value('failed_at');
+
+        $this->fail(
+            2,
+            'queue',
+            'Failed jobs detected',
+            "{$count} failed " . str('job')->plural($count) . " in the queue. " .
+            "Most recent failure: {$latestFailedAt}. " .
+            "Go to Health Checks in the Admin UI and flush the failed jobs, or SSH in and run: php artisan queue:flush"
+        );
     }
 
     // ─── Result Helpers ──────────────────────────────────────

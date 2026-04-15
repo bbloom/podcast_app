@@ -17,10 +17,12 @@
 
 namespace Tests\Feature\MEDIA_PLATFORM\Tools\HealthChecks;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\Tools\HealthChecks\Services\AlertService;
 use MediaPlatform\Digest\Processing\Services\LlmService;
 use MediaPlatform\Tools\HealthChecks\Services\HealthCheckService;
+use MediaPlatform\Tools\HealthChecks\Models\AdminAlert;
 use Tests\TestCase;
 
 class HealthCheckServiceTest extends TestCase
@@ -125,5 +127,120 @@ class HealthCheckServiceTest extends TestCase
         $service = $this->makeService();
 
         $this->assertSame(524_288_000, $service->iniToBytes(' 500M '));
+    }
+
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  checkFailedJobs()                                                     ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    // ── Pass — empty table ────────────────────────────────────────────────────
+
+    /**
+     * When the failed_jobs table is empty, no alert should be raised.
+     */
+    public function test_check_failed_jobs_passes_when_table_is_empty(): void
+    {
+        $service = $this->makeService();
+        $service->checkFailedJobs();
+
+        $this->assertDatabaseMissing('admin_alerts', [
+            'title' => 'Failed jobs detected',
+        ]);
+    }
+
+    /**
+     * When the table is empty, any existing resolved alert for failed jobs
+     * should be auto-resolved — i.e. no new unresolved alert is created.
+     */
+    public function test_check_failed_jobs_does_not_create_alert_when_table_is_empty(): void
+    {
+        $service = $this->makeService();
+        $service->checkFailedJobs();
+
+        $this->assertDatabaseCount('admin_alerts', 0);
+    }
+
+    
+    // ── Fail — failed jobs present ────────────────────────────────────────────
+
+    /**
+     * When the failed_jobs table has rows, a Tier 2 alert should be raised.
+     */
+    public function test_check_failed_jobs_raises_tier_2_alert_when_jobs_exist(): void
+    {
+        DB::table('failed_jobs')->insert([
+            'uuid'       => \Illuminate\Support\Str::uuid(),
+            'connection' => 'database',
+            'queue'      => 'default',
+            'payload'    => '{}',
+            'exception'  => 'RuntimeException: something went wrong',
+            'failed_at'  => now(),
+        ]);
+
+        $service = $this->makeService();
+        $service->checkFailedJobs();
+
+        $this->assertDatabaseHas('admin_alerts', [
+            'title'       => 'Failed jobs detected',
+            'tier'        => 2,
+            'category'    => 'queue',
+            'is_resolved' => false,
+        ]);
+    }
+
+    /**
+     * The alert message should include the count of failed jobs.
+     */
+    public function test_check_failed_jobs_alert_message_includes_count(): void
+    {
+        DB::table('failed_jobs')->insert([
+            [
+                'uuid'       => \Illuminate\Support\Str::uuid(),
+                'connection' => 'database',
+                'queue'      => 'default',
+                'payload'    => '{}',
+                'exception'  => 'Exception: first failure',
+                'failed_at'  => now()->subMinutes(10),
+            ],
+            [
+                'uuid'       => \Illuminate\Support\Str::uuid(),
+                'connection' => 'database',
+                'queue'      => 'default',
+                'payload'    => '{}',
+                'exception'  => 'Exception: second failure',
+                'failed_at'  => now()->subMinutes(5),
+            ],
+        ]);
+
+        $service = $this->makeService();
+        $service->checkFailedJobs();
+
+        $alert = AdminAlert::where('title', 'Failed jobs detected')->first();
+
+        $this->assertNotNull($alert);
+        $this->assertStringContainsString('2', $alert->message);
+    }
+
+    /**
+     * raiseIfNew() should not create a duplicate alert if one already exists.
+     */
+    public function test_check_failed_jobs_does_not_duplicate_existing_unresolved_alert(): void
+    {
+        DB::table('failed_jobs')->insert([
+            'uuid'       => \Illuminate\Support\Str::uuid(),
+            'connection' => 'database',
+            'queue'      => 'default',
+            'payload'    => '{}',
+            'exception'  => 'RuntimeException: something went wrong',
+            'failed_at'  => now(),
+        ]);
+
+        $service = $this->makeService();
+
+        // Call twice — should still only produce one alert.
+        $service->checkFailedJobs();
+        $service->checkFailedJobs();
+
+        $this->assertDatabaseCount('admin_alerts', 1);
     }
 }

@@ -73,6 +73,11 @@
                                         Mark Resolved
                                     </button>
                                 </form>
+                            @elseif ($alert->title === 'Failed jobs detected')
+                                <a href="{{ route('admin.health-checks.failed-jobs.flush.confirm') }}"
+                                class="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                                    Flush Failed Jobs
+                                </a>
                             @else
                                 <span class="text-xs text-gray-400 flex-shrink-0 mt-1">Auto-resolves</span>
                             @endif
