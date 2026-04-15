@@ -17,9 +17,10 @@ class PodcastEpisodesControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const ENDPOINT = '/api/v1/podcastepisodes';
-    private const DOMAIN   = 'mypodcast.com';
-    private const TOKEN    = 'supersecrettoken1234567890abcdefghijklmnopqrstuvwxyz123456789012';
+    private const ENDPOINT  = '/api/v1/podcastepisodes';
+    private const DOMAIN    = 'mypodcast.com';
+    private const TOKEN     = 'supersecrettoken1234567890abcdefghijklmnopqrstuvwxyz123456789012';
+    private const SHOW_SLUG = 'bob-bloom-show';
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -27,7 +28,6 @@ class PodcastEpisodesControllerTest extends TestCase
 
     /**
      * Enable the API and create an active client with a known token.
-     * Returns the plain-text token for use in request headers.
      */
     private function enableApi(): void
     {
@@ -42,28 +42,38 @@ class PodcastEpisodesControllerTest extends TestCase
     }
 
     /**
-     * Make an authenticated request to the endpoint.
+     * Make an authenticated request to the endpoint, optionally
+     * overriding the PodcastShowSlug header.
      */
-    private function authenticatedGet(): \Illuminate\Testing\TestResponse
+    private function authenticatedGet(?string $showSlug = self::SHOW_SLUG): \Illuminate\Testing\TestResponse
     {
-        return $this->withHeaders([
+        $headers = [
             'RequestingDomain' => self::DOMAIN,
             'Authorization'    => 'Bearer ' . self::TOKEN,
-        ])->getJson(self::ENDPOINT);
+        ];
+
+        if ($showSlug !== null) {
+            $headers['PodcastShowSlug'] = $showSlug;
+        }
+
+        return $this->withHeaders($headers)->getJson(self::ENDPOINT);
     }
 
     /**
-     * Create a published episode attached to a show owned by a user.
+     * Create a published episode for the given show slug.
      */
-    private function makePublishedEpisode(): PodcastEpisode
+    private function makePublishedEpisode(?string $showSlug = self::SHOW_SLUG): PodcastEpisode
     {
-        $user  = User::factory()->create();
-        $show  = PodcastShow::factory()->create(['user_id' => $user->id]);
+        $user = User::factory()->create();
+        $show = PodcastShow::factory()->create([
+            'user_id' => $user->id,
+            'slug'    => $showSlug,
+        ]);
 
         return PodcastEpisode::factory()->create([
-            'user_id'           => $user->id,
-            'podcast_show_id'   => $show->id,
-            'website_enabled'   => true,
+            'user_id'            => $user->id,
+            'podcast_show_id'    => $show->id,
+            'website_enabled'    => true,
             'website_publish_on' => now()->subDay(),
         ]);
     }
@@ -74,13 +84,11 @@ class PodcastEpisodesControllerTest extends TestCase
 
     public function test_returns_503_when_api_is_disabled(): void
     {
-        // ApiControl row does not exist yet — instance() creates it disabled.
         $this->authenticatedGet()->assertStatus(503);
     }
 
     public function test_returns_503_even_with_valid_credentials_when_api_is_disabled(): void
     {
-        // Create the client but do NOT enable the API.
         ApiClient::create([
             'label'      => 'Test Client',
             'domain'     => self::DOMAIN,
@@ -107,7 +115,8 @@ class PodcastEpisodesControllerTest extends TestCase
         $this->enableApi();
 
         $this->withHeaders([
-            'Authorization' => 'Bearer ' . self::TOKEN,
+            'Authorization'    => 'Bearer ' . self::TOKEN,
+            'PodcastShowSlug'  => self::SHOW_SLUG,
         ])->getJson(self::ENDPOINT)->assertStatus(403);
     }
 
@@ -117,6 +126,7 @@ class PodcastEpisodesControllerTest extends TestCase
 
         $this->withHeaders([
             'RequestingDomain' => self::DOMAIN,
+            'PodcastShowSlug'  => self::SHOW_SLUG,
         ])->getJson(self::ENDPOINT)->assertStatus(403);
     }
 
@@ -127,6 +137,7 @@ class PodcastEpisodesControllerTest extends TestCase
         $this->withHeaders([
             'RequestingDomain' => 'unknown-domain.com',
             'Authorization'    => 'Bearer ' . self::TOKEN,
+            'PodcastShowSlug'  => self::SHOW_SLUG,
         ])->getJson(self::ENDPOINT)->assertStatus(403);
     }
 
@@ -137,6 +148,7 @@ class PodcastEpisodesControllerTest extends TestCase
         $this->withHeaders([
             'RequestingDomain' => self::DOMAIN,
             'Authorization'    => 'Bearer wrongtoken',
+            'PodcastShowSlug'  => self::SHOW_SLUG,
         ])->getJson(self::ENDPOINT)->assertStatus(403);
     }
 
@@ -152,6 +164,17 @@ class PodcastEpisodesControllerTest extends TestCase
         ]);
 
         $this->authenticatedGet()->assertStatus(403);
+    }
+
+    // -------------------------------------------------------------------------
+    // 422 — Missing PodcastShowSlug header
+    // -------------------------------------------------------------------------
+
+    public function test_returns_422_when_podcast_show_slug_header_is_missing(): void
+    {
+        $this->enableApi();
+
+        $this->authenticatedGet(showSlug: null)->assertStatus(422);
     }
 
     // -------------------------------------------------------------------------
@@ -174,36 +197,81 @@ class PodcastEpisodesControllerTest extends TestCase
             ->assertJsonStructure(['episodes', 'guests', 'sponsors']);
     }
 
+    public function test_returns_only_episodes_for_requested_show(): void
+    {
+        $this->enableApi();
+
+        $targetEpisode = $this->makePublishedEpisode(self::SHOW_SLUG);
+        $otherEpisode  = $this->makePublishedEpisode('another-show');
+
+        $response = $this->authenticatedGet()->assertOk();
+        $episodes = $response->json('episodes');
+
+        $slugs = array_column($episodes, 'slug');
+
+        $this->assertContains($targetEpisode->slug, $slugs);
+        $this->assertNotContains($otherEpisode->slug, $slugs);
+    }
+
     public function test_returns_published_episodes_only(): void
     {
         $this->enableApi();
 
-        $published   = $this->makePublishedEpisode();
-        $user        = User::factory()->create();
-        $show        = PodcastShow::factory()->create(['user_id' => $user->id]);
+        $published = $this->makePublishedEpisode();
+
+        // Reuse the show created by makePublishedEpisode() to avoid slug collision.
+        $show = PodcastShow::where('slug', self::SHOW_SLUG)->firstOrFail();
 
         // Unpublished — website_enabled = false
         PodcastEpisode::factory()->create([
-            'user_id'           => $user->id,
-            'podcast_show_id'   => $show->id,
-            'website_enabled'   => false,
+            'user_id'            => $published->user_id,
+            'podcast_show_id'    => $show->id,
+            'website_enabled'    => false,
             'website_publish_on' => now()->subDay(),
         ]);
 
         // Future — publish date in the future
         PodcastEpisode::factory()->create([
-            'user_id'           => $user->id,
-            'podcast_show_id'   => $show->id,
-            'website_enabled'   => true,
+            'user_id'            => $published->user_id,
+            'podcast_show_id'    => $show->id,
+            'website_enabled'    => true,
             'website_publish_on' => now()->addDay(),
         ]);
 
-        $response = $this->authenticatedGet()->assertOk();
-
-        $episodes = $response->json('episodes');
+        $episodes = $this->authenticatedGet()->assertOk()->json('episodes');
 
         $this->assertCount(1, $episodes);
         $this->assertEquals($published->slug, $episodes[0]['slug']);
+    }
+
+    public function test_episodes_are_ordered_newest_first(): void
+    {
+        $this->enableApi();
+
+        $user = User::factory()->create();
+        $show = PodcastShow::factory()->create([
+            'user_id' => $user->id,
+            'slug'    => self::SHOW_SLUG,
+        ]);
+
+        $older = PodcastEpisode::factory()->create([
+            'user_id'            => $user->id,
+            'podcast_show_id'    => $show->id,
+            'website_enabled'    => true,
+            'website_publish_on' => now()->subDays(10),
+        ]);
+
+        $newer = PodcastEpisode::factory()->create([
+            'user_id'            => $user->id,
+            'podcast_show_id'    => $show->id,
+            'website_enabled'    => true,
+            'website_publish_on' => now()->subDay(),
+        ]);
+
+        $episodes = $this->authenticatedGet()->assertOk()->json('episodes');
+
+        $this->assertEquals($newer->slug, $episodes[0]['slug']);
+        $this->assertEquals($older->slug, $episodes[1]['slug']);
     }
 
     public function test_episode_contains_expected_fields(): void
@@ -254,7 +322,6 @@ class PodcastEpisodesControllerTest extends TestCase
             ->json('episodes.0.guests');
 
         $this->assertContains($guest->slug, $guestSlugs);
-        // Ensure it's a flat array of strings, not objects
         $this->assertIsString($guestSlugs[0]);
     }
 
