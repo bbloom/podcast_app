@@ -55,12 +55,20 @@ class PodcastShowController extends Controller
     /**
      * Display a single podcast show.
      * Ownership check: only the owning user may view their show.
+     * Episodes are paginated using the pagination_show config value.
      */
     public function show(PodcastShow $podcast_show)
     {
         abort_if($podcast_show->user_id !== auth()->id(), 403);
 
-        return view('media_platform.podcast_studio.management.podcast_shows.show', ['show' => $podcast_show]);
+        $episodes = $podcast_show->episodes()
+            ->orderByDesc('created_at')
+            ->paginate(config('admin.pagination_show'));
+
+        return view('media_platform.podcast_studio.management.podcast_shows.show', [
+            'show'     => $podcast_show,
+            'episodes' => $episodes,
+        ]);
     }
 
     /**

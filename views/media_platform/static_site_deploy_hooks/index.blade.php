@@ -21,6 +21,12 @@
         </div>
     @endsession
 
+    @session('error')
+        <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-6 text-sm text-red-800">
+            {{ $value }}
+        </div>
+    @endsession
+
     @if ($hooks->isEmpty())
         <div class="bg-gray-50 border border-gray-200 rounded-lg px-5 py-8 text-center">
             <p class="text-sm text-gray-500">No deploy hooks yet.</p>

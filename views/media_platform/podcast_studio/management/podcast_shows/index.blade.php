@@ -32,7 +32,7 @@
 
         <div class="flex flex-col gap-3">
             @foreach ($shows as $show)
-                <div class="border border-gray-300 rounded-lg px-5 py-4 flex items-center justify-between hover:border-gray-300 transition">
+                <div class="border border-purple-300 rounded-lg px-5 py-4 flex items-center justify-between hover:border-gray-300 transition">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 min-w-0">
                             <span class="text-sm font-semibold text-gray-400 flex-shrink-0">
@@ -44,7 +44,7 @@
                                 class="w-[100px] h-[100px] rounded-lg object-cover border border-gray-200 flex-shrink-0"
                             >
                         </div>
-                        <p class="text-xs text-gray-500 truncate">{{ $show->description }}</p>
+                        <p class="mt-4 text-lg text-purple-700 truncate">{{ $show->description }}</p>
                     </div>
                     <div class="flex items-center gap-3 ml-4 flex-shrink-0">
                         <a href="{{ route('podcast_shows.show', $show) }}"

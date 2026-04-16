@@ -47,6 +47,11 @@
                     <label for="label" class="block text-sm font-medium text-gray-700 mb-1">Label</label>
                     <input type="text" id="label" name="label" value="{{ old('label', $hook->label) }}"
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <ul class="mt-3 ml-3 space-y-1 text-xs text-gray-400 list-disc list-outside pl-5">
+                        <li>A human-readable name to identify this hook at a glance.</li>
+                        <li>Recommended format: <span class="font-mono">Show or Digest Name — Provider — Environment</span></li>
+                        <li>Examples: <span class="font-mono">Bob Bloom Show — Cloudflare Pages — Live</span> · <span class="font-mono">PHP Serverless News — Netlify — Staging</span></li>
+                    </ul>
                     @error('label')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -76,6 +81,7 @@
                            placeholder="Leave blank to keep the existing URL unchanged"
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500">
                     <ul class="mt-3 ml-3 space-y-1 text-xs text-gray-400 list-disc list-outside pl-5">
+                        <li>Your static site hosting provider issues the deploy hook URL from within your project's settings.</li>
                         <li>Leave blank to keep the existing URL — it cannot be displayed as it is stored encrypted.</li>
                         <li>Enter a new URL only if you need to replace it.</li>
                     </ul>

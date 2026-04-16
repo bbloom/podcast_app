@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             Podcast_link_episodeSeeder::class,
             PhpServerlessProjectSponsorsSeeder::class,
             ApiClientsSeeder::class,
+            DeployHooksSeeder::class, 
         ]);
     }
 }

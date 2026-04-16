@@ -22,6 +22,12 @@
         </div>
     @endsession
 
+    @session('error')
+        <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-6 text-sm text-red-800">
+            {{ $value }}
+        </div>
+    @endsession
+
     {{-- Show details --}}
     <div class="border border-purple-500 rounded-lg p-6 mb-8">
         <div class="text-xl font-bold text-gray-800 mb-1 flex items-end gap-3"">
@@ -138,7 +144,7 @@
         </a>
     </div>
 
-    @php $episodes = $show->episodes()->orderByDesc('created_at')->get(); @endphp
+    
 
     @if ($episodes->isEmpty())
         <div class="border border-gray-200 rounded-lg px-6 py-10 text-center text-sm text-gray-400">
@@ -186,7 +192,23 @@
                 </tbody>
             </table>
         </div>
+
+        @if ($episodes->hasPages())
+            <div class="mt-4">{{ $episodes->links() }}</div>
+        @endif
     @endif
+
+    {{-- Static Site Builds --}}
+    <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider mt-8">Static Site Builds</div>
+    <div class="border border-purple-500 rounded-lg px-6 py-4 mb-8">
+        <p class="text-sm text-gray-600 mb-4">
+            Trigger a static site build to push the latest published episodes to your front-end site(s).
+        </p>
+        <a href="{{ route('post_production.trigger_builds.select', $show) }}"
+           class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+            Trigger Static Site Builds
+        </a>
+    </div>
 
     <div class="mt-6 text-sm">
         <a href="{{ route('podcast_shows.index') }}" class="hover:text-purple-700 transition">← Podcast Shows</a>

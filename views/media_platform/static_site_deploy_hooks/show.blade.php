@@ -108,6 +108,29 @@
         </div>
     </div>
 
+    {{-- Trigger Build --}}
+    @if ($hook->enabled)
+        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Trigger Build</div>
+        <div class="border border-purple-300 rounded-lg p-6 mb-8">
+            <p class="text-sm text-gray-600 mb-4">
+                Trigger a fresh static site build for
+                <strong>{{ $hook->triggerable->title }}</strong>
+                via {{ $hook->provider->label() }}.
+            </p>
+            <a href="{{ route('deploy_hooks.trigger.confirm', $hook) }}"
+               class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                Trigger Build
+            </a>
+        </div>
+    @else
+        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Trigger Build</div>
+        <div class="border border-gray-200 rounded-lg p-6 mb-8">
+            <p class="text-sm text-gray-400">
+                This hook is disabled and cannot be triggered. Enable it to trigger builds.
+            </p>
+        </div>
+    @endif
+
     {{-- Delete --}}
     <div class="mt-2 mb-6">
         <a href="{{ route('deploy_hooks.delete.confirm', $hook) }}"

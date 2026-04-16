@@ -195,7 +195,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($user)
              ->post(route('deploy_hooks.store'), $this->validPayload($otherShow))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_store_fails_validation_when_label_is_missing(): void
@@ -278,7 +279,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($other)
              ->get(route('deploy_hooks.show', $hook))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_show_redirects_unauthenticated_user(): void
@@ -313,7 +315,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($other)
              ->get(route('deploy_hooks.edit', $hook))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_edit_redirects_unauthenticated_user(): void
@@ -390,7 +393,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($other)
              ->put(route('deploy_hooks.update', $hook), $this->validPayload($show))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_update_returns_403_when_new_show_belongs_to_another_user(): void
@@ -401,7 +405,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($user)
              ->put(route('deploy_hooks.update', $hook), $this->validPayload($otherShow))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_update_fails_validation_when_label_is_missing(): void
@@ -446,7 +451,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($other)
              ->get(route('deploy_hooks.delete.confirm', $hook))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
     }
 
     public function test_delete_confirm_redirects_unauthenticated_user(): void
@@ -488,7 +494,8 @@ class DeployHookControllerTest extends TestCase
 
         $this->actingAs($other)
              ->delete(route('deploy_hooks.destroy', $hook))
-             ->assertForbidden();
+             ->assertRedirect()
+             ->assertSessionHas('error');
 
         $this->assertDatabaseHas('deploy_hooks', ['id' => $hook->id]);
     }

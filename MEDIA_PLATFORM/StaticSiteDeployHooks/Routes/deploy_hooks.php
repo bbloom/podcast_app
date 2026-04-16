@@ -46,3 +46,15 @@ Route::get('/deploy-hooks/{deploy_hook}/delete', [DeployHookController::class, '
 Route::delete('/deploy-hooks/{deploy_hook}', [DeployHookController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('deploy_hooks.destroy');
+
+Route::get('/deploy-hooks/{deploy_hook}/trigger', [DeployHookController::class, 'confirmTrigger'])
+    ->middleware(['auth'])
+    ->name('deploy_hooks.trigger.confirm');
+
+Route::post('/deploy-hooks/{deploy_hook}/trigger', [DeployHookController::class, 'executeTrigger'])
+    ->middleware(['auth'])
+    ->name('deploy_hooks.trigger.execute');
+
+Route::get('/deploy-hooks/{deploy_hook}/trigger/result', [DeployHookController::class, 'triggerResult'])
+    ->middleware(['auth'])
+    ->name('deploy_hooks.trigger.result');
