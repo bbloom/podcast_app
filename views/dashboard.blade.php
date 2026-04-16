@@ -49,6 +49,11 @@
                                 <a href="{{ route('post_production.dashboard') }}"
                                    class="text-blue-600 hover:underline hover:text-gray-900">Post-Production Dashboard</a>
                             </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-purple-400 font-bold">›</span>
+                                <a href="{{ route('deploy_hooks.index') }}"
+                                   class="text-blue-600 hover:underline hover:text-gray-900">Deploy Hooks</a>
+                            </div>
                         </div>
                     </div>
 

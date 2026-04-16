@@ -53,13 +53,6 @@
             </div>
         </div>
 
-        {{-- Upload RSS Feed to S3 & R2 --}}
-        <div class="space-y-2 mb-3">
-            <div>
-                <span class="text-gray-400">Upload RSS Feed to S3 &amp; R2 <em class="text-xs">(future development)</em></span>
-            </div>
-        </div>
-
         {{-- Publish on Website --}}
         <div>
             <a href="{{ route('post_production.publish_on_website.index') }}"
@@ -85,5 +78,22 @@
 
     </div>
 
+    {{-- ================================================================ --}}
+    {{-- CONFIGURATION                                                     --}}
+    {{-- ================================================================ --}}
+    <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Configuration</div>
+    <div class="border border-purple-500 rounded-lg p-6 mb-8 space-y-4">
+
+        {{-- Deploy Hooks --}}
+        <div>
+            <a href="{{ route('deploy_hooks.index') }}"
+                class="text-blue-600 hover:underline hover:text-gray-900">Deploy Hooks</a>
+            <p class="mt-1 text-xs text-gray-400">
+                Manage deploy hook URLs for Cloudflare Pages, Netlify, and Vercel. Triggering a hook
+                kicks off a fresh static site build for the associated show's front-end.
+            </p>
+        </div>
+
+    </div>
 
 </x-layouts.app>

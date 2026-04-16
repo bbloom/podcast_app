@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\User;
 use Database\Factories\Media_platform\PodcastStudio\Management\PodcastShowFactory;
+use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Models\DeployHook;
 
 class PodcastShow extends Model
 {
@@ -103,5 +104,10 @@ class PodcastShow extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(PodcastEpisode::class, 'podcast_show_id');
+    }
+
+    public function deployHooks(): HasMany
+    {
+        return $this->hasMany(DeployHook::class, 'podcast_show_id');
     }
 }

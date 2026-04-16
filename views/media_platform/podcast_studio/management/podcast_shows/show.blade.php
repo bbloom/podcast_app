@@ -138,7 +138,7 @@
         </a>
     </div>
 
-    @php $episodes = $show->episodes()->with('status')->orderByDesc('created_at')->get(); @endphp
+    @php $episodes = $show->episodes()->orderByDesc('created_at')->get(); @endphp
 
     @if ($episodes->isEmpty())
         <div class="border border-gray-200 rounded-lg px-6 py-10 text-center text-sm text-gray-400">
