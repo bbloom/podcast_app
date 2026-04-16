@@ -7,7 +7,7 @@
         <span class="text-gray-700">Post-Production</span>
     </div>
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-8">Post-Production</h1>
+    <h1 class="text-2xl font-bold text-gray-800 mb-8">Podcast Episode Post-Production</h1>
 
     @session('error')
         <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-6 text-sm text-red-800">
