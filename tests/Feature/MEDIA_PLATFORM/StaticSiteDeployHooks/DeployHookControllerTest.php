@@ -16,19 +16,19 @@
 //   8.  destroy        — deletes, redirects, 403 wrong owner
 //
 // Ownership model:
-//   A deploy hook is owned indirectly — the hook belongs to a PodcastShow,
-//   which belongs to a User. Ownership checks compare show->user_id to
-//   auth()->id(). Tests cover both the owning user and a different user.
+//   A deploy hook is polymorphic. For PodcastShow hooks, ownership is
+//   confirmed by comparing show->user_id to auth()->id(). Tests cover
+//   both the owning user and a different user.
 // =============================================================================
 
-namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PostProduction\DeployHooks;
+namespace Tests\Feature\MEDIA_PLATFORM\StaticSiteDeployHooks;
 
 use App\Models\User;
-use Database\Factories\Media_platform\PodcastStudio\PostProduction\DeployHookFactory;
+use Database\Factories\Media_platform\StaticSiteDeployHooks\DeployHookFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Enums\DeployHookProvider;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Models\DeployHook;
+use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
+use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use Tests\TestCase;
 
 class DeployHookControllerTest extends TestCase
@@ -47,7 +47,10 @@ class DeployHookControllerTest extends TestCase
     {
         $user = User::factory()->create();
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
-        $hook = DeployHook::factory()->create(['podcast_show_id' => $show->id]);
+        $hook = DeployHook::factory()->create([
+            'triggerable_type' => 'podcast_show',
+            'triggerable_id'   => $show->id,
+        ]);
 
         return [$user, $show, $hook];
     }
@@ -63,14 +66,15 @@ class DeployHookControllerTest extends TestCase
     /**
      * Valid payload for store/update requests.
      */
-    private function validPayload(int $showId): array
+    private function validPayload(PodcastShow $show): array
     {
         return [
-            'podcast_show_id' => $showId,
-            'label'           => 'My Show — Cloudflare Pages (Live)',
-            'provider'        => DeployHookProvider::cloudflare_pages->value,
-            'url'             => 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/abc123',
-            'enabled'         => '1',
+            'triggerable_type' => 'podcast_show',
+            'triggerable_id'   => $show->id,
+            'label'            => 'My Show — Cloudflare Pages (Live)',
+            'provider'         => DeployHookProvider::cloudflare_pages->value,
+            'url'              => 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/abc123',
+            'enabled'          => '1',
         ];
     }
 
@@ -85,7 +89,7 @@ class DeployHookControllerTest extends TestCase
         $this->actingAs($user)
              ->get(route('deploy_hooks.index'))
              ->assertOk()
-             ->assertViewIs('media_platform.podcast_studio.post_production.deploy_hooks.index');
+             ->assertViewIs('media_platform.static_site_deploy_hooks.index');
     }
 
     public function test_index_shows_only_hooks_belonging_to_authenticated_user(): void
@@ -93,9 +97,13 @@ class DeployHookControllerTest extends TestCase
         [$user, , $hook] = $this->makeOwnerWithHook();
 
         // Another user's hook — should not appear.
-        $other = $this->makeOtherUser();
+        $other     = $this->makeOtherUser();
         $otherShow = PodcastShow::factory()->create(['user_id' => $other->id]);
-        DeployHook::factory()->create(['podcast_show_id' => $otherShow->id, 'label' => 'Other User Hook']);
+        DeployHook::factory()->create([
+            'triggerable_type' => 'podcast_show',
+            'triggerable_id'   => $otherShow->id,
+            'label'            => 'Other User Hook',
+        ]);
 
         $response = $this->actingAs($user)->get(route('deploy_hooks.index'));
         $hooks    = $response->viewData('hooks');
@@ -121,7 +129,7 @@ class DeployHookControllerTest extends TestCase
         $this->actingAs($user)
              ->get(route('deploy_hooks.create'))
              ->assertOk()
-             ->assertViewIs('media_platform.podcast_studio.post_production.deploy_hooks.create')
+             ->assertViewIs('media_platform.static_site_deploy_hooks.create')
              ->assertViewHas('shows')
              ->assertViewHas('providers');
     }
@@ -142,14 +150,15 @@ class DeployHookControllerTest extends TestCase
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
         $this->actingAs($user)
-             ->post(route('deploy_hooks.store'), $this->validPayload($show->id))
+             ->post(route('deploy_hooks.store'), $this->validPayload($show))
              ->assertRedirect();
 
         $this->assertDatabaseHas('deploy_hooks', [
-            'podcast_show_id' => $show->id,
-            'label'           => 'My Show — Cloudflare Pages (Live)',
-            'provider'        => DeployHookProvider::cloudflare_pages->value,
-            'enabled'         => true,
+            'triggerable_type' => 'podcast_show',
+            'triggerable_id'   => $show->id,
+            'label'            => 'My Show — Cloudflare Pages (Live)',
+            'provider'         => DeployHookProvider::cloudflare_pages->value,
+            'enabled'          => true,
         ]);
     }
 
@@ -159,9 +168,11 @@ class DeployHookControllerTest extends TestCase
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user)
-                         ->post(route('deploy_hooks.store'), $this->validPayload($show->id));
+                         ->post(route('deploy_hooks.store'), $this->validPayload($show));
 
-        $hook = DeployHook::where('podcast_show_id', $show->id)->firstOrFail();
+        $hook = DeployHook::where('triggerable_id', $show->id)
+                          ->where('triggerable_type', 'podcast_show')
+                          ->firstOrFail();
 
         $response->assertRedirect(route('deploy_hooks.show', $hook));
     }
@@ -172,7 +183,7 @@ class DeployHookControllerTest extends TestCase
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
         $this->actingAs($user)
-             ->post(route('deploy_hooks.store'), $this->validPayload($show->id))
+             ->post(route('deploy_hooks.store'), $this->validPayload($show))
              ->assertSessionHas('success');
     }
 
@@ -183,7 +194,7 @@ class DeployHookControllerTest extends TestCase
         $otherShow = PodcastShow::factory()->create(['user_id' => $otherUser->id]);
 
         $this->actingAs($user)
-             ->post(route('deploy_hooks.store'), $this->validPayload($otherShow->id))
+             ->post(route('deploy_hooks.store'), $this->validPayload($otherShow))
              ->assertForbidden();
     }
 
@@ -192,7 +203,7 @@ class DeployHookControllerTest extends TestCase
         $user = User::factory()->create();
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
-        $payload = $this->validPayload($show->id);
+        $payload = $this->validPayload($show);
         unset($payload['label']);
 
         $this->actingAs($user)
@@ -205,7 +216,7 @@ class DeployHookControllerTest extends TestCase
         $user = User::factory()->create();
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
-        $payload = $this->validPayload($show->id);
+        $payload = $this->validPayload($show);
         unset($payload['url']);
 
         $this->actingAs($user)
@@ -218,7 +229,7 @@ class DeployHookControllerTest extends TestCase
         $user = User::factory()->create();
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
-        $payload        = $this->validPayload($show->id);
+        $payload        = $this->validPayload($show);
         $payload['url'] = 'not-a-url';
 
         $this->actingAs($user)
@@ -231,7 +242,7 @@ class DeployHookControllerTest extends TestCase
         $user = User::factory()->create();
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
-        $payload             = $this->validPayload($show->id);
+        $payload             = $this->validPayload($show);
         $payload['provider'] = 'unknown_provider';
 
         $this->actingAs($user)
@@ -256,7 +267,7 @@ class DeployHookControllerTest extends TestCase
         $this->actingAs($user)
              ->get(route('deploy_hooks.show', $hook))
              ->assertOk()
-             ->assertViewIs('media_platform.podcast_studio.post_production.deploy_hooks.show')
+             ->assertViewIs('media_platform.static_site_deploy_hooks.show')
              ->assertViewHas('hook');
     }
 
@@ -289,7 +300,7 @@ class DeployHookControllerTest extends TestCase
         $this->actingAs($user)
              ->get(route('deploy_hooks.edit', $hook))
              ->assertOk()
-             ->assertViewIs('media_platform.podcast_studio.post_production.deploy_hooks.edit')
+             ->assertViewIs('media_platform.static_site_deploy_hooks.edit')
              ->assertViewHas('hook')
              ->assertViewHas('shows')
              ->assertViewHas('providers');
@@ -321,7 +332,7 @@ class DeployHookControllerTest extends TestCase
     {
         [$user, $show, $hook] = $this->makeOwnerWithHook();
 
-        $payload          = $this->validPayload($show->id);
+        $payload          = $this->validPayload($show);
         $payload['label'] = 'Updated Label';
 
         $this->actingAs($user)
@@ -339,7 +350,7 @@ class DeployHookControllerTest extends TestCase
         [$user, $show, $hook] = $this->makeOwnerWithHook();
 
         $this->actingAs($user)
-             ->put(route('deploy_hooks.update', $hook), $this->validPayload($show->id))
+             ->put(route('deploy_hooks.update', $hook), $this->validPayload($show))
              ->assertSessionHas('success');
     }
 
@@ -347,16 +358,14 @@ class DeployHookControllerTest extends TestCase
     {
         [$user, $show, $hook] = $this->makeOwnerWithHook();
 
-        // Capture the encrypted url value before the update.
         $originalEncryptedUrl = $hook->getAttributes()['url'];
 
-        $payload        = $this->validPayload($show->id);
+        $payload        = $this->validPayload($show);
         $payload['url'] = '';
 
         $this->actingAs($user)
              ->put(route('deploy_hooks.update', $hook), $payload);
 
-        // The raw encrypted value in the database should be unchanged.
         $this->assertSame($originalEncryptedUrl, $hook->fresh()->getAttributes()['url']);
     }
 
@@ -365,13 +374,12 @@ class DeployHookControllerTest extends TestCase
         [$user, $show, $hook] = $this->makeOwnerWithHook();
 
         $newUrl         = 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/new-uuid-here';
-        $payload        = $this->validPayload($show->id);
+        $payload        = $this->validPayload($show);
         $payload['url'] = $newUrl;
 
         $this->actingAs($user)
              ->put(route('deploy_hooks.update', $hook), $payload);
 
-        // Decrypt via the model to verify the new URL was stored correctly.
         $this->assertSame($newUrl, $hook->fresh()->url);
     }
 
@@ -381,7 +389,7 @@ class DeployHookControllerTest extends TestCase
         $other                 = $this->makeOtherUser();
 
         $this->actingAs($other)
-             ->put(route('deploy_hooks.update', $hook), $this->validPayload($show->id))
+             ->put(route('deploy_hooks.update', $hook), $this->validPayload($show))
              ->assertForbidden();
     }
 
@@ -392,7 +400,7 @@ class DeployHookControllerTest extends TestCase
         $otherShow       = PodcastShow::factory()->create(['user_id' => $otherUser->id]);
 
         $this->actingAs($user)
-             ->put(route('deploy_hooks.update', $hook), $this->validPayload($otherShow->id))
+             ->put(route('deploy_hooks.update', $hook), $this->validPayload($otherShow))
              ->assertForbidden();
     }
 
@@ -400,7 +408,7 @@ class DeployHookControllerTest extends TestCase
     {
         [$user, $show, $hook] = $this->makeOwnerWithHook();
 
-        $payload = $this->validPayload($show->id);
+        $payload = $this->validPayload($show);
         unset($payload['label']);
 
         $this->actingAs($user)
@@ -427,7 +435,7 @@ class DeployHookControllerTest extends TestCase
         $this->actingAs($user)
              ->get(route('deploy_hooks.delete.confirm', $hook))
              ->assertOk()
-             ->assertViewIs('media_platform.podcast_studio.post_production.deploy_hooks.delete_confirm')
+             ->assertViewIs('media_platform.static_site_deploy_hooks.delete_confirm')
              ->assertViewHas('hook');
     }
 
@@ -482,7 +490,6 @@ class DeployHookControllerTest extends TestCase
              ->delete(route('deploy_hooks.destroy', $hook))
              ->assertForbidden();
 
-        // Hook must still exist.
         $this->assertDatabaseHas('deploy_hooks', ['id' => $hook->id]);
     }
 

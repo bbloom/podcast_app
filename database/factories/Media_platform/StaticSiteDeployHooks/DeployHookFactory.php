@@ -8,15 +8,19 @@
 // The url column is cast as encrypted on the model — the factory supplies a
 // plain-text URL and Laravel's encrypted cast handles encryption on write.
 //
-// Path: database/factories/Media_platform/PodcastStudio/PostProduction/
+// The hook is polymorphic. By default it is associated with a PodcastShow
+// via the 'podcast_show' morph alias. Additional triggerable types can be
+// added as factory states when needed.
+//
+// Path: database/factories/Media_platform/StaticSiteDeployHooks/
 // =============================================================================
 
-namespace Database\Factories\Media_platform\PodcastStudio\PostProduction;
+namespace Database\Factories\Media_platform\StaticSiteDeployHooks;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Enums\DeployHookProvider;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Models\DeployHook;
+use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
+use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 
 class DeployHookFactory extends Factory
 {
@@ -27,16 +31,22 @@ class DeployHookFactory extends Factory
 
     /**
      * Define the factory's default state.
+     * Associates the hook with a PodcastShow by default.
      */
     public function definition(): array
     {
+        $show = PodcastShow::factory()->create();
+
         return [
-            'podcast_show_id'   => PodcastShow::factory(),
-            'label'             => $this->faker->sentence(4),
-            'provider'          => DeployHookProvider::cloudflare_pages,
-            'url'               => 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/' . $this->faker->uuid(),
-            'enabled'           => true,
-            'last_triggered_at' => null,
+            'triggerable_type'   => 'podcast_show',
+            'triggerable_id'     => $show->id,
+            'label'              => $this->faker->sentence(4),
+            'provider'           => DeployHookProvider::cloudflare_pages,
+            'url'                => 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/' . $this->faker->uuid(),
+            'enabled'            => true,
+            'last_triggered_at'  => null,
+            'last_build_id'      => null,
+            'last_trigger_status' => null,
         ];
     }
 
@@ -80,5 +90,29 @@ class DeployHookFactory extends Factory
     public function triggeredAt(\Carbon\Carbon $at): static
     {
         return $this->state(['last_triggered_at' => $at]);
+    }
+
+    /**
+     * Set the hook as having been successfully triggered.
+     */
+    public function succeeded(string $buildId = 'abc-123'): static
+    {
+        return $this->state([
+            'last_triggered_at'   => now(),
+            'last_build_id'       => $buildId,
+            'last_trigger_status' => 'success',
+        ]);
+    }
+
+    /**
+     * Set the hook as having failed on its last trigger attempt.
+     */
+    public function failed(): static
+    {
+        return $this->state([
+            'last_triggered_at'   => now(),
+            'last_build_id'       => null,
+            'last_trigger_status' => 'failed',
+        ]);
     }
 }

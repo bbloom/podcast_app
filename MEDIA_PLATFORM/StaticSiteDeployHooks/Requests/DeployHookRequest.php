@@ -5,14 +5,14 @@
 //
 // Validates create and update requests for deploy hooks.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/DeployHooks/Requests/
+// Path: MEDIA_PLATFORM/StaticSiteDeployHooks/Requests/
 // =============================================================================
 
-namespace MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Requests;
+namespace MediaPlatform\StaticSiteDeployHooks\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Enums\DeployHookProvider;
+use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 
 class DeployHookRequest extends FormRequest
 {
@@ -38,11 +38,12 @@ class DeployHookRequest extends FormRequest
             : ['required', 'url', 'max:2048'];
 
         return [
-            'podcast_show_id' => ['required', 'integer', 'exists:podcast_shows,id'],
-            'label'           => ['required', 'string', 'max:255'],
-            'provider'        => ['required', 'string', Rule::enum(DeployHookProvider::class)],
-            'url'             => $urlRule,
-            'enabled'         => ['boolean'],
+            'triggerable_type' => ['required', 'string'],
+            'triggerable_id'   => ['required', 'integer'],
+            'label'            => ['required', 'string', 'max:255'],
+            'provider'         => ['required', 'string', Rule::enum(DeployHookProvider::class)],
+            'url'              => $urlRule,
+            'enabled'          => ['boolean'],
         ];
     }
 }

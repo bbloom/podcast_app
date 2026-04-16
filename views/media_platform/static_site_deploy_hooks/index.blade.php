@@ -4,8 +4,6 @@
     <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
         <a href="{{ route('dashboard') }}" class="hover:text-purple-700 transition">← Dashboard</a>
         <span>›</span>
-        <a href="{{ route('post_production.dashboard') }}" class="hover:text-purple-700 transition">Post-Production</a>
-        <span>›</span>
         <span class="text-gray-700">Deploy Hooks</span>
     </div>
 
@@ -53,7 +51,7 @@
                                     {{ $hook->label }}
                                 </a>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">{{ $hook->show->title }}</td>
+                            <td class="px-4 py-3 text-gray-600">{{ $hook->triggerable->title }}</td>
                             <td class="px-4 py-3 text-gray-600">{{ $hook->provider->label() }}</td>
                             <td class="px-4 py-3">
                                 @if ($hook->enabled)

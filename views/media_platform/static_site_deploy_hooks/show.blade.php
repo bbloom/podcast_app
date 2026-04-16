@@ -4,8 +4,6 @@
     <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
         <a href="{{ route('dashboard') }}" class="hover:text-purple-700 transition">← Dashboard</a>
         <span>›</span>
-        <a href="{{ route('post_production.dashboard') }}" class="hover:text-purple-700 transition">Post-Production</a>
-        <span>›</span>
         <a href="{{ route('deploy_hooks.index') }}" class="hover:text-purple-700 transition">Deploy Hooks</a>
         <span>›</span>
         <span class="text-gray-700">{{ $hook->label }}</span>
@@ -40,10 +38,10 @@
             <table class="text-sm text-gray-600 w-full">
 
                 <tr>
-                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top w-40">Podcast Show</td>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top w-40">Show</td>
                     <td class="py-1.5 text-gray-800">
-                        <a href="{{ route('podcast_shows.show', $hook->show) }}"
-                           class="hover:text-purple-700 transition">{{ $hook->show->title }}</a>
+                        <a href="{{ route('podcast_shows.show', $hook->triggerable) }}"
+                           class="hover:text-purple-700 transition">{{ $hook->triggerable->title }}</a>
                     </td>
                 </tr>
                 <tr>
@@ -68,6 +66,8 @@
                         @endif
                     </td>
                 </tr>
+
+                {{-- Trigger tracking --}}
                 <tr>
                     <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Last Triggered</td>
                     <td class="py-1.5 text-gray-800">
@@ -76,6 +76,25 @@
                             : '—' }}
                     </td>
                 </tr>
+                <tr>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Last Build ID</td>
+                    <td class="py-1.5 text-gray-800 font-mono text-xs">
+                        {{ $hook->last_build_id ?? '—' }}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Last Trigger Status</td>
+                    <td class="py-1.5">
+                        @if ($hook->last_trigger_status === 'success')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Success</span>
+                        @elseif ($hook->last_trigger_status === 'failed')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Failed</span>
+                        @else
+                            <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                </tr>
+
                 <tr>
                     <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Created</td>
                     <td class="py-1.5 text-gray-800">{{ $hook->created_at->format('d M Y') }}</td>

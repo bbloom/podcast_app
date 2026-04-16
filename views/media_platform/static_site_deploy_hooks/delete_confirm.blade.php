@@ -23,7 +23,7 @@
             <p class="text-sm text-gray-700 mb-2">
                 You are about to permanently delete the deploy hook
                 <strong class="text-gray-900">{{ $hook->label }}</strong>
-                for show <strong class="text-gray-900">{{ $hook->show->title }}</strong>.
+                for <strong class="text-gray-900">{{ $hook->triggerable->title }}</strong>.
             </p>
             <p class="text-sm text-gray-700">
                 This action cannot be undone. The hook URL will be deleted and builds will no longer be triggered for this hook.

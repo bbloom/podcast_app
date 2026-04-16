@@ -3,17 +3,17 @@
 // =============================================================================
 // Deploy Hook Routes
 //
-// CRUD routes for managing deploy hooks.
+// CRUD routes for managing static site deploy hooks.
 // All routes require authentication. Ownership is enforced in the controller
-// via abort_if().
+// via resolveAndAuthorizeTriggerable().
 //
 // Loaded via require in routes/web.php.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/
+// Path: MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/
 // =============================================================================
 
 use Illuminate\Support\Facades\Route;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Controllers\DeployHookController;
+use MediaPlatform\StaticSiteDeployHooks\Controllers\DeployHookController;
 
 Route::get('/deploy-hooks', [DeployHookController::class, 'index'])
     ->middleware(['auth'])

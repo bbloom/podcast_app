@@ -4,22 +4,24 @@
 // DeployHook
 //
 // Represents a deploy hook for a static site hosting provider.
-// Belongs to a PodcastShow. A show may have many hooks.
+//
+// Polymorphic — belongs to any triggerable model via the triggerable()
+// relationship. Currently used by PodcastShow; can be extended to Digest
+// Lists or any other model that needs to trigger static site builds.
 //
 // The hook URL is stored encrypted — it is a secret that grants the ability
 // to trigger a build on the hosting provider.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/DeployHooks/Models/
+// Path: MEDIA_PLATFORM/StaticSiteDeployHooks/Models/
 // =============================================================================
 
-namespace MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Models;
+namespace MediaPlatform\StaticSiteDeployHooks\Models;
 
+use Database\Factories\Media_platform\StaticSiteDeployHooks\DeployHookFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Database\Factories\Media_platform\PodcastStudio\PostProduction\DeployHookFactory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Enums\DeployHookProvider;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 
 class DeployHook extends Model
 {
@@ -34,12 +36,15 @@ class DeployHook extends Model
     // Mass-assignable columns.
     // -------------------------------------------------------------------------
     protected $fillable = [
-        'podcast_show_id',
+        'triggerable_type',
+        'triggerable_id',
         'label',
         'provider',
         'url',
         'enabled',
         'last_triggered_at',
+        'last_build_id',
+        'last_trigger_status',
     ];
 
     // -------------------------------------------------------------------------
@@ -49,10 +54,10 @@ class DeployHook extends Model
     // provider is cast to the DeployHookProvider enum.
     // -------------------------------------------------------------------------
     protected $casts = [
-        'provider'         => DeployHookProvider::class,
-        'url'              => 'encrypted',
-        'enabled'          => 'boolean',
-        'last_triggered_at' => 'datetime',
+        'provider'           => DeployHookProvider::class,
+        'url'                => 'encrypted',
+        'enabled'            => 'boolean',
+        'last_triggered_at'  => 'datetime',
     ];
 
     // -------------------------------------------------------------------------
@@ -68,10 +73,11 @@ class DeployHook extends Model
     // -------------------------------------------------------------------------
 
     /**
-     * The podcast show this deploy hook belongs to.
+     * The owning model that this deploy hook belongs to.
+     * Polymorphic — currently PodcastShow, extensible to any triggerable model.
      */
-    public function show(): BelongsTo
+    public function triggerable(): MorphTo
     {
-        return $this->belongsTo(PodcastShow::class, 'podcast_show_id');
+        return $this->morphTo();
     }
 }

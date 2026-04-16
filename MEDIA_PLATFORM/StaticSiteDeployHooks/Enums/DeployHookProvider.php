@@ -9,10 +9,10 @@
 // Adding a new provider: add a case here, add a label in label(), and update
 // the create/edit Blade views if a provider-specific UI hint is needed.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/DeployHooks/Enums/
+// Path: MEDIA_PLATFORM/StaticSiteDeployHooks/Enums/
 // =============================================================================
 
-namespace MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Enums;
+namespace MediaPlatform\StaticSiteDeployHooks\Enums;
 
 enum DeployHookProvider: string
 {

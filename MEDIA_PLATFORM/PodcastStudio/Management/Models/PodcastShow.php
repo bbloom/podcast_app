@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\User;
 use Database\Factories\Media_platform\PodcastStudio\Management\PodcastShowFactory;
-use MediaPlatform\PodcastStudio\PostProduction\DeployHooks\Models\DeployHook;
+use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 
 class PodcastShow extends Model
 {
@@ -106,8 +108,12 @@ class PodcastShow extends Model
         return $this->hasMany(PodcastEpisode::class, 'podcast_show_id');
     }
 
-    public function deployHooks(): HasMany
+    /**
+     * The static site deploy hooks associated with this podcast show.
+     * Polymorphic — uses the 'podcast_show' morph alias.
+     */
+    public function deployHooks(): MorphMany
     {
-        return $this->hasMany(DeployHook::class, 'podcast_show_id');
+        return $this->morphMany(DeployHook::class, 'triggerable');
     }
 }
