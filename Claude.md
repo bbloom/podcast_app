@@ -23,3 +23,12 @@
 Before making any changes, read these files for context:
 - docs/ARCHITECTURE.md
 - docs/CONVENTIONS.md
+
+## Interaction
+
+- One step at a time
+- Ask if ready for Claude to proceed.
+- Be honest in all assessments, critiques, and recommendations
+- Ask for what you need
+- When asking questions, do not use the modal input box
+- Do not be "glib". Be accurate, precise, and thorough 
