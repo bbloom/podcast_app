@@ -25,6 +25,7 @@
 - Multi-method RESTful controllers use `Route::resource()->only([])`.
 - Don't create controllers with a single method that only returns `view()` — use `Route::view()` directly instead.
 - Inject a Service into the method directly if used in only one method; inject via constructor if used in multiple methods.
+- Ownership checks that need graceful redirects (rather than hard 403s) should resolve the model, check ownership, and `return redirect()->route(...)->with('error', '...')` — not `abort_if()`. See `DeployHookController::resolveAndAuthorizeTriggerable()` for the pattern.
 
 ### Eloquent & Models
 - Never use `::query()` before `create()`. Use `User::create()` not `User::query()->create()`.
@@ -34,9 +35,10 @@
 - All models must have explicit `$table` names.
 - Ownership checks: `abort_if($model->user_id !== auth()->id(), 403)`.
 - Sensitive fields use Laravel's `encrypted` cast.
+- Define named Eloquent scopes on models to avoid duplicating query logic across controllers and services. See `PodcastEpisode` for examples: `scopeForUser()`, `scopeWithStatus()`, `scopeOrderByScheduledDate()`, `scopeEligibleForRssFeed()`, `scopeEligibleForPublishOnWebsite()`.
 
 ### Morph Aliases
-- Morph aliases are registered in `AppServiceProvider`: `youtube_channel`, `text_based_rss_feed`, `podcast`.
+- Morph aliases are registered in `AppServiceProvider`: `youtube_channel`, `text_based_rss_feed`, `podcast`, `podcast_show`.
 - Never rely on fully-qualified class names in polymorphic columns.
 
 ### Migrations
@@ -45,12 +47,16 @@
 - Every table must have a comment using `$table->comment('...')` describing its purpose.
 - Every column must have a `->comment('...')` describing what it stores.
 - `database/migrations/media_platform/podcast_studio/management/` — podcast studio management migrations
+- `database/migrations/media_platform/static_site_deploy_hooks/` — deploy hook migrations
 
 ### Helpers & Directives
 - Use Laravel helpers over facade imports: `auth()->id()` not `Auth::id()`, `redirect()->route()` not `Redirect::route()`.
 - Never use Str::slug() in production code — always use the custom makeSlug() helper (preserves dots); or, for podcasts, there is a custom slug helper. Str::slug() is acceptable in test factories only.
 - In Blade, always use `@selected()` and `@checked()` directives instead of inline ternaries.
 - Always use `@session()` directive instead of `@if(session())` for flash messages.
+
+### Value Objects
+- Use immutable value objects (named static factories, private constructor) to carry results from service classes. See `DeployHookTriggerResult` and `GenerateRssFeedResult` for the pattern.
 
 ### Misc
 - No Livewire Volt — only Livewire class components.
@@ -97,3 +103,4 @@
 - Test class names mirror the controller they test, suffixed with `Test`.
 - Test method names are prefixed with `test_` and describe the behaviour being tested.
 - CSRF is bypassed via `defined('PHPUNIT_COMPOSER_INSTALL')` in `bootstrap/app.php`.
+- When a controller redirects instead of returning 403 for ownership failures, assert `assertRedirect()->assertSessionHas('error')` rather than `assertForbidden()`.

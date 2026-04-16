@@ -6,7 +6,7 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 ## Core Features
 - **Content Sources:** YouTube channels, podcasts, text-based RSS feeds
 - **Nightly Pipeline:** Fetches new content, generates AI summaries, publishes digests
-- **Output Destinations:** Configurable delivery (e.g. SFTP)
+- **Output Destinations:** Configurable delivery (e.g. SFTP, static site builds)
 - **Lists:** Users group content sources into lists for organised digest delivery
 
 ## Database Tables
@@ -22,9 +22,12 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `podcast_link_episode` — pivot table joining links to episodes (PodcastStudio)
 - `api_controls` — single-row on/off switch for the public API
 - `api_clients` — authorised front-end domains and their hashed bearer tokens
+- `deploy_hooks` — polymorphic table of static site deploy hook URLs; belongs to any triggerable model (currently PodcastShow, extensible to Digest Lists)
 
 ## Polymorphic Relationships
 Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to lists and summaries via polymorphic relationships using morph aliases.
+
+Deploy hooks (`DeployHook`) are polymorphic via `triggerable_type` / `triggerable_id` — currently supporting `podcast_show`, extensible to `digest_list` and other models.
 
 ## AI Provider Strategy
 - Currently using Gemini (`gemini-2.5-flash`) for its generous free tier during prototyping
@@ -58,8 +61,31 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 - `AuphonicProcessing` is complete — handles S3 file verification, Auphonic submission, webhook processing, MP3 download, and clean-up; see `AuphonicProcessing/README.md` for full detail
 - `UploadProductionAudio` is complete — handles the two-path MP3 upload (Auphonic download or manual upload from local machine), getID3 metadata extraction, S3 and R2 upload, and clean-up; see `UploadProductionAudio/README.md` for full detail
 - `GenerateRssFeed` is complete — generates the RSS XML feed, validates it, uploads to staging for external validation, promotes to live S3 and R2, and advances the episode status to `ready_to_publish`; see `GenerateRssFeed/README.md` for full detail
-- `PublishOnWebsite` is complete — sets `website_enabled = true` and advances the episode status to `published`; the final step in the post-production pipeline
+- `PublishOnWebsite` is complete — sets `website_enabled = true`, advances the episode status to `published`, and when `website_publish_on <= today` redirects to the "Trigger Static Site Builds" step
 - `RegenerateRssFeed` is complete — a show-level maintenance flow that rebuilds the entire RSS feed from all eligible episodes, uploads to staging for external validation, and promotes to live S3 and R2; operates independently of any episode's pipeline status
+
+## Static Site Deploy Hooks
+- Lives at `MEDIA_PLATFORM/StaticSiteDeployHooks/`
+- Polymorphic — a deploy hook can belong to any triggerable model (currently `PodcastShow`, extensible to `ListModel` for digest output destinations)
+- Morph alias: `podcast_show` registered in `AppServiceProvider`
+- Providers supported: Cloudflare Pages, Netlify, Vercel (backed by `DeployHookProvider` enum)
+- Hook URL stored encrypted — anyone holding the URL can trigger a build
+- Tracks `last_triggered_at`, `last_build_id`, `last_trigger_status` per hook
+- `DeployHookTriggerService` handles the HTTP POST, parses provider responses, and records outcomes
+- `DeployHookTriggerResult` is an immutable value object carrying success/failure, build ID, HTTP status, error message
+- Two trigger entry points:
+  1. **Single hook** — from the deploy hook's show page (confirm → execute → result)
+  2. **Multi-hook** — from the podcast show's show page or after publishing an episode (checkbox selection → results)
+- Post-publish trigger: `PublishController` redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes skip the trigger and go straight to the index
+
+## Eloquent Scopes — PodcastEpisode
+The following named scopes are defined on `PodcastEpisode` to avoid duplicating query logic across controllers and services:
+
+- `scopeForUser(int $userId)` — filters by `user_id`
+- `scopeWithStatus(PodcastEpisodeStatus $status)` — filters by pipeline status
+- `scopeOrderByScheduledDate()` — orders by `scheduled_date` ascending
+- `scopeEligibleForRssFeed(PodcastShow $show)` — `rss_feed_enabled = true` AND `itunes_pubdate < now()`, ordered by `itunes_pubdate` descending
+- `scopeEligibleForPublishOnWebsite(PodcastShow $show)` — `website_enabled = true` AND `website_publish_on < now()`, ordered by `website_publish_on` descending
 
 ## Phase 2 — Additional Content Sources
 - The content source architecture is designed to be extensible
@@ -83,6 +109,7 @@ Content sources (`YoutubeChannel`, `Podcast`, `TextBasedRssFeed`) are related to
 ## Services
 - `RssFeedService` — fetches and parses RSS feeds
 - `SftpService` — handles SFTP connection testing and file delivery
+- `DeployHookTriggerService` — fires deploy hook URLs and records outcomes
 
 ## RAG / Vector Search (Proof of Concept)
 - pgvector extension on PostgreSQL

@@ -9,10 +9,12 @@
 - After making changes, run the test suite: `php artisan test`
 
 ## Project Context
-- Laravel application on Debian 12
+- Laravel Framework version 13, PHP 8.5 application, on Debian 13
+- Local and Production environments are on Docker
 - Test suite: PHPUnit — run with `php artisan test`
 - Always follow existing conventions — reference nearby files for patterns
-- Never modify .env or .env.adminlasallesoftwareca
+- Never modify .env
+- Never modify any .env files, whose files start with: ".env"
 
 ## Git
 - Do not run git add, git commit, or git push — that is the developer's responsibility
