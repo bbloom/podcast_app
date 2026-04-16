@@ -6,9 +6,6 @@ namespace MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 
-// Third party
-use Carbon\CarbonImmutable;
-
 // Native PHP
 use DOMDocument;
 
@@ -52,11 +49,7 @@ class RssFeedGeneratorService
         // Only episodes where rss_feed_enabled = true and itunes_pubdate is in
         // the past are included. Ordered most-recent-first.
         // ---------------------------------------------------------------------
-        $episodes = PodcastEpisode::where('podcast_show_id', $show->id)
-            ->where('rss_feed_enabled', true)
-            ->where('itunes_pubdate', '<', CarbonImmutable::now())
-            ->orderByDesc('itunes_pubdate')
-            ->get();
+         $episodes = PodcastEpisode::eligibleForRssFeed($show)->get();
 
         if ($episodes->isEmpty()) {
             return GenerateRssFeedResult::failure(

@@ -26,11 +26,11 @@ class IndexController extends Controller
      */
     public function __invoke(): \Illuminate\View\View
     {
-        $episodes = PodcastEpisode::with('show')
-            ->where('user_id', auth()->id())
-            ->where('status', PodcastEpisodeStatus::ready_for_auphonic)
-            ->orderBy('scheduled_date')
-            ->get();
+        $episodes = PodcastEpisode::forUser(auth()->id())
+        ->withStatus(PodcastEpisodeStatus::ready_for_auphonic)
+        ->orderByScheduledDate()
+        ->with('show')
+        ->get();
 
         return view('media_platform.podcast_studio.post_production.auphonic_processing.index', [
             'episodes' => $episodes,

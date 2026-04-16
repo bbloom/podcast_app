@@ -17,7 +17,7 @@ class PodcastEpisodeController extends Controller
      */
     public function index()
     {
-        $episodes = PodcastEpisode::where('user_id', auth()->id())
+        $episodes = PodcastEpisode::forUser(auth()->id())
             ->with(['show'])
             ->orderByDesc('created_at')
             ->paginate(20);

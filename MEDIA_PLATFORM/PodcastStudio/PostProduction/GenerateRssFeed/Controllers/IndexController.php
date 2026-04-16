@@ -26,10 +26,10 @@ class IndexController extends Controller
      */
     public function __invoke(): \Illuminate\View\View
     {
-        $episodes = PodcastEpisode::with('show')
-            ->where('user_id', auth()->id())
-            ->where('status', PodcastEpisodeStatus::ready_to_generate_rss_feed)
-            ->orderBy('scheduled_date')
+        $episodes = PodcastEpisode::forUser(auth()->id())
+            ->withStatus(PodcastEpisodeStatus::ready_to_generate_rss_feed)
+            ->orderByScheduledDate()
+            ->with('show')
             ->get();
 
         return view('media_platform.podcast_studio.post_production.generate_rss_feed.index', [

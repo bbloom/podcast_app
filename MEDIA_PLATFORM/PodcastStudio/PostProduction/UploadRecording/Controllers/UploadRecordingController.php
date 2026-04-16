@@ -48,10 +48,10 @@ class UploadRecordingController extends Controller
      */
     public function index(): View
     {
-        $episodes = PodcastEpisode::with('show')
-            ->where('user_id', auth()->id())
-            ->where('status', PodcastEpisodeStatus::ready_to_upload_recording)
-            ->orderBy('scheduled_date')
+        $episodes = PodcastEpisode::forUser(auth()->id())
+            ->withStatus(PodcastEpisodeStatus::ready_to_upload_recording)
+            ->orderByScheduledDate()
+            ->with('show')
             ->get();
 
         return view('media_platform.podcast_studio.post_production.upload_recording.index', [

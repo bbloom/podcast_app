@@ -2,10 +2,10 @@
 
 namespace MediaPlatform\API\v1\Services;
 
-use Carbon\CarbonImmutable;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
 use MediaPlatform\Tools\PhpServerlessProjectSponsors\Models\PhpServerlessProjectSponsor;
+use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 
 class PodcastEpisodeApiService
 {
@@ -35,13 +35,19 @@ class PodcastEpisodeApiService
      */
     private function getEpisodes(string $podcastShowSlug): \Illuminate\Support\Collection
     {
-        return PodcastEpisode::with(['guests', 'links'])
-            ->whereHas('show', fn ($q) => $q->where('slug', $podcastShowSlug))
-            ->where('website_enabled', true)
-            ->where('website_publish_on', '<', CarbonImmutable::now(config('app.timezone')))
-            ->orderBy('website_publish_on', 'desc')
+        $show = PodcastShow::where('slug', $podcastShowSlug)->first();
+
+        // Return an empty collection if the show does not exist —
+        // consistent with the original behaviour of whereHas() returning nothing.
+        if (! $show) {
+            return collect();
+        }
+
+        return PodcastEpisode::eligibleForPublishOnWebsite($show)
+            ->with(['guests', 'links'])
             ->get();
     }
+
 
     // -------------------------------------------------------------------------
     // Guests

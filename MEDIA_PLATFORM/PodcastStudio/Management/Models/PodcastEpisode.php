@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+
 class PodcastEpisode extends Model
 {
     use HasFactory;
@@ -130,5 +133,76 @@ class PodcastEpisode extends Model
     public function guests(): BelongsToMany
     {
         return $this->belongsToMany(PodcastGuest::class, 'podcast_guest_episode');
+    }
+
+    
+
+    // -------------------------------------------------------------------------
+    // Scopes
+    //
+    // Reusable query fragments to avoid duplicating filter logic across
+    // controllers and services. Always use these instead of raw where() chains.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Scope to episodes belonging to the given user.
+     */
+    public function scopeForUser(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope to episodes with the given pipeline status.
+     */
+    public function scopeWithStatus(Builder $query, PodcastEpisodeStatus $status): Builder
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope ordering episodes by scheduled date ascending — most imminent first.
+     */
+    public function scopeOrderByScheduledDate(Builder $query): Builder
+    {
+        return $query->orderBy('scheduled_date', 'asc');
+    }
+
+    /**
+     * Scope to episodes eligible for inclusion in the RSS feed for a given show.
+     *
+     * An episode is eligible when:
+     *   - It belongs to the given show
+     *   - rss_feed_enabled is true
+     *   - itunes_pubdate is in the past
+     *
+     * Ordered most-recent-first, as required by the RSS spec.
+     */
+    public function scopeEligibleForRssFeed(Builder $query, PodcastShow $show): Builder
+    {
+        return $query
+            ->where('podcast_show_id', $show->id)
+            ->where('rss_feed_enabled', true)
+            ->where('itunes_pubdate', '<', CarbonImmutable::now())
+            ->orderByDesc('itunes_pubdate');
+    }
+
+    /**
+     * Scope to episodes that are publicly visible on the website for a given show.
+     *
+     * An episode is visible when:
+     *   - It belongs to the given show (matched via the show's slug)
+     *   - website_enabled is true
+     *   - website_publish_on is in the past
+     *
+     * Ordered newest-first by publish date, as required by the public API.
+     */
+    public function scopeEligibleForPublishOnWebsite(Builder $query, PodcastShow $show): Builder
+    {
+        return $query
+            ->whereHas('show', fn (Builder $q) => $q->where('slug', $show->slug))
+            ->where('website_enabled', true)
+            ->where('website_publish_on', '<', CarbonImmutable::now(config('app.timezone')))
+            ->orderBy('website_publish_on', 'desc');
     }
 }
