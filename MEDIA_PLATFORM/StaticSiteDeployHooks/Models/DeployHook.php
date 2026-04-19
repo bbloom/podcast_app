@@ -6,8 +6,7 @@
 // Represents a deploy hook for a static site hosting provider.
 //
 // Polymorphic — belongs to any triggerable model via the triggerable()
-// relationship. Currently used by PodcastShow; can be extended to Digest
-// Lists or any other model that needs to trigger static site builds.
+// relationship. Currently used by PodcastShow and ListModel (digest lists).
 //
 // The hook URL is stored encrypted — it is a secret that grants the ability
 // to trigger a build on the hosting provider.
@@ -74,10 +73,60 @@ class DeployHook extends Model
 
     /**
      * The owning model that this deploy hook belongs to.
-     * Polymorphic — currently PodcastShow, extensible to any triggerable model.
+     * Polymorphic — currently PodcastShow or ListModel (digest list).
      */
     public function triggerable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    // -------------------------------------------------------------------------
+    // Accessors
+    // -------------------------------------------------------------------------
+
+    /**
+     * Human-readable display name for the triggerable model.
+     *
+     * PodcastShow uses `title`, ListModel uses `name`. This accessor provides
+     * a single consistent way to display the owning model's name in views,
+     * avoiding the need for type-checking in every Blade template.
+     *
+     * Usage: $hook->triggerable_display_name
+     */
+    public function getTriggerableDisplayNameAttribute(): string
+    {
+        return match ($this->triggerable_type) {
+            'podcast_show' => $this->triggerable->title ?? "Show #{$this->triggerable_id}",
+            'digest_list'  => $this->triggerable->name ?? "List #{$this->triggerable_id}",
+            default        => "#{$this->triggerable_id}",
+        };
+    }
+
+    /**
+     * Human-readable label for the triggerable type.
+     *
+     * Usage: $hook->triggerable_type_label
+     */
+    public function getTriggerableTypeLabelAttribute(): string
+    {
+        return match ($this->triggerable_type) {
+            'podcast_show' => 'Podcast Show',
+            'digest_list'  => 'Digest List',
+            default        => $this->triggerable_type,
+        };
+    }
+
+    /**
+     * Route name for linking to the triggerable model's show page.
+     *
+     * Usage: route($hook->triggerable_show_route, $hook->triggerable)
+     */
+    public function getTriggerableShowRouteAttribute(): string
+    {
+        return match ($this->triggerable_type) {
+            'podcast_show' => 'podcast_shows.show',
+            'digest_list'  => 'lists.show',
+            default        => 'dashboard',
+        };
     }
 }

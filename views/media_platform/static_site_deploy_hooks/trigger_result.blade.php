@@ -16,14 +16,14 @@
     {{-- Summary banner --}}
     @if ($result->succeeded())
         <div class="bg-green-50 border border-green-300 rounded-lg px-4 py-3 mb-6 text-sm text-green-800 font-medium">
-            ✅ Build triggered successfully.
+            Build triggered successfully.
             @if ($result->alreadyExists())
                 A build was already queued or initialising — no new build was created.
             @endif
         </div>
     @else
         <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 mb-6 text-sm text-red-800 font-medium">
-            ❌ Build trigger failed. See details below.
+            Build trigger failed. See details below.
         </div>
     @endif
 
@@ -37,6 +37,10 @@
                 <tr>
                     <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top w-40">Hook</td>
                     <td class="py-1.5 text-gray-800 font-medium">{{ $hook->label }}</td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">{{ $hook->triggerable_type_label }}</td>
+                    <td class="py-1.5 text-gray-800">{{ $hook->triggerable_display_name }}</td>
                 </tr>
                 <tr>
                     <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Provider</td>

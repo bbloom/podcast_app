@@ -53,4 +53,14 @@ class ListModelFactory extends Factory
             'output_destination_id' => $destinationId,
         ]);
     }
+
+    public function staticSite(): static
+    {
+        return $this->state(fn () => [
+            'output_type'           => 'static_site',
+            'output_destination_id' => null,
+            'notify_by_email'       => true,
+            'retention_count'       => 10,
+        ]);
+    }
 }

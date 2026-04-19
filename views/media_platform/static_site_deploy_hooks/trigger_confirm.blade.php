@@ -25,8 +25,8 @@
                     <td class="py-1.5 text-gray-800 font-medium">{{ $hook->label }}</td>
                 </tr>
                 <tr>
-                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Show</td>
-                    <td class="py-1.5 text-gray-800">{{ $hook->triggerable->title }}</td>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">{{ $hook->triggerable_type_label }}</td>
+                    <td class="py-1.5 text-gray-800">{{ $hook->triggerable_display_name }}</td>
                 </tr>
                 <tr>
                     <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">Provider</td>

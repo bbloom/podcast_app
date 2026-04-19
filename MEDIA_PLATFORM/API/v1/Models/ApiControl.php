@@ -44,6 +44,15 @@ class ApiControl extends Model
     }
 
     /**
+     * Check whether the API is currently enabled.
+     * Convenience method for guard checks in the processing pipeline.
+     */
+    public static function getStatus(): bool
+    {
+        return static::instance()->is_enabled;
+    }
+
+    /**
      * Enable the API and record the timestamp.
      */
     public function enable(): void

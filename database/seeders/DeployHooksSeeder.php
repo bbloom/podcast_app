@@ -181,5 +181,28 @@ class DeployHooksSeeder extends Seeder
             ],
 
         ]);
+    
+
+     // ── Digest List hooks ─────────────────────────────────────────────────
+        $staticSiteLists = \MediaPlatform\Digest\ContentSources\Lists\Models\ListModel::where(
+            'output_type', \MediaPlatform\Digest\Enums\OutputType::StaticSite->value
+        )->get();
+
+        foreach ($staticSiteLists as $list) {
+            \MediaPlatform\StaticSiteDeployHooks\Models\DeployHook::create([
+                'triggerable_type'   => 'digest_list',
+                'triggerable_id'     => $list->id,
+                'label'              => "{$list->name} — Cloudflare Pages (Live)",
+                'provider'           => \MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider::cloudflare_pages->value,
+                'url'                => 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/fake-' . $list->id,
+                'enabled'            => true,
+                'last_triggered_at'  => now()->subHours(rand(1, 48)),
+                'last_build_id'      => 'fake-build-' . uniqid(),
+                'last_trigger_status' => 'success',
+            ]);
+        }
+
+        $this->command->info('DeployHooksSeeder: Seeded hooks for ' . $staticSiteLists->count() . ' static site list(s).');
+
     }
 }

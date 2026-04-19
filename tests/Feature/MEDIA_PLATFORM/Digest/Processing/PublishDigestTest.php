@@ -2,21 +2,34 @@
 
 // tests/Feature/MEDIA_PLATFORM/Digest/Processing/PublishDigestTest.php
 
+use MediaPlatform\API\v1\Models\ApiControl;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
 use MediaPlatform\Digest\Processing\Jobs\PublishDigest;
 use MediaPlatform\Digest\Processing\Services\DigestBuilderService;
 use MediaPlatform\Digest\Processing\Services\ProcessingGate;
+use MediaPlatform\Digest\Publishing\Contracts\DigestDeliveryStrategy;
 use MediaPlatform\Digest\Publishing\Mail\DigestMailable;
+use MediaPlatform\Digest\Publishing\Models\PublishedDigest as PublishedDigestModel;
 use MediaPlatform\Digest\Publishing\Notifications\DigestEmptyNotification;
 use MediaPlatform\Digest\Publishing\Notifications\DigestReadyNotification;
+use MediaPlatform\Digest\Publishing\Notifications\StaticSiteDigestReadyNotification;
+use MediaPlatform\Digest\Publishing\Services\DeliveryStrategyResolver;
+use MediaPlatform\Digest\Publishing\Strategies\EmailDeliveryStrategy;
+use MediaPlatform\Digest\Publishing\Strategies\StaticSiteDeliveryStrategy;
+use MediaPlatform\Digest\Publishing\Strategies\WebpageDeliveryStrategy;
 use MediaPlatform\Digest\Enums\OutputType;
+use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
+use MediaPlatform\StaticSiteDeployHooks\Services\DeployHookTriggerService;
+use MediaPlatform\StaticSiteDeployHooks\Services\DeployHookTriggerResult;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+
+use MediaPlatform\Digest\Publishing\Services\DigestRetentionService;
 
 /**
  * PublishDigestTest
@@ -27,7 +40,8 @@ use Illuminate\Support\Facades\Notification;
  * APPROACH
  * ────────
  * - DigestBuilderService is mocked to control what build() returns.
- * - SftpService is mocked to avoid real network calls.
+ * - SftpService is mocked (bound via container) to avoid real network calls.
+ * - DeployHookTriggerService is mocked for static site tests.
  * - ProcessingGate is bound to the real implementation (uses the DB for alerts).
  * - Mail::fake() and Notification::fake() intercept deliveries.
  *
@@ -38,8 +52,9 @@ use Illuminate\Support\Facades\Notification;
  *   3.  Empty digest — sends DigestEmptyNotification, updates last_run_at
  *   4.  Email delivery — happy path, failure, markAsIncluded behaviour
  *   5.  Webpage delivery — happy path, SFTP failure, notify_by_email flag
- *   6.  markAsIncluded — only called on success, never on failure
+ *   6.  markAsIncluded — integration (real DigestBuilderService)
  *   7.  last_run_at — always updated on success, even for empty digest
+ *   8.  Static site delivery — persist, deploy hooks, notifications, pruning, API guard
  */
 
 uses(RefreshDatabase::class);
@@ -97,19 +112,18 @@ function fakeDigestData(ListModel $list): array
 }
 
 /**
- * Run PublishDigest::handle() synchronously with the given services.
+ * Run PublishDigest::handle() synchronously with the given mocked builder.
+ *
+ * SftpService and DeployHookTriggerService are resolved from the container,
+ * so bind mocks there before calling this if needed.
  */
-function runPublishDigest(
-    int                  $listId,
-    DigestBuilderService $builder,
-    ?SftpService         $sftp = null,
-): void {
-    $sftp ??= app(SftpService::class);
-
+function runPublishDigest(int $listId, DigestBuilderService $builder): void
+{
     (new PublishDigest($listId))->handle(
         app(ProcessingGate::class),
         $builder,
-        $sftp,
+        app(DeliveryStrategyResolver::class),
+        app(DigestRetentionService::class),
     );
 }
 
@@ -128,6 +142,31 @@ function makeSftpDest(User $user): OutputDestination
         'path'      => '/digests',
         'base_url'  => 'https://example.com/digests',
     ]);
+}
+
+/**
+ * Bind a mocked SftpService into the container.
+ */
+function mockSftp(array $uploadReturn = ['success' => true, 'path' => '/digests/test']): void
+{
+    $sftp = mock(SftpService::class);
+    $sftp->shouldReceive('upload')->andReturn($uploadReturn);
+    app()->instance(SftpService::class, $sftp);
+}
+
+/**
+ * Bind a mocked DeployHookTriggerService into the container.
+ */
+function mockTriggerService(bool $succeeds = true): void
+{
+    $service = mock(DeployHookTriggerService::class);
+    $service->shouldReceive('trigger')->andReturnUsing(function (DeployHook $hook) use ($succeeds) {
+        if ($succeeds) {
+            return DeployHookTriggerResult::success($hook, 200, 'build-123');
+        }
+        return DeployHookTriggerResult::failure($hook, 500, 'Provider error');
+    });
+    app()->instance(DeployHookTriggerService::class, $service);
 }
 
 // =============================================================================
@@ -168,10 +207,9 @@ it('skips delivery when gate is blocked for webpage list', function () {
     $builder = mock(DigestBuilderService::class);
     $builder->shouldNotReceive('build');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldNotReceive('upload');
+    mockSftp();
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 
     Mail::assertNothingSent();
     Notification::assertNothingSent();
@@ -206,6 +244,26 @@ it('does NOT skip delivery when gate is blocked for email list', function () {
     runPublishDigest($list->id, $builder);
 
     Mail::assertSent(DigestMailable::class);
+});
+
+it('skips delivery when gate is blocked for static site list', function () {
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    DB::table('admin_alerts')->insert([
+        'tier'        => 3,
+        'category'    => 'infrastructure',
+        'title'       => 'Infrastructure down',
+        'message'     => 'Test block.',
+        'is_resolved' => false,
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldNotReceive('build');
+
+    runPublishDigest($list->id, $builder);
 });
 
 // =============================================================================
@@ -320,12 +378,9 @@ it('uploads via SFTP for webpage list', function () {
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded')->once();
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')
-        ->once()
-        ->andReturn(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
+    mockSftp(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 });
 
 it('does not call markAsIncluded when SFTP upload fails', function () {
@@ -339,10 +394,9 @@ it('does not call markAsIncluded when SFTP upload fails', function () {
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldNotReceive('markAsIncluded');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')->andReturn(['success' => false, 'message' => 'Connection refused']);
+    mockSftp(['success' => false, 'message' => 'Connection refused']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 });
 
 it('aborts with error when webpage list has no output destination', function () {
@@ -358,10 +412,7 @@ it('aborts with error when webpage list has no output destination', function () 
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldNotReceive('markAsIncluded');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldNotReceive('upload');
-
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 });
 
 it('sends DigestReadyNotification after SFTP upload when notify_by_email is true', function () {
@@ -377,10 +428,9 @@ it('sends DigestReadyNotification after SFTP upload when notify_by_email is true
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')->andReturn(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
+    mockSftp(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 
     Notification::assertSentTo($user, DigestReadyNotification::class);
 });
@@ -398,10 +448,9 @@ it('does not send DigestReadyNotification when notify_by_email is false', functi
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')->andReturn(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
+    mockSftp(['success' => true, 'path' => '/digests/my-list-digest-2026-03-25']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 
     Notification::assertNotSentTo($user, DigestReadyNotification::class);
 });
@@ -459,10 +508,9 @@ it('updates last_run_at after successful webpage delivery', function () {
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
     $builder->shouldReceive('markAsIncluded');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')->andReturn(['success' => true, 'path' => '/digests/slug']);
+    mockSftp(['success' => true, 'path' => '/digests/slug']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 
     $this->assertNotNull(DB::table('lists')->where('id', $list->id)->value('last_run_at'));
 });
@@ -477,10 +525,216 @@ it('does not update last_run_at when delivery fails', function () {
     $builder->shouldReceive('buildSlug')->andReturn('slug');
     $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
 
-    $sftp = mock(SftpService::class);
-    $sftp->shouldReceive('upload')->andReturn(['success' => false, 'message' => 'Timeout']);
+    mockSftp(['success' => false, 'message' => 'Timeout']);
 
-    runPublishDigest($list->id, $builder, $sftp);
+    runPublishDigest($list->id, $builder);
 
     $this->assertNull(DB::table('lists')->where('id', $list->id)->value('last_run_at'));
+});
+
+// =============================================================================
+// GROUP 8: Static site delivery
+// =============================================================================
+
+it('persists a PublishedDigest record for static site list', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded')->once();
+
+    runPublishDigest($list->id, $builder);
+
+    $this->assertDatabaseHas('published_digests', [
+        'list_id'     => $list->id,
+        'user_id'     => $user->id,
+        'slug'        => 'test-digest-2026-04-18',
+        'total_items' => 1,
+    ]);
+});
+
+it('fires deploy hooks after persisting PublishedDigest', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    DeployHook::factory()->create([
+        'triggerable_type' => 'digest_list',
+        'triggerable_id'   => $list->id,
+        'enabled'          => true,
+    ]);
+
+    $triggerService = mock(DeployHookTriggerService::class);
+    $triggerService->shouldReceive('trigger')->once()->andReturnUsing(function (DeployHook $hook) {
+        return DeployHookTriggerResult::success($hook, 200, 'build-456');
+    });
+    app()->instance(DeployHookTriggerService::class, $triggerService);
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    $digest = PublishedDigestModel::where('list_id', $list->id)->first();
+    expect($digest->deploy_hook_fired_at)->not->toBeNull();
+});
+
+it('calls markAsIncluded after successful static site delivery', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded')->once();
+
+    runPublishDigest($list->id, $builder);
+});
+
+it('sends StaticSiteDigestReadyNotification when notify_by_email is true', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create(['notify_by_email' => true]);
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    Notification::assertSentTo($user, StaticSiteDigestReadyNotification::class);
+});
+
+it('does not send static site notification when notify_by_email is false', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create(['notify_by_email' => false]);
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    Notification::assertNotSentTo($user, StaticSiteDigestReadyNotification::class);
+});
+
+it('updates last_run_at after successful static site delivery', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    $this->assertNotNull(DB::table('lists')->where('id', $list->id)->value('last_run_at'));
+});
+
+it('prunes old PublishedDigest records beyond retention_count', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create(['retention_count' => 2]);
+
+    // Pre-create 2 existing published digests
+    PublishedDigestModel::factory()->forList($list)->create(['slug' => 'old-1', 'digest_date' => now()->subDays(3)]);
+    PublishedDigestModel::factory()->forList($list)->create(['slug' => 'old-2', 'digest_date' => now()->subDays(2)]);
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('new-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    // Should have 2 records (retention_count = 2): the new one + old-2; old-1 pruned
+    expect(PublishedDigestModel::where('list_id', $list->id)->count())->toBe(2);
+    $this->assertDatabaseHas('published_digests', ['slug' => 'new-digest-2026-04-18']);
+    $this->assertDatabaseMissing('published_digests', ['slug' => 'old-1']);
+});
+
+it('auto-enables the API when processing a static site list', function () {
+    Notification::fake();
+
+    // Ensure API is off
+    ApiControl::instance()->disable();
+    expect(ApiControl::getStatus())->toBeFalse();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    mockTriggerService();
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    $builder->shouldReceive('markAsIncluded');
+
+    runPublishDigest($list->id, $builder);
+
+    expect(ApiControl::getStatus())->toBeTrue();
+});
+
+it('logs deploy hook failure but still returns true when data is persisted', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $list = ListModel::factory()->forUser($user)->staticSite()->create();
+
+    DeployHook::factory()->create([
+        'triggerable_type' => 'digest_list',
+        'triggerable_id'   => $list->id,
+        'enabled'          => true,
+    ]);
+
+    mockTriggerService(succeeds: false);
+
+    $builder = mock(DigestBuilderService::class);
+    $builder->shouldReceive('build')->andReturn(fakeDigestData($list));
+    $builder->shouldReceive('buildSlug')->andReturn('test-digest-2026-04-18');
+    $builder->shouldReceive('buildExcerpt')->andReturn('1 item from 1 source');
+    // markAsIncluded SHOULD still be called — delivery succeeded (data persisted)
+    $builder->shouldReceive('markAsIncluded')->once();
+
+    runPublishDigest($list->id, $builder);
+
+    $this->assertDatabaseHas('published_digests', ['slug' => 'test-digest-2026-04-18']);
 });

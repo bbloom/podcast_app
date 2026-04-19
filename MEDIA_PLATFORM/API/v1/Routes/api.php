@@ -1,7 +1,7 @@
 <?php
 
 // =============================================================================
-// Routes: Public Podcast API v1
+// Routes: Public API v1
 //
 // All routes here are stateless API routes — no sessions, no CSRF.
 // Two middleware layers protect every route:
@@ -13,6 +13,7 @@
 // =============================================================================
 
 use Illuminate\Support\Facades\Route;
+use MediaPlatform\API\v1\Controllers\DigestApiController;
 use MediaPlatform\API\v1\Controllers\PodcastEpisodesController;
 use MediaPlatform\API\v1\Middleware\AuthenticateApiClient;
 use MediaPlatform\API\v1\Middleware\CheckApiEnabled;
@@ -25,6 +26,13 @@ Route::middleware([CheckApiEnabled::class, AuthenticateApiClient::class])
         Route::get('/v1/podcastepisodes', PodcastEpisodesController::class)
             ->name('api.v1.podcast_episodes');
 
-        // Full URL: /api/v1/podcastepisodes
+        // Returns all retained published digests for a given list.
+        // The list is identified by the X-Digest-List request header.
+        Route::get('/v1/digests', DigestApiController::class)
+            ->name('api.v1.digests');
+
+        // Full URLs:
+        //   /api/v1/podcastepisodes
+        //   /api/v1/digests
         // Laravel automatically prefixes routes/api.php routes with /api.
     });

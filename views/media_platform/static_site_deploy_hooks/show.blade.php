@@ -38,10 +38,14 @@
             <table class="text-sm text-gray-600 w-full">
 
                 <tr>
-                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top w-40">Show</td>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top w-40">Type</td>
+                    <td class="py-1.5 text-gray-800">{{ $hook->triggerable_type_label }}</td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1.5 text-gray-500 whitespace-nowrap align-top">{{ $hook->triggerable_type_label }}</td>
                     <td class="py-1.5 text-gray-800">
-                        <a href="{{ route('podcast_shows.show', $hook->triggerable) }}"
-                           class="hover:text-purple-700 transition">{{ $hook->triggerable->title }}</a>
+                        <a href="{{ route($hook->triggerable_show_route, $hook->triggerable) }}"
+                           class="hover:text-purple-700 transition">{{ $hook->triggerable_display_name }}</a>
                     </td>
                 </tr>
                 <tr>
@@ -114,7 +118,7 @@
         <div class="border border-purple-300 rounded-lg p-6 mb-8">
             <p class="text-sm text-gray-600 mb-4">
                 Trigger a fresh static site build for
-                <strong>{{ $hook->triggerable->title }}</strong>
+                <strong>{{ $hook->triggerable_display_name }}</strong>
                 via {{ $hook->provider->label() }}.
             </p>
             <a href="{{ route('deploy_hooks.trigger.confirm', $hook) }}"

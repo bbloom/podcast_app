@@ -41,7 +41,8 @@
                 <thead>
                     <tr class="bg-purple-50 border-b border-purple-300">
                         <th class="text-left font-semibold text-purple-700 px-4 py-3">Label</th>
-                        <th class="text-left font-semibold text-purple-700 px-4 py-3">Show</th>
+                        <th class="text-left font-semibold text-purple-700 px-4 py-3">Type</th>
+                        <th class="text-left font-semibold text-purple-700 px-4 py-3">Owner</th>
                         <th class="text-left font-semibold text-purple-700 px-4 py-3">Provider</th>
                         <th class="text-left font-semibold text-purple-700 px-4 py-3">Status</th>
                         <th class="text-left font-semibold text-purple-700 px-4 py-3">Last Triggered</th>
@@ -57,7 +58,17 @@
                                     {{ $hook->label }}
                                 </a>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">{{ $hook->triggerable->title }}</td>
+                            <td class="px-4 py-3 text-gray-500 text-xs">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $hook->triggerable_type === 'digest_list' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $hook->triggerable_type_label }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600">
+                                <a href="{{ route($hook->triggerable_show_route, $hook->triggerable) }}"
+                                   class="hover:text-purple-700 transition">
+                                    {{ $hook->triggerable_display_name }}
+                                </a>
+                            </td>
                             <td class="px-4 py-3 text-gray-600">{{ $hook->provider->label() }}</td>
                             <td class="px-4 py-3">
                                 @if ($hook->enabled)

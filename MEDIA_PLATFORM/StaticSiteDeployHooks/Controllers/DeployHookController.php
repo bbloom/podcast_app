@@ -4,7 +4,7 @@
 // DeployHookController
 //
 // CRUD for deploy hooks. Hooks are polymorphic — they can belong to any
-// triggerable model. Currently used by PodcastShow.
+// triggerable model. Currently supports PodcastShow and ListModel (digest lists).
 //
 // Ownership is checked on every action by resolving the triggerable model
 // and confirming it belongs to the authenticated user.
@@ -18,8 +18,12 @@
 namespace MediaPlatform\StaticSiteDeployHooks\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
+use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
+use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
@@ -33,8 +37,7 @@ class DeployHookController extends Controller
     // -------------------------------------------------------------------------
 
     /**
-     * Return all podcast shows belonging to the authenticated user,
-     * ordered by title. Used to populate the show dropdown in create/edit forms.
+     * Return all podcast shows belonging to the authenticated user.
      */
     private function userShows()
     {
@@ -44,34 +47,46 @@ class DeployHookController extends Controller
     }
 
     /**
+     * Return all static site digest lists belonging to the authenticated user.
+     */
+    private function userLists()
+    {
+        return ListModel::where('user_id', auth()->id())
+            ->where('output_type', OutputType::StaticSite->value)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
      * Resolve the triggerable model from the request and verify ownership.
      * Returns the model if owned by the authenticated user.
      * Redirects with a friendly error if the type is unsupported or the
      * model does not belong to the authenticated user.
      *
-     * Currently only supports PodcastShow. Extend this method when additional
-     * triggerable types are added (e.g. Digest ListModel).
+     * Supports: podcast_show, digest_list.
      */
-    private function resolveAndAuthorizeTriggerable(string $type, int $id): PodcastShow|RedirectResponse
+    private function resolveAndAuthorizeTriggerable(string $type, int $id): Model|RedirectResponse
     {
-        if ($type !== 'podcast_show') {
-            return redirect()
-                ->route('deploy_hooks.index')
-                ->with('error', 'Unsupported triggerable type.');
-        }
-
-        $triggerable = PodcastShow::find($id);
+        $triggerable = match ($type) {
+            'podcast_show' => PodcastShow::find($id),
+            'digest_list'  => ListModel::find($id),
+            default        => null,
+        };
 
         if (! $triggerable) {
             return redirect()
                 ->route('deploy_hooks.index')
-                ->with('error', 'The selected show could not be found.');
+                ->with('error', match ($type) {
+                    'podcast_show' => 'The selected show could not be found.',
+                    'digest_list'  => 'The selected list could not be found.',
+                    default        => 'Unsupported triggerable type.',
+                });
         }
 
         if ($triggerable->user_id !== auth()->id()) {
             return redirect()
                 ->route('deploy_hooks.index')
-                ->with('error', 'You do not have permission to access that show.');
+                ->with('error', 'You do not have permission to access that item.');
         }
 
         return $triggerable;
@@ -82,17 +97,25 @@ class DeployHookController extends Controller
     // -------------------------------------------------------------------------
 
     /**
-     * Display all deploy hooks belonging to the authenticated user's triggerables,
-     * ordered by label.
+     * Display all deploy hooks belonging to the authenticated user's triggerables.
      */
     public function index(): View
     {
-        // Fetch hooks whose triggerable is a PodcastShow owned by this user.
-        // As new triggerable types are added, extend this query accordingly.
-        $hooks = DeployHook::where('triggerable_type', 'podcast_show')
-            ->whereIn('triggerable_id',
-                PodcastShow::where('user_id', auth()->id())->pluck('id')
-            )
+        $userId = auth()->id();
+
+        $showIds = PodcastShow::where('user_id', $userId)->pluck('id');
+        $listIds = ListModel::where('user_id', $userId)
+            ->where('output_type', OutputType::StaticSite->value)
+            ->pluck('id');
+
+        $hooks = DeployHook::where(function ($q) use ($showIds) {
+                $q->where('triggerable_type', 'podcast_show')
+                  ->whereIn('triggerable_id', $showIds);
+            })
+            ->orWhere(function ($q) use ($listIds) {
+                $q->where('triggerable_type', 'digest_list')
+                  ->whereIn('triggerable_id', $listIds);
+            })
             ->with('triggerable')
             ->orderBy('label')
             ->get();
@@ -102,18 +125,26 @@ class DeployHookController extends Controller
 
     /**
      * Show the form for creating a new deploy hook.
+     * Accepts optional query parameters to pre-fill the triggerable:
+     *   ?triggerable_type=digest_list&triggerable_id=5&redirect_to=lists.show
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         $shows     = $this->userShows();
+        $lists     = $this->userLists();
         $providers = DeployHookProvider::cases();
 
-        return view('media_platform.static_site_deploy_hooks.create', compact('shows', 'providers'));
+        $prefillType = $request->query('triggerable_type');
+        $prefillId   = $request->query('triggerable_id');
+        $redirectTo  = $request->query('redirect_to');
+
+        return view('media_platform.static_site_deploy_hooks.create', compact(
+            'shows', 'lists', 'providers', 'prefillType', 'prefillId', 'redirectTo'
+        ));
     }
 
     /**
      * Persist a new deploy hook.
-     * Resolves and authorises the triggerable before creating.
      */
     public function store(DeployHookRequest $request): RedirectResponse
     {
@@ -135,6 +166,20 @@ class DeployHookController extends Controller
             'enabled'          => $request->boolean('enabled'),
         ]);
 
+        // If a redirect_to route was provided (e.g. from the list wizard),
+        // redirect there instead of to the hook show page.
+        $redirectTo = $request->input('redirect_to');
+
+        if ($redirectTo && \Illuminate\Support\Facades\Route::has($redirectTo)) {
+            // For routes that need a parameter (like lists.show), use the triggerable ID.
+            try {
+                return redirect()->route($redirectTo, $triggerable)
+                    ->with('success', 'Deploy hook created successfully.');
+            } catch (\Throwable) {
+                // Fall through to default redirect if route needs different params.
+            }
+        }
+
         return redirect()
             ->route('deploy_hooks.show', $hook)
             ->with('success', 'Deploy hook created successfully.');
@@ -142,7 +187,6 @@ class DeployHookController extends Controller
 
     /**
      * Display a single deploy hook.
-     * Ownership check via the triggerable model.
      */
     public function show(DeployHook $deploy_hook): View|RedirectResponse
     {
@@ -175,43 +219,31 @@ class DeployHookController extends Controller
         }
 
         $shows     = $this->userShows();
+        $lists     = $this->userLists();
         $providers = DeployHookProvider::cases();
 
         return view('media_platform.static_site_deploy_hooks.edit', [
             'hook'      => $deploy_hook,
             'shows'     => $shows,
+            'lists'     => $lists,
             'providers' => $providers,
         ]);
     }
 
     /**
      * Persist updates to a deploy hook.
-     * Re-validates triggerable ownership in case it changed.
      */
     public function update(DeployHookRequest $request, DeployHook $deploy_hook): RedirectResponse
     {
-        // Ownership check on the existing hook.
-        $existing = $this->resolveAndAuthorizeTriggerable(
-            $deploy_hook->triggerable_type,
-            $deploy_hook->triggerable_id
-        );
-
-        if ($existing instanceof RedirectResponse) {
-            return $existing;
-        }
-
-        // Ownership check on the (possibly changed) triggerable.
-        $new = $this->resolveAndAuthorizeTriggerable(
+        $triggerable = $this->resolveAndAuthorizeTriggerable(
             $request->triggerable_type,
             $request->triggerable_id
         );
 
-        if ($new instanceof RedirectResponse) {
-            return $new;
+        if ($triggerable instanceof RedirectResponse) {
+            return $triggerable;
         }
 
-        // Only overwrite the encrypted URL if a new one was submitted.
-        // If left blank, the existing URL is preserved.
         $data = [
             'triggerable_type' => $request->triggerable_type,
             'triggerable_id'   => $request->triggerable_id,
@@ -220,6 +252,7 @@ class DeployHookController extends Controller
             'enabled'          => $request->boolean('enabled'),
         ];
 
+        // Only update the URL if a new one was provided.
         if ($request->filled('url')) {
             $data['url'] = $request->url;
         }
@@ -232,7 +265,7 @@ class DeployHookController extends Controller
     }
 
     /**
-     * Show the delete confirmation page for a deploy hook.
+     * Show the delete confirmation page.
      */
     public function deleteConfirm(DeployHook $deploy_hook): View|RedirectResponse
     {
@@ -304,7 +337,6 @@ class DeployHookController extends Controller
 
     /**
      * Fire this specific deploy hook via DeployHookTriggerService.
-     * Stores the single result in the session and redirects to the result page.
      */
     public function executeTrigger(DeployHook $deploy_hook, DeployHookTriggerService $service): RedirectResponse
     {
@@ -332,7 +364,6 @@ class DeployHookController extends Controller
 
     /**
      * Display the result of triggering this specific hook.
-     * Reads from the session and clears it after display.
      */
     public function triggerResult(DeployHook $deploy_hook): View|RedirectResponse
     {

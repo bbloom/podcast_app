@@ -13,7 +13,7 @@
           x-data="{
               frequency:  '{{ old('schedule_frequency', $list->schedule_frequency) }}',
               day:        {{ old('schedule_day', $list->schedule_day ?? 'null') }},
-              outputType: '{{ old('output_type', $list->output_type) }}',
+              outputType: '{{ old('output_type', $list->output_type->value ?? $list->output_type) }}',
               setDay(val) { this.day = val; }
           }">
         @csrf
@@ -24,7 +24,7 @@
 
         {{-- Name --}}
         <div class="mb-6">
-            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">List Name</label>
+            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">Name</label>
             <input
                 type="text"
                 id="name"
@@ -38,35 +38,54 @@
 
         {{-- Description --}}
         <div class="mb-6">
-            <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
-                Description <span class="font-normal text-gray-400">(optional)</span>
-            </label>
+            <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">Description <span class="text-gray-400 font-normal">(optional)</span></label>
             <textarea
                 id="description"
                 name="description"
                 rows="3"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize-none @error('description') border-red-400 @enderror"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('description') border-red-400 @enderror"
             >{{ old('description', $list->description) }}</textarea>
             @error('description') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
         {{-- Timezone --}}
         <div class="mb-6">
-            <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-2">
-                Timezone <span class="font-normal text-gray-400">(optional)</span>
-            </label>
+            <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
             <select
                 id="timezone"
                 name="timezone"
                 class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
             >
-                <option value="">— Use my account timezone ({{ auth()->user()->timezone }}) —</option>
-                @foreach (\DateTimeZone::listIdentifiers() as $tz)
-                    <option value="{{ $tz }}" {{ old('timezone', $list->timezone) === $tz ? 'selected' : '' }}>
+                @foreach (timezone_identifiers_list() as $tz)
+                    <option value="{{ $tz }}" @selected(old('timezone', $list->timezone ?? auth()->user()->timezone) === $tz)>
                         {{ $tz }}
                     </option>
                 @endforeach
             </select>
+            @error('timezone') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- Enabled --}}
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Enabled</label>
+            <div class="flex gap-3">
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="enabled" value="1"
+                        {{ old('enabled', $list->enabled ? '1' : '0') === '1' ? 'checked' : '' }}
+                        class="sr-only peer">
+                    <div class="border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-center text-gray-700 peer-checked:border-purple-700 peer-checked:text-purple-700 peer-checked:bg-purple-50 hover:border-gray-400 transition">
+                        Yes
+                    </div>
+                </label>
+                <label class="flex-1 cursor-pointer">
+                    <input type="radio" name="enabled" value="0"
+                        {{ old('enabled', $list->enabled ? '1' : '0') === '0' ? 'checked' : '' }}
+                        class="sr-only peer">
+                    <div class="border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-center text-gray-700 peer-checked:border-purple-700 peer-checked:text-purple-700 peer-checked:bg-purple-50 hover:border-gray-400 transition">
+                        No
+                    </div>
+                </label>
+            </div>
         </div>
 
         {{-- Frequency --}}
@@ -79,8 +98,7 @@
                             type="radio"
                             name="schedule_frequency"
                             value="{{ $value }}"
-                            x-model="frequency"
-                            @change="day = null"
+                            x-on:change="frequency = '{{ $value }}'"
                             {{ old('schedule_frequency', $list->schedule_frequency) === $value ? 'checked' : '' }}
                             class="sr-only peer"
                         >
@@ -93,36 +111,24 @@
             @error('schedule_frequency') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
-        {{-- Day of week (weekly only) --}}
+        {{-- Day of week (weekly) --}}
         <div class="mb-6" x-show="frequency === 'weekly'" x-cloak>
-            <label class="block text-sm font-semibold text-gray-700 mb-3">Which day of the week?</label>
-            <div class="flex gap-2">
-                @foreach (['1' => 'Mon', '2' => 'Tue', '3' => 'Wed', '4' => 'Thu', '5' => 'Fri', '6' => 'Sat', '7' => 'Sun'] as $num => $label)
-                    <button
-                        type="button"
-                        @click="setDay({{ $num }})"
-                        :class="day == {{ $num }}
-                            ? 'border-purple-700 text-purple-700 bg-purple-50'
-                            : 'border-gray-300 text-gray-700 hover:border-gray-400'"
-                        class="flex-1 border rounded-lg px-2 py-3 text-xs font-semibold text-center transition"
-                    >
-                        {{ $label }}
-                    </button>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Day of week</label>
+            <select x-on:change="setDay($event.target.value)"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                @foreach (['1'=>'Monday','2'=>'Tuesday','3'=>'Wednesday','4'=>'Thursday','5'=>'Friday','6'=>'Saturday','7'=>'Sunday'] as $val => $name)
+                    <option value="{{ $val }}" @selected(old('schedule_day', $list->schedule_day) == $val)>{{ $name }}</option>
                 @endforeach
-            </div>
-            @error('schedule_day') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+            </select>
         </div>
 
-        {{-- Day of month (monthly only) --}}
+        {{-- Day of month (monthly) --}}
         <div class="mb-6" x-show="frequency === 'monthly'" x-cloak>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Which day of the month?</label>
-            <select
-                @change="setDay($event.target.value)"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-            >
-                <option value="">— Select a day —</option>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Day of month</label>
+            <select x-on:change="setDay($event.target.value)"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
                 @for ($d = 1; $d <= 31; $d++)
-                    <option value="{{ $d }}" {{ old('schedule_day', $list->schedule_day) == $d ? 'selected' : '' }}>
+                    <option value="{{ $d }}" @selected(old('schedule_day', $list->schedule_day) == $d)>
                         {{ $d }}{{ match(true) { $d===1||$d===21||$d===31=>'st', $d===2||$d===22=>'nd', $d===3||$d===23=>'rd', default=>'th' } }}
                     </option>
                 @endfor
@@ -148,14 +154,14 @@
         <div class="mb-6">
             <label class="block text-sm font-semibold text-gray-700 mb-3">Delivery</label>
             <div class="flex gap-3">
-                @foreach (['webpage' => 'Web page', 'email' => 'Email'] as $value => $label)
+                @foreach (['webpage' => 'Web page', 'email' => 'Email', 'static_site' => 'Static Site'] as $value => $label)
                     <label class="flex-1 cursor-pointer">
                         <input
                             type="radio"
                             name="output_type"
                             value="{{ $value }}"
                             x-model="outputType"
-                            {{ old('output_type', $list->output_type) === $value ? 'checked' : '' }}
+                            {{ old('output_type', $list->output_type->value ?? $list->output_type) === $value ? 'checked' : '' }}
                             class="sr-only peer"
                         >
                         <div class="border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-center text-gray-700 peer-checked:border-purple-700 peer-checked:text-purple-700 peer-checked:bg-purple-50 hover:border-gray-400 transition">
@@ -192,9 +198,14 @@
             @endif
         </div>
 
-        {{-- Email notification (webpage only) --}}
-        <div class="mb-6" x-show="outputType === 'webpage'" x-cloak>
+        {{-- Email notification (webpage or static_site) --}}
+        <div class="mb-6" x-show="outputType === 'webpage' || outputType === 'static_site'" x-cloak>
             <label class="block text-sm font-semibold text-gray-700 mb-2">Email notification when digest is published</label>
+            <template x-if="outputType === 'static_site'">
+                <p class="text-xs text-gray-500 mb-2">
+                    This email confirms the digest was built and the deploy hook was fired. It does not contain the digest content.
+                </p>
+            </template>
             <div class="flex gap-3">
                 <label class="flex-1 cursor-pointer">
                     <input type="radio" name="notify_by_email" value="1"
@@ -215,44 +226,67 @@
             </div>
         </div>
 
-        {{-- Status --}}
-        <div class="mb-8">
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-            <div class="flex gap-3">
-                <label class="flex-1 cursor-pointer">
-                    <input type="radio" name="enabled" value="1"
-                        {{ old('enabled', $list->enabled ? '1' : '0') === '1' ? 'checked' : '' }}
-                        class="sr-only peer">
-                    <div class="border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-center text-gray-700 peer-checked:border-purple-700 peer-checked:text-purple-700 peer-checked:bg-purple-50 hover:border-gray-400 transition">
-                        Enabled
-                    </div>
-                </label>
-                <label class="flex-1 cursor-pointer">
-                    <input type="radio" name="enabled" value="0"
-                        {{ old('enabled', $list->enabled ? '1' : '0') === '0' ? 'checked' : '' }}
-                        class="sr-only peer">
-                    <div class="border border-gray-300 rounded-lg px-4 py-3 text-sm font-semibold text-center text-gray-700 peer-checked:border-purple-700 peer-checked:text-purple-700 peer-checked:bg-purple-50 hover:border-gray-400 transition">
-                        Disabled
-                    </div>
-                </label>
+        {{-- Retention count (all output types) --}}
+        <div class="mb-6">
+            <label for="retention_count" class="block text-sm font-semibold text-gray-700 mb-2">Digest retention</label>
+            <input
+                type="number"
+                id="retention_count"
+                name="retention_count"
+                value="{{ old('retention_count', $list->retention_count ?? 10) }}"
+                min="1"
+                max="100"
+                class="w-32 border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition @error('retention_count') border-red-400 @enderror"
+            >
+            <div class="mt-2 text-xs text-gray-500" x-show="outputType === 'static_site'" x-cloak>
+                How many published digests to keep. Your static site will display this many digests. Older records are pruned automatically after each run.
             </div>
+            <div class="mt-2 text-xs text-gray-500" x-show="outputType === 'email' || outputType === 'webpage'" x-cloak>
+                How many digest runs to keep in the database after delivery. Older delivered summaries are pruned automatically after each run. The delivered emails or uploaded files are not affected.
+            </div>
+            @error('retention_count') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+        
+        {{-- Deploy hooks info (static_site only) --}}
+        <div class="mb-6" x-show="outputType === 'static_site'" x-cloak>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Deploy Hooks</label>
+            @if ($list->output_type === \MediaPlatform\Digest\Enums\OutputType::StaticSite && $list->deployHooks->count() > 0)
+                <div class="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-2">
+                    @foreach ($list->deployHooks as $hook)
+                        <div class="flex items-center justify-between px-4 py-2.5">
+                            <div>
+                                <p class="text-sm text-gray-800 font-medium">{{ $hook->label }}</p>
+                                <p class="text-xs text-gray-500">{{ $hook->provider->label() }}</p>
+                            </div>
+                            @if ($hook->enabled)
+                                <span class="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Enabled</span>
+                            @else
+                                <span class="text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">Disabled</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-gray-500 mb-2">No deploy hooks attached to this list yet.</p>
+            @endif
+            <a href="{{ route('deploy_hooks.create', ['triggerable_type' => 'digest_list', 'triggerable_id' => $list->id]) }}"
+               class="text-sm text-purple-700 hover:underline font-semibold">
+                Manage deploy hooks →
+            </a>
         </div>
 
-        <div class="flex items-center justify-between">
-            <a href="{{ route('lists.delete.confirm', $list) }}" class="text-sm text-red-500 hover:text-red-700 font-medium transition">
-                Delete this list
+        {{-- Submit --}}
+        <div class="flex items-center gap-4 mt-8">
+            <button
+                type="submit"
+                class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-6 py-3 rounded-lg transition"
+            >
+                Save Changes
+            </button>
+            <a href="{{ route('lists.show', $list) }}"
+               class="text-sm text-gray-500 hover:text-gray-700 font-semibold transition">
+                Cancel
             </a>
-            <div class="flex gap-3">
-                <a href="{{ route('lists.index') }}" class="text-sm text-gray-500 hover:text-gray-700 font-semibold px-5 py-3 transition">
-                    Cancel
-                </a>
-                <button
-                    type="submit"
-                    class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-6 py-3 rounded-lg transition"
-                >
-                    Save Changes
-                </button>
-            </div>
         </div>
 
     </form>

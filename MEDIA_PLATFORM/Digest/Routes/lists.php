@@ -133,7 +133,7 @@ Route::get('/output-destinations/{outputDestination}', [OutputDestinationWizardC
 // =========================================================================
 
 // -------------------------------------------------------------------------
-// Lists Wizard
+// Lists Wizard — shared steps
 // -------------------------------------------------------------------------
 
 Route::get('/lists/create/step1', [ListWizardController::class, 'step1'])
@@ -163,6 +163,10 @@ Route::post('/lists/create/step3', [ListWizardController::class, 'step3Submit'])
     ->name('lists.create.step3.submit');
 
 
+// -------------------------------------------------------------------------
+// Lists Wizard — Webpage path (steps 4, 5)
+// -------------------------------------------------------------------------
+
 Route::get('/lists/create/step4', [ListWizardController::class, 'step4'])
     ->middleware(['auth'])
     ->name('lists.create.step4');
@@ -180,6 +184,23 @@ Route::post('/lists/create/step5', [ListWizardController::class, 'step5Submit'])
     ->middleware(['auth'])
     ->name('lists.create.step5.submit');
 
+
+// -------------------------------------------------------------------------
+// Lists Wizard — Static Site path (step 4)
+// -------------------------------------------------------------------------
+
+Route::get('/lists/create/step4-static-site', [ListWizardController::class, 'step4StaticSite'])
+    ->middleware(['auth'])
+    ->name('lists.create.step4_static_site');
+
+Route::post('/lists/create/step4-static-site', [ListWizardController::class, 'step4StaticSiteSubmit'])
+    ->middleware(['auth'])
+    ->name('lists.create.step4_static_site.submit');
+
+
+// -------------------------------------------------------------------------
+// Lists Wizard — shared confirmation + done
+// -------------------------------------------------------------------------
 
 Route::get('/lists/create/step6', [ListWizardController::class, 'step6'])
     ->middleware(['auth'])

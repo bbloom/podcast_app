@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\Podcasts\Models\Podcast;
 use MediaPlatform\Digest\ContentSources\TextBasedRssFeeds\Models\TextBasedRssFeed;
 use MediaPlatform\Digest\ContentSources\Youtube\Models\YoutubeChannel;
@@ -66,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
             'text_based_rss_feed' => TextBasedRssFeed::class,
             'podcast'             => Podcast::class,
             'podcast_show'        => PodcastShow::class,
-
+            'digest_list'         => ListModel::class,
         ]);
 
         // -------------------------------------------------------------------------

@@ -4,8 +4,6 @@
     <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
         <a href="{{ route('dashboard') }}" class="hover:text-purple-700 transition">← Dashboard</a>
         <span>›</span>
-        <a href="{{ route('post_production.dashboard') }}" class="hover:text-purple-700 transition">Post-Production</a>
-        <span>›</span>
         <a href="{{ route('deploy_hooks.index') }}" class="hover:text-purple-700 transition">Deploy Hooks</a>
         <span>›</span>
         <a href="{{ route('deploy_hooks.show', $hook) }}" class="hover:text-purple-700 transition">{{ $hook->label }}</a>
@@ -23,7 +21,7 @@
             <p class="text-sm text-gray-700 mb-2">
                 You are about to permanently delete the deploy hook
                 <strong class="text-gray-900">{{ $hook->label }}</strong>
-                for <strong class="text-gray-900">{{ $hook->triggerable->title }}</strong>.
+                for <strong class="text-gray-900">{{ $hook->triggerable_display_name }}</strong>.
             </p>
             <p class="text-sm text-gray-700">
                 This action cannot be undone. The hook URL will be deleted and builds will no longer be triggered for this hook.

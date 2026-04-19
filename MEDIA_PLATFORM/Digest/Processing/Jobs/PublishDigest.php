@@ -2,16 +2,15 @@
 
 namespace MediaPlatform\Digest\Processing\Jobs;
 
+use MediaPlatform\API\v1\Models\ApiControl;
 use MediaPlatform\Digest\Enums\OutputType;
 use MediaPlatform\Tools\HealthChecks\Models\AdminAlert;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
-use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
-use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
-use MediaPlatform\Digest\Publishing\Mail\DigestMailable;
 use MediaPlatform\Digest\Publishing\Notifications\DigestEmptyNotification;
-use MediaPlatform\Digest\Publishing\Notifications\DigestReadyNotification;
 use MediaPlatform\Digest\Processing\Services\DigestBuilderService;
 use MediaPlatform\Digest\Processing\Services\ProcessingGate;
+use MediaPlatform\Digest\Publishing\Services\DeliveryStrategyResolver;
+use MediaPlatform\Digest\Publishing\Services\DigestRetentionService;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,7 +19,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * PublishDigest — the final stage of the content processing pipeline.
@@ -30,16 +28,30 @@ use Illuminate\Support\Facades\Mail;
  * After all source-processing jobs (YouTube, Podcast, RSS) complete for a list,
  * ProcessList's batch ->then() callback dispatches this job. It:
  *
- *   1. Checks the ProcessingGate for publish-blocking alerts
- *   2. Loads the list and its output destination
- *   3. Uses DigestBuilderService to query pending summaries
- *   4. If nothing to publish → sends DigestEmptyNotification → exits
- *   5. Renders the appropriate Blade view (email / webpage)
- *   6. Delivers via the correct channel:
- *        email   → sends DigestMailable
- *        webpage → SftpService::upload(), then optional DigestReadyNotification
- *   7. Calls DigestBuilderService::markAsIncluded() AFTER successful delivery
- *   8. Updates lists.last_run_at
+ *   1. Auto-enables the API if the list is a static site type
+ *   2. Checks the ProcessingGate for publish-blocking alerts
+ *   3. Loads the list and its output destination
+ *   4. Uses DigestBuilderService to query pending summaries
+ *   5. If nothing to publish → sends DigestEmptyNotification → exits
+ *   6. Resolves the correct delivery strategy for the output type
+ *   7. Delegates delivery to the strategy
+ *   8. Calls DigestBuilderService::markAsIncluded() AFTER successful delivery
+ *   9. Calls DigestRetentionService::pruneForList() to enforce retention policy
+ *  10. Updates lists.last_run_at
+ *
+ * DELIVERY STRATEGIES
+ * ───────────────────
+ * Each output type has its own delivery strategy implementing DigestDeliveryStrategy:
+ *   - EmailDeliveryStrategy      → sends DigestMailable
+ *   - WebpageDeliveryStrategy    → renders Blade, uploads via SFTP
+ *   - StaticSiteDeliveryStrategy → persists JSON, fires deploy hooks
+ *
+ * RETENTION
+ * ────────
+ * After successful delivery, DigestRetentionService prunes old data:
+ *   - Static site → prunes old published_digests records
+ *   - Email/SFTP  → prunes old summaries where included_in_digest = true
+ * The retention_count field on the list controls how many digest runs to keep.
  *
  * RETRY BEHAVIOUR
  * ───────────────
@@ -52,6 +64,7 @@ use Illuminate\Support\Facades\Mail;
  * PublishDigest checks ProcessingGate::canPublish() which looks for Tier 3
  * alerts on the 'sftp' and 'infrastructure' categories. If blocked, the job
  * logs and returns without failure — the summaries remain pending.
+ * Email output type is never blocked by the gate.
  */
 class PublishDigest implements ShouldQueue
 {
@@ -75,9 +88,10 @@ class PublishDigest implements ShouldQueue
      * Execute the digest publish pipeline.
      */
     public function handle(
-        ProcessingGate       $gate,
-        DigestBuilderService $builder,
-        SftpService          $sftp,
+        ProcessingGate           $gate,
+        DigestBuilderService     $builder,
+        DeliveryStrategyResolver $resolver,
+        DigestRetentionService   $retention,
     ): void {
         Log::info("PublishDigest: Starting for list ID {$this->listId}.");
 
@@ -89,8 +103,16 @@ class PublishDigest implements ShouldQueue
             return;
         }
 
+        // ── Auto-enable API for static site lists ─────────────────────────────
+        if ($list->output_type === OutputType::StaticSite) {
+            if (! ApiControl::getStatus()) {
+                ApiControl::instance()->enable();
+                Log::info("PublishDigest: API auto-enabled for static site list '{$list->name}'.");
+            }
+        }
+
         // ── Gate check for publish-blocking alerts ────────────────────────────
-        // Only applies to SFTP — email is never blocked by infra alerts.
+        // Only applies to non-email output types — email is never blocked.
         if ($list->output_type !== OutputType::Email && ! $gate->canPublish()) {
             Log::warning("PublishDigest: Publish blocked by ProcessingGate for list '{$list->name}'. Summaries remain pending.");
             return;
@@ -107,15 +129,13 @@ class PublishDigest implements ShouldQueue
             return;
         }
 
-        // ── Route to the correct delivery channel ─────────────────────────────
-        $success = match ($list->output_type) {
-            OutputType::Email   => $this->deliverEmail($list, $digestData),
-            OutputType::Webpage => $this->deliverWebpage($list, $digestData, $builder, $sftp),
-        };
+        // ── Resolve and execute the delivery strategy ─────────────────────────
+        $strategy = $resolver->resolve($list->output_type);
+        $success  = $strategy->deliver($list, $digestData, $builder);
 
         if (! $success) {
             // Delivery failed — do NOT mark summaries as included. They will
-            // be retried. Log already written inside each deliver* method.
+            // be retried. Log already written inside the strategy.
             Log::error("PublishDigest: Delivery failed for list '{$list->name}'. Summaries will be retried.");
             return;
         }
@@ -123,115 +143,13 @@ class PublishDigest implements ShouldQueue
         // ── Mark summaries as included ONLY after successful delivery ─────────
         $builder->markAsIncluded();
 
+        // ── Prune old data based on retention policy ──────────────────────────
+        $retention->pruneForList($list);
+
         // ── Update the list's last run timestamp ──────────────────────────────
         $this->updateLastRunAt($list);
 
         Log::info("PublishDigest: Complete for list '{$list->name}' (ID {$list->id}).");
-    }
-
-    // =========================================================================
-    // Delivery channels
-    // =========================================================================
-
-    /**
-     * Deliver the digest as an email to the list owner.
-     * The digest HTML is the full email body — no separate notification is sent.
-     */
-    private function deliverEmail(ListModel $list, array $digestData): bool
-    {
-        Log::info("PublishDigest: Delivering email digest for list '{$list->name}'.");
-
-        try {
-            Mail::to($list->user->email)
-                ->send(new DigestMailable($list, $digestData));
-
-            Log::info("PublishDigest: Email digest sent to {$list->user->email}.");
-            return true;
-
-        } catch (\Throwable $e) {
-            Log::error("PublishDigest: Failed to send email digest.", [
-                'list_id' => $list->id,
-                'error'   => $e->getMessage(),
-            ]);
-
-            AdminAlert::raiseIfNew(
-                tier: 2,
-                category: 'infrastructure',
-                title: "Digest email failed for list '{$list->name}'",
-                message: "Could not send email digest for list ID {$list->id}: {$e->getMessage()}",
-            );
-
-            return false;
-        }
-    }
-
-    /**
-     * Render the digest as a standalone HTML page and upload it via SFTP.
-     * Optionally sends a DigestReadyNotification if notify_by_email is true.
-     */
-    private function deliverWebpage(
-        ListModel            $list,
-        array                $digestData,
-        DigestBuilderService $builder,
-        SftpService          $sftp,
-    ): bool {
-        $dest = $list->outputDestination;
-
-        if (! $dest) {
-            Log::error("PublishDigest: Webpage list '{$list->name}' has no output destination.");
-            return false;
-        }
-
-        // ── Build slug and render the page HTML ───────────────────────────────
-        $slug     = $builder->buildSlug($list, $digestData['date']);
-        $excerpt  = $builder->buildExcerpt($digestData);
-        $html     = view('media_platform.digest.digest-webpage', [
-            'digestData' => $digestData,
-            'list'       => $list,
-            'slug'       => $slug,
-        ])->render();
-
-        Log::info("PublishDigest: Uploading webpage digest via SFTP.", [
-            'list'     => $list->name,
-            'filename' => $slug,
-            'dest_id'  => $dest->id,
-        ]);
-
-        // ── Upload via SFTP ───────────────────────────────────────────────────
-        $result = $sftp->upload($dest, $slug, $html);
-
-        if (! $result['success']) {
-            Log::error("PublishDigest: SFTP upload failed for list '{$list->name}'.", [
-                'message' => $result['message'],
-            ]);
-
-            AdminAlert::raiseIfNew(
-                tier: 2,
-                category: 'sftp',
-                title: "SFTP upload failed for list '{$list->name}'",
-                message: $result['message'],
-            );
-
-            return false;
-        }
-
-        Log::info("PublishDigest: Webpage uploaded to {$result['path']}.");
-
-        // ── Send "digest ready" notification if enabled ───────────────────────
-        if ($list->notify_by_email) {
-            try {
-                $list->user->notify(new DigestReadyNotification($list, $dest, $slug, $excerpt));
-                Log::info("PublishDigest: DigestReadyNotification sent to {$list->user->email}.");
-            } catch (\Throwable $e) {
-                // Notification failure is non-fatal — the digest was already uploaded.
-                // Log it, but return true so summaries are still marked as included.
-                Log::warning("PublishDigest: Failed to send DigestReadyNotification.", [
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return true;
     }
 
     // =========================================================================
@@ -264,7 +182,7 @@ class PublishDigest implements ShouldQueue
             tier: 2,
             category: 'infrastructure',
             title: "PublishDigest failed for list ID {$this->listId}",
-            message: "Digest delivery failed after all retries. Last error: {$e->getMessage()}",
+            message: "All retries exhausted. Error: {$e->getMessage()}",
         );
     }
 }

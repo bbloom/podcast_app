@@ -41,18 +41,22 @@ return new class extends Migration
                   ->nullable()
                   ->comment('Overrides user timezone if set, otherwise inherits from users.timezone');
 
-            $table->enum('output_type', ['webpage', 'email'])
-                  ->comment('Where the summary is delivered, webpage via SFTP or email');
+            $table->string('output_type')
+                  ->comment('Delivery mechanism: webpage, email, or static_site. Validated by the PHP OutputType enum, not by a database constraint.');
 
             $table->foreignId('output_destination_id')
                   ->nullable()
                   ->constrained('output_destinations')
                   ->nullOnDelete()
-                  ->comment('References output_destinations.id, null when output_type is email');
+                  ->comment('References output_destinations.id, null when output_type is email or static_site');
 
             $table->boolean('notify_by_email')
                   ->default(false)
-                  ->comment('Sends a notification email when output_type is webpage and the summary is ready');
+                  ->comment('Sends a notification email when output_type is webpage or static_site and the digest is ready');
+
+            $table->unsignedInteger('retention_count')
+                  ->default(10)
+                  ->comment('Number of published_digests records to retain per list. Only actively used when output_type is static_site. Old records are pruned after each new digest.');
 
             $table->timestamp('last_run_at')
                   ->nullable()

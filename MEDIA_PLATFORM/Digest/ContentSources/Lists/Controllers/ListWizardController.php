@@ -5,6 +5,7 @@ namespace MediaPlatform\Digest\ContentSources\Lists\Controllers;
 use App\Http\Controllers\Controller;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
+use MediaPlatform\Digest\Enums\OutputType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -77,34 +78,19 @@ class ListWizardController extends Controller
             'schedule_day'       => ['nullable', 'integer', 'min:1', 'max:31'],
             'schedule_time'      => ['required', 'date_format:H:i'],
         ], [
-            'schedule_frequency.required' => 'Please select how often this list should run.',
-            'schedule_frequency.in'       => 'Please select a valid frequency.',
-            'schedule_day.min'            => 'Please select a valid day.',
-            'schedule_day.max'            => 'Please select a valid day.',
+            'schedule_frequency.required' => 'Please select a schedule frequency.',
             'schedule_time.required'      => 'Please select a time of day.',
-            'schedule_time.date_format'   => 'Please enter a valid time in HH:MM format.',
         ]);
 
-        $frequency = $request->input('schedule_frequency');
-        $day       = $frequency === 'daily' ? null : $request->input('schedule_day');
-
-        if ($frequency === 'weekly' && (! $day || $day < 1 || $day > 7)) {
-            return back()->withInput()->withErrors(['schedule_day' => 'Please select a day of the week.']);
-        }
-
-        if ($frequency === 'monthly' && (! $day || $day < 1 || $day > 31)) {
-            return back()->withInput()->withErrors(['schedule_day' => 'Please select a day of the month.']);
-        }
-
-        $request->session()->put('list_wizard.schedule_frequency', $frequency);
-        $request->session()->put('list_wizard.schedule_day',       $day);
+        $request->session()->put('list_wizard.schedule_frequency', $request->input('schedule_frequency'));
+        $request->session()->put('list_wizard.schedule_day',       $request->input('schedule_day'));
         $request->session()->put('list_wizard.schedule_time',      $request->input('schedule_time'));
 
         return redirect()->route('lists.create.step3');
     }
 
     // -------------------------------------------------------------------------
-    // Step 3: Output type (webpage vs email)
+    // Step 3: Output type (webpage, email, static_site)
     // -------------------------------------------------------------------------
 
     public function step3(Request $request)
@@ -119,7 +105,7 @@ class ListWizardController extends Controller
     public function step3Submit(Request $request)
     {
         $request->validate([
-            'output_type' => ['required', 'in:webpage,email'],
+            'output_type' => ['required', 'in:webpage,email,static_site'],
         ], [
             'output_type.required' => 'Please select how you want this list delivered.',
             'output_type.in'       => 'Please select a valid output type.',
@@ -129,6 +115,10 @@ class ListWizardController extends Controller
 
         if ($request->input('output_type') === 'email') {
             return redirect()->route('lists.create.step6');
+        }
+
+        if ($request->input('output_type') === 'static_site') {
+            return redirect()->route('lists.create.step4_static_site');
         }
 
         return redirect()->route('lists.create.step4');
@@ -171,6 +161,32 @@ class ListWizardController extends Controller
         $request->session()->put('list_wizard.output_destination_id', $destination->id);
 
         return redirect()->route('lists.create.step5');
+    }
+
+    // -------------------------------------------------------------------------
+    // Step 4 (Static Site): Notification preference
+    // -------------------------------------------------------------------------
+
+    public function step4StaticSite(Request $request)
+    {
+        if ($request->session()->get('list_wizard.output_type') !== 'static_site') {
+            return redirect()->route('lists.create.step1');
+        }
+
+        return view('media_platform.digest.content_sources.lists.wizard-step4-static-site');
+    }
+
+    public function step4StaticSiteSubmit(Request $request)
+    {
+        $request->validate([
+            'notify_by_email' => ['required', 'in:1,0'],
+        ], [
+            'notify_by_email.required' => 'Please select your notification preference.',
+        ]);
+
+        $request->session()->put('list_wizard.notify_by_email', (bool) $request->input('notify_by_email'));
+
+        return redirect()->route('lists.create.step6');
     }
 
     // -------------------------------------------------------------------------
@@ -232,7 +248,7 @@ class ListWizardController extends Controller
         $data       = $request->session()->get('list_wizard');
         $outputType = $data['output_type'];
 
-        ListModel::create([
+        $list = ListModel::create([
             'user_id'               => auth()->id(),
             'name'                  => $data['name'],
             'description'           => $data['description'] ?? null,
@@ -243,7 +259,9 @@ class ListWizardController extends Controller
             'schedule_time'         => $data['schedule_time'],
             'output_type'           => $outputType,
             'output_destination_id' => $outputType === 'webpage' ? ($data['output_destination_id'] ?? null) : null,
-            'notify_by_email'       => $outputType === 'webpage' ? ($data['notify_by_email'] ?? false) : false,
+            'notify_by_email'       => in_array($outputType, ['webpage', 'static_site']) ? ($data['notify_by_email'] ?? false) : false,
+            'retention_count'       => $request->input('retention_count') ?? $list->retention_count ?? 10,
+
         ]);
 
         $redirectTo = $data['redirect_to'] ?? null;
@@ -255,16 +273,58 @@ class ListWizardController extends Controller
                 ->with('success', 'List created. Now assign your channel to it.');
         }
 
-        return redirect()->route('lists.create.step7');
+        return redirect()->route('lists.create.step7', ['list' => $list->id]);
     }
 
     // -------------------------------------------------------------------------
     // Step 7: Done
     // -------------------------------------------------------------------------
 
-    public function step7()
+    public function step7(Request $request)
     {
-        return view('media_platform.digest.content_sources.lists.wizard-step7');
+        $list = null;
+
+        if ($request->query('list')) {
+            $list = ListModel::where('id', $request->query('list'))
+                ->where('user_id', auth()->id())
+                ->first();
+        }
+
+        return view('media_platform.digest.content_sources.lists.wizard-step7', compact('list'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Show
+    // -------------------------------------------------------------------------
+
+    public function show(ListModel $list)
+    {
+        $this->authorizeOwnership($list);
+
+        $sources = $list->sources()
+            ->with('sourceable')
+            ->paginate(config('admin.pagination_show'));
+
+        $tracking = \MediaPlatform\Digest\Processing\Models\ListSourceTracking::whereIn(
+            'list_source_id',
+            $sources->pluck('id')
+        )->get()->keyBy('list_source_id');
+
+        // Load deploy hooks and published digests for static site lists
+        $deployHooks      = null;
+        $publishedDigests = null;
+
+        if ($list->output_type === OutputType::StaticSite) {
+            $deployHooks = $list->deployHooks()->orderBy('label')->get();
+            $publishedDigests = $list->publishedDigests()
+                ->orderByDesc('digest_date')
+                ->limit($list->retention_count)
+                ->get();
+        }
+
+        return view('media_platform.digest.content_sources.lists.show', compact(
+            'list', 'sources', 'tracking', 'deployHooks', 'publishedDigests'
+        ));
     }
 
     // -------------------------------------------------------------------------
@@ -284,29 +344,6 @@ class ListWizardController extends Controller
     }
 
     // -------------------------------------------------------------------------
-    // Show
-    // -------------------------------------------------------------------------
-
-    /**
-     * Display a single list with its sources and tracking status.
-     */
-    public function show(ListModel $list)
-    {
-        $this->authorizeOwnership($list);
-
-        $sources = $list->sources()
-            ->with('sourceable')
-            ->paginate(config('admin.pagination_show'));
-
-        $tracking = \MediaPlatform\Digest\Processing\Models\ListSourceTracking::whereIn(
-            'list_source_id',
-            $sources->pluck('id')
-        )->get()->keyBy('list_source_id');
-
-        return view('media_platform.digest.content_sources.lists.show', compact('list', 'sources', 'tracking'));
-    }
-
-    // -------------------------------------------------------------------------
     // Update
     // -------------------------------------------------------------------------
 
@@ -322,9 +359,10 @@ class ListWizardController extends Controller
             'schedule_frequency'    => ['required', 'in:daily,weekly,monthly'],
             'schedule_day'          => ['nullable', 'integer', 'min:1', 'max:31'],
             'schedule_time'         => ['required', 'date_format:H:i'],
-            'output_type'           => ['required', 'in:webpage,email'],
+            'output_type'           => ['required', 'in:webpage,email,static_site'],
             'output_destination_id' => ['nullable', 'integer'],
             'notify_by_email'       => ['nullable', 'boolean'],
+            'retention_count'       => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $outputType    = $request->input('output_type');
@@ -349,7 +387,8 @@ class ListWizardController extends Controller
             'schedule_time'         => $request->input('schedule_time'),
             'output_type'           => $outputType,
             'output_destination_id' => $outputType === 'webpage' ? $destinationId : null,
-            'notify_by_email'       => $outputType === 'webpage' ? $request->boolean('notify_by_email') : false,
+            'notify_by_email'       => in_array($outputType, ['webpage', 'static_site']) ? $request->boolean('notify_by_email') : false,
+            'retention_count'       => $outputType === 'static_site' ? ($request->input('retention_count') ?? 10) : $list->retention_count,
         ]);
 
         return redirect()->route('lists.index')

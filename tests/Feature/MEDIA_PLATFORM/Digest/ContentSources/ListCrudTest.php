@@ -18,7 +18,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  * ───────────
  *   1. index
  *   2. edit
- *   3. update — happy paths (email, webpage)
+ *   2b. show
+ *   3. update — happy paths (email, webpage, static_site)
  *   4. update — validation
  *   5. update — ownership / authorization
  *   6. confirmDelete
@@ -71,8 +72,8 @@ test('index only shows the current users lists', function () {
     ListModel::factory()->forUser($otherUser)->create(['name' => 'Their List']);
 
     $response = $this->get(route('lists.index'));
+    $lists    = $response->viewData('lists');
 
-    $lists = $response->viewData('lists');
     expect($lists)->toHaveCount(1);
     expect($lists->first()->name)->toBe('My List');
 });
@@ -111,6 +112,15 @@ test('show renders for owner', function () {
         ->assertViewHas('list')
         ->assertViewHas('sources')
         ->assertViewHas('tracking');
+});
+
+test('show renders static site sections for static site list', function () {
+    $list = ListModel::factory()->forUser($this->user)->staticSite()->create();
+
+    $this->get(route('lists.show', $list))
+        ->assertOk()
+        ->assertViewHas('deployHooks')
+        ->assertViewHas('publishedDigests');
 });
 
 test('show returns 403 for non-owner', function () {
@@ -162,6 +172,23 @@ test('update saves webpage list with destination', function () {
     expect($list->notify_by_email)->toBeTrue();
 });
 
+test('update saves static site list correctly', function () {
+    $list = ListModel::factory()->forUser($this->user)->create();
+
+    $this->put(route('lists.update', $list), basePayload([
+        'output_type'     => 'static_site',
+        'notify_by_email' => '1',
+        'retention_count' => 15,
+    ]))->assertRedirect(route('lists.index'))
+       ->assertSessionHas('success');
+
+    $list->refresh();
+    expect($list->output_type)->toBe(OutputType::StaticSite);
+    expect($list->output_destination_id)->toBeNull();
+    expect($list->notify_by_email)->toBeTrue();
+    expect($list->retention_count)->toBe(15);
+});
+
 test('update clears destination and notify_by_email when switching to email', function () {
     $dest = OutputDestination::factory()->forUser($this->user)->create();
     $list = ListModel::factory()->forUser($this->user)->webpage($dest->id)->create([
@@ -175,6 +202,22 @@ test('update clears destination and notify_by_email when switching to email', fu
     $list->refresh();
     expect($list->output_destination_id)->toBeNull();
     expect($list->notify_by_email)->toBeFalse();
+});
+
+test('update clears destination when switching to static_site', function () {
+    $dest = OutputDestination::factory()->forUser($this->user)->create();
+    $list = ListModel::factory()->forUser($this->user)->webpage($dest->id)->create();
+
+    $this->put(route('lists.update', $list), basePayload([
+        'output_type'     => 'static_site',
+        'notify_by_email' => '0',
+        'retention_count' => 5,
+    ]));
+
+    $list->refresh();
+    expect($list->output_type)->toBe(OutputType::StaticSite);
+    expect($list->output_destination_id)->toBeNull();
+    expect($list->retention_count)->toBe(5);
 });
 
 // =============================================================================
@@ -193,6 +236,13 @@ test('update rejects invalid output_type', function () {
 
     $this->put(route('lists.update', $list), basePayload(['output_type' => 'wordpress']))
         ->assertSessionHasErrors('output_type');
+});
+
+test('update accepts static_site as valid output_type', function () {
+    $list = ListModel::factory()->forUser($this->user)->create();
+
+    $this->put(route('lists.update', $list), basePayload(['output_type' => 'static_site']))
+        ->assertSessionDoesntHaveErrors('output_type');
 });
 
 test('update rejects invalid schedule_frequency', function () {
@@ -220,6 +270,24 @@ test('update returns 403 when destination belongs to another user', function () 
     ]))->assertForbidden();
 });
 
+test('update rejects retention_count below 1', function () {
+    $list = ListModel::factory()->forUser($this->user)->create();
+
+    $this->put(route('lists.update', $list), basePayload([
+        'output_type'     => 'static_site',
+        'retention_count' => 0,
+    ]))->assertSessionHasErrors('retention_count');
+});
+
+test('update rejects retention_count above 100', function () {
+    $list = ListModel::factory()->forUser($this->user)->create();
+
+    $this->put(route('lists.update', $list), basePayload([
+        'output_type'     => 'static_site',
+        'retention_count' => 101,
+    ]))->assertSessionHasErrors('retention_count');
+});
+
 // =============================================================================
 // GROUP 5: update — ownership
 // =============================================================================
@@ -228,7 +296,8 @@ test('update returns 403 for non-owner', function () {
     $otherUser = User::factory()->create();
     $list      = ListModel::factory()->forUser($otherUser)->create();
 
-    $this->put(route('lists.update', $list), basePayload())->assertForbidden();
+    $this->put(route('lists.update', $list), basePayload())
+        ->assertForbidden();
 });
 
 // =============================================================================
@@ -255,7 +324,7 @@ test('confirmDelete returns 403 for non-owner', function () {
 // GROUP 7: destroy
 // =============================================================================
 
-test('destroy deletes the list and redirects', function () {
+test('destroy deletes list and redirects', function () {
     $list = ListModel::factory()->forUser($this->user)->create();
 
     $this->delete(route('lists.destroy', $list))

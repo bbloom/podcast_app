@@ -11,11 +11,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Prevents the seeding from being duplicated in production.
+        // Because, need to run some seeders in production!
         if (! config('admin.seeding_enabled')) {
             $this->command->warn('Seeding is disabled. Set ADMIN_SEEDING_ENABLED=true in .env to enable.');
             return;
         }
-        
+
+        // run theses seeders
         $this->call([
             UsersSeeder::class,
             LlmSeeder::class,
@@ -28,7 +31,16 @@ class DatabaseSeeder extends Seeder
             Podcast_link_episodeSeeder::class,
             PhpServerlessProjectSponsorsSeeder::class,
             ApiClientsSeeder::class,
-            DeployHooksSeeder::class, 
         ]);
+
+
+        // Ok, so we are running the seeders. But, do not run these seeders in production at all
+        if (! app()->environment('production')) {
+            $this->call([
+                DeployHooksSeeder::class,
+                PublishedDigestsSeeder::class,
+                ListModelSeeder::class,
+        ]);
+        }
     }
 }
