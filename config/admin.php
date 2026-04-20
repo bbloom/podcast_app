@@ -36,4 +36,17 @@ return [
     |
     */
     'seeding_enabled' => env('ADMIN_SEEDING_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allow sending error messages to static site builders
+    |--------------------------------------------------------------------------
+    |
+    | When MediaPlatform\API\v1\Middleware\AuthenticateApiClient fails,
+    | a "403 - Forbidden" is sent to the static site builder".  
+    | I have a need to see what is causing the 403, so I am building a facility 
+    | for my middleware to send the cause of the failure, by way of this setting
+    |
+    */
+    'authenticate_api_client_debug' => env('AUTHENTICATE_API_CLIENT_DEBUG', false),
 ];
