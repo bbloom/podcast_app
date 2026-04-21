@@ -56,6 +56,7 @@ class PodcastShowController extends Controller
      * Display a single podcast show.
      * Ownership check: only the owning user may view their show.
      * Episodes are paginated using the pagination_show config value.
+     * Footer links are listed in full, sorted by link_order ascending.
      */
     public function show(PodcastShow $podcast_show)
     {
@@ -65,9 +66,14 @@ class PodcastShowController extends Controller
             ->orderByDesc('created_at')
             ->paginate(config('admin.pagination_show'));
 
+        $footerLinks = $podcast_show->footerLinks()
+            ->orderBy('link_order')
+            ->get();
+
         return view('media_platform.podcast_studio.management.podcast_shows.show', [
-            'show'     => $podcast_show,
-            'episodes' => $episodes,
+            'show'        => $podcast_show,
+            'episodes'    => $episodes,
+            'footerLinks' => $footerLinks,
         ]);
     }
 

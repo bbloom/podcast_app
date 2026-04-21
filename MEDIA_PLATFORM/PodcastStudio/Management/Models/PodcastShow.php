@@ -10,6 +10,7 @@ use App\Models\User;
 use Database\Factories\Media_platform\PodcastStudio\Management\PodcastShowFactory;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
 
 
 class PodcastShow extends Model
@@ -115,5 +116,14 @@ class PodcastShow extends Model
     public function deployHooks(): MorphMany
     {
         return $this->morphMany(DeployHook::class, 'triggerable');
+    }
+
+    /**
+     * The footer links belonging to this podcast show.
+     * Used by the Astro static site build for the website footer.
+     */
+    public function footerLinks(): HasMany
+    {
+        return $this->hasMany(FooterLink::class, 'podcast_show_id');
     }
 }

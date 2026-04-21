@@ -59,6 +59,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/regenerate_rss_feed.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/API/v1/Routes/web.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/deploy_hooks.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/Routes/footer_links.php';
 
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

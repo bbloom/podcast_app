@@ -42,7 +42,8 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/media_platform/tools/phpserverlessproject_sponsors'),
             database_path('migrations/media_platform/api'),
             database_path('migrations/media_platform/podcast_studio/management'),
-            database_path('migrations/media_platform/static_site_deploy_hooks/'),
+            database_path('migrations/media_platform/static_site_deploy_hooks'),
+            database_path('migrations/media_platform/tools/footer_links'),
         ]);
 
         // -------------------------------------------------------------------------

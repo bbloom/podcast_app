@@ -198,6 +198,52 @@
         @endif
     @endif
 
+
+    {{-- Footer Links --}}
+    <div class="mt-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Footer Links</h2>
+            <a href="{{ route('footer_links.create', ['podcast_show_id' => $show->id]) }}"
+            class="inline-flex items-center px-3 py-1.5 bg-purple-700 text-white text-sm font-medium rounded hover:bg-purple-800">
+                Add Footer Link
+            </a>
+        </div>
+
+        @if ($footerLinks->isEmpty())
+            <p class="text-sm text-gray-500">No footer links for this show.</p>
+        @else
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                            <th class="px-6 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach ($footerLinks as $link)
+                            <tr>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ $link->link_order }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    <a href="{{ route('footer_links.show', $link) }}" class="text-purple-700 hover:underline">
+                                        {{ $link->link_name }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{{ $link->link_url }}</td>
+                                <td class="px-6 py-4 text-right text-sm">
+                                    <a href="{{ route('footer_links.edit', $link) }}" class="text-purple-700 hover:underline">Edit</a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+    
+
     {{-- Static Site Builds --}}
     <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider mt-8">Static Site Builds</div>
     <div class="border border-purple-500 rounded-lg px-6 py-4 mb-8">

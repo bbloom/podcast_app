@@ -9,6 +9,7 @@ use MediaPlatform\API\v1\Models\ApiControl;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
 use MediaPlatform\Tools\PhpServerlessProjectSponsors\Models\PhpserverlessprojectSponsor;
 use App\Models\User;
 use Tests\TestCase;
@@ -75,6 +76,24 @@ class PodcastEpisodesControllerTest extends TestCase
             'podcast_show_id'    => $show->id,
             'website_enabled'    => true,
             'website_publish_on' => now()->subDay(),
+        ]);
+    }
+
+    /**
+     * Create a podcast show with known values for show-level API tests.
+     * Returns the show.
+     */
+    private function makeShowWithKnownValues(): PodcastShow
+    {
+        $user = User::factory()->create();
+
+        return PodcastShow::factory()->create([
+            'user_id'          => $user->id,
+            'slug'             => self::SHOW_SLUG,
+            'title'            => 'The Bob Bloom Show',
+            'description'      => 'A show about software.',
+            'itunes_image'     => 'https://example.com/artwork.jpg',
+            'itunes_copyright' => '© 2026 Bob Bloom',
         ]);
     }
 
@@ -188,13 +207,13 @@ class PodcastEpisodesControllerTest extends TestCase
         $this->authenticatedGet()->assertOk();
     }
 
-    public function test_response_contains_episodes_guests_and_sponsors_keys(): void
+    public function test_response_contains_show_episodes_guests_and_sponsors_keys(): void
     {
         $this->enableApi();
 
         $this->authenticatedGet()
             ->assertOk()
-            ->assertJsonStructure(['episodes', 'guests', 'sponsors']);
+            ->assertJsonStructure(['show', 'episodes', 'guests', 'sponsors']);
     }
 
     public function test_returns_only_episodes_for_requested_show(): void
@@ -368,5 +387,125 @@ class PodcastEpisodesControllerTest extends TestCase
         $this->authenticatedGet()->assertOk();
 
         $this->assertNotNull($client->fresh()->last_used_at);
+    }
+
+    // -------------------------------------------------------------------------
+    // Show data in response
+    // -------------------------------------------------------------------------
+
+    public function test_show_contains_expected_fields(): void
+    {
+        $this->enableApi();
+        $this->makeShowWithKnownValues();
+
+        $show = $this->authenticatedGet()
+            ->assertOk()
+            ->json('show');
+
+        $this->assertEquals('The Bob Bloom Show', $show['title']);
+        $this->assertEquals('A show about software.', $show['description']);
+        $this->assertEquals('https://example.com/artwork.jpg', $show['itunes_image']);
+        $this->assertEquals('© 2026 Bob Bloom', $show['itunes_copyright']);
+        $this->assertArrayHasKey('footer_links', $show);
+    }
+
+    public function test_show_does_not_expose_sensitive_fields(): void
+    {
+        $this->enableApi();
+        $this->makeShowWithKnownValues();
+
+        $show = $this->authenticatedGet()
+            ->assertOk()
+            ->json('show');
+
+        foreach ([
+            'id', 'user_id', 'slug', 'rss_link',
+            'storage_artwork_url', 'storage_audio_files_url', 'storage_video_files_url',
+            'website_enabled', 'created_at', 'updated_at',
+        ] as $field) {
+            $this->assertArrayNotHasKey($field, $show, "Sensitive field exposed: {$field}");
+        }
+    }
+
+    public function test_show_is_null_when_slug_does_not_match(): void
+    {
+        $this->enableApi();
+
+        $response = $this->authenticatedGet('nonexistent-show');
+
+        $response->assertOk();
+        $this->assertNull($response->json('show'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Footer links in show response
+    // -------------------------------------------------------------------------
+
+    public function test_footer_links_are_included_and_ordered_by_link_order(): void
+    {
+        $this->enableApi();
+        $show = $this->makeShowWithKnownValues();
+
+        FooterLink::factory()->forShow($show)->create([
+            'link_name'  => 'Third',
+            'link_url'   => 'https://example.com/third',
+            'link_order' => 3,
+        ]);
+        FooterLink::factory()->forShow($show)->create([
+            'link_name'  => 'First',
+            'link_url'   => 'https://example.com/first',
+            'link_order' => 1,
+        ]);
+        FooterLink::factory()->forShow($show)->create([
+            'link_name'  => 'Second',
+            'link_url'   => 'https://example.com/second',
+            'link_order' => 2,
+        ]);
+
+        $footerLinks = $this->authenticatedGet()
+            ->assertOk()
+            ->json('show.footer_links');
+
+        $this->assertCount(3, $footerLinks);
+        $this->assertEquals('First', $footerLinks[0]['link_name']);
+        $this->assertEquals('Second', $footerLinks[1]['link_name']);
+        $this->assertEquals('Third', $footerLinks[2]['link_name']);
+    }
+
+    public function test_footer_link_contains_expected_fields_only(): void
+    {
+        $this->enableApi();
+        $show = $this->makeShowWithKnownValues();
+
+        FooterLink::factory()->forShow($show)->create([
+            'link_name'  => 'Privacy Policy',
+            'link_url'   => 'https://example.com/privacy',
+            'link_order' => 1,
+        ]);
+
+        $link = $this->authenticatedGet()
+            ->assertOk()
+            ->json('show.footer_links.0');
+
+        $this->assertEquals('Privacy Policy', $link['link_name']);
+        $this->assertEquals('https://example.com/privacy', $link['link_url']);
+        $this->assertEquals(1, $link['link_order']);
+
+        foreach (['id', 'user_id', 'podcast_show_id', 'created_at', 'updated_at'] as $field) {
+            $this->assertArrayNotHasKey($field, $link, "Internal field exposed: {$field}");
+        }
+    }
+
+    public function test_show_with_no_footer_links_returns_empty_array(): void
+    {
+        $this->enableApi();
+        $this->makeShowWithKnownValues();
+
+        $footerLinks = $this->authenticatedGet()
+            ->assertOk()
+            ->json('show.footer_links');
+
+        $this->assertIsArray($footerLinks);
+        $this->assertEmpty($footerLinks);
     }
 }

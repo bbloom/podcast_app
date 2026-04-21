@@ -11,14 +11,20 @@ class PodcastEpisodeApiService
 {
     /**
      * Assemble the full API payload:
+     *   - The podcast show itself (with footer links)
      *   - Published episodes for the requested show, each with their guests and links
      *   - All enabled guests (for dedicated guest pages)
      *   - All enabled sponsors
      */
     public function getPayload(string $podcastShowSlug): array
     {
+        $show = PodcastShow::where('slug', $podcastShowSlug)
+            ->with('footerLinks')
+            ->first();
+
         return [
-            'episodes' => $this->getEpisodes($podcastShowSlug),
+            'show'     => $show,
+            'episodes' => $this->getEpisodes($show),
             'guests'   => $this->getGuests(),
             'sponsors' => $this->getSponsors(),
         ];
@@ -29,14 +35,12 @@ class PodcastEpisodeApiService
     // -------------------------------------------------------------------------
 
     /**
-     * Fetch published episodes for the given show slug, eager-loading guests and links.
+     * Fetch published episodes for the given show, eager-loading guests and links.
      * "Published" means website_enabled = true and website_publish_on is
      * in the past. Ordered newest first.
      */
-    private function getEpisodes(string $podcastShowSlug): \Illuminate\Support\Collection
+    private function getEpisodes(?PodcastShow $show): \Illuminate\Support\Collection
     {
-        $show = PodcastShow::where('slug', $podcastShowSlug)->first();
-
         // Return an empty collection if the show does not exist —
         // consistent with the original behaviour of whereHas() returning nothing.
         if (! $show) {
@@ -47,7 +51,6 @@ class PodcastEpisodeApiService
             ->with(['guests', 'links'])
             ->get();
     }
-
 
     // -------------------------------------------------------------------------
     // Guests

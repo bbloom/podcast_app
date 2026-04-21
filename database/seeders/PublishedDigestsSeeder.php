@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\Media_platform\Digest;
+namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;

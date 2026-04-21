@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MediaPlatform\API\v1\Resources\PodcastEpisodeResource;
 use MediaPlatform\API\v1\Resources\PodcastGuestResource;
+use MediaPlatform\API\v1\Resources\PodcastShowResource;
 use MediaPlatform\API\v1\Resources\PodcastSponsorResource;
 use MediaPlatform\API\v1\Services\PodcastEpisodeApiService;
 
@@ -30,6 +31,9 @@ class PodcastEpisodesController extends Controller
         $payload = $service->getPayload($podcastShowSlug);
 
         return response()->json([
+            'show'     => $payload['show']
+                ? (new PodcastShowResource($payload['show']))->resolve()
+                : null,
             'episodes' => PodcastEpisodeResource::collection($payload['episodes'])->resolve(),
             'guests'   => PodcastGuestResource::collection($payload['guests'])->resolve(),
             'sponsors' => PodcastSponsorResource::collection($payload['sponsors'])->resolve(),
