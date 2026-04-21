@@ -255,6 +255,11 @@
                             <a href="{{ route('phpserverlessproject_sponsors.index') }}"
                                class="text-blue-600 hover:underline hover:text-gray-900">PHP Serverless Project Sponsors</a>
                         </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-400 font-bold">›</span>
+                            <a href="{{ route('footer_links.index') }}"
+                               class="text-blue-600 hover:underline hover:text-gray-900">Footer Links</a>
+                        </div>
                     </div>
                 </div>
 
