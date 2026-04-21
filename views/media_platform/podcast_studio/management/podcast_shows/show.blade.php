@@ -134,7 +134,7 @@
 
     {{-- Episodes --}}
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-gray-800">
+        <h2 class="text-xl font-bold text-purple-700">
             Episodes
             <span class="ml-1 text-sm font-normal text-gray-400">({{ $show->episodes()->count() }})</span>
         </h2>
@@ -202,7 +202,7 @@
     {{-- Footer Links --}}
     <div class="mt-8">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-900">Footer Links</h2>
+            <h2 class="text-xl font-bold text-purple-700">Footer Links</h2>
             <a href="{{ route('footer_links.create', ['podcast_show_id' => $show->id]) }}"
             class="inline-flex items-center px-3 py-1.5 bg-purple-700 text-white text-sm font-medium rounded hover:bg-purple-800">
                 Add Footer Link
@@ -233,7 +233,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{{ $link->link_url }}</td>
                                 <td class="px-6 py-4 text-right text-sm">
-                                    <a href="{{ route('footer_links.edit', $link) }}" class="text-purple-700 hover:underline">Edit</a>
+                                    <a href="{{ route('footer_links.show', $link) }}" class="text-purple-700 hover:underline">Details</a>
                                 </td>
                             </tr>
                         @endforeach

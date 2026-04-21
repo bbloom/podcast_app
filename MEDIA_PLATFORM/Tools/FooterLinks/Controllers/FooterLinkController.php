@@ -34,6 +34,7 @@ class FooterLinkController extends Controller
     {
         $footerLinks = FooterLink::where('user_id', auth()->id())
             ->with('podcastShow')
+            ->orderBy('podcast_show_id')
             ->orderBy('link_order')
             ->paginate(20);
 

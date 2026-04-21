@@ -35,9 +35,9 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Show</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
                         <th class="px-6 py-3"></th>
                     </tr>
@@ -45,15 +45,21 @@
                 <tbody class="divide-y divide-gray-200">
                     @foreach ($footerLinks as $link)
                         <tr>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                <a 
+                                    href="{{ route('podcast_shows.show', $link->podcastShow) }}" class="text-purple-700 hover:underline">
+                                    {{ $link->podcastShow->title ?? '—' }}
+                                </a>
+                            </td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $link->link_order }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">
-                                <a href="{{ route('footer_links.show', $link) }}" class="text-purple-700 hover:underline">
+                                
                                     {{ $link->link_name }}
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $link->podcastShow->title ?? '—' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">{{ $link->link_url }}</td>
                             <td class="px-6 py-4 text-right text-sm">
+                                <a href="{{ route('footer_links.show', $link) }}" class="text-purple-700 hover:underline">Details</a>&nbsp;
                                 <a href="{{ route('footer_links.edit', $link) }}" class="text-purple-700 hover:underline">Edit</a>
                             </td>
                         </tr>
