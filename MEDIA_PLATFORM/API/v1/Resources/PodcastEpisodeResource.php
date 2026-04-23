@@ -107,7 +107,7 @@ class PodcastEpisodeResource extends JsonResource
         // Links — black, hover underline, open in new tab
         $content = str_replace(
             '<a href',
-            '<a class="text-black hover:underline" rel="noreferrer noopener" href',
+            '<a class="text-black hover:underline" href',
             $content
         );
 
