@@ -30,7 +30,7 @@ class PodcastEpisodeResource extends JsonResource
             'website_excerpt'          => $this->website_excerpt,
             'website_meta_description' => $this->website_meta_description,
             'website_episode_notes'    => $this->website_episode_notes,
-            'website_attribution'      => $this->website_attribution,
+            'website_attribution'      => $this->formatAttribution($this->website_attribution),
             'website_featured_image'   => $this->website_featured_image,
 
             // iTunes / audio
@@ -61,5 +61,56 @@ class PodcastEpisodeResource extends JsonResource
                 ])
                 ->values(),
         ];
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Attribution formatting
+    // -------------------------------------------------------------------------
+
+    /**
+     * Format the website_attribution HTML for Astro rendering.
+     *
+     * Transformations applied:
+     *   - <div> sub-headings become bold black text
+     *   - <ul> gets list styling
+     *   - <li> gets bullet styling and black text
+     *   - <a> links get hover:underline and open in a new tab
+     */
+    private function formatAttribution(?string $content): ?string
+    {
+        if (! $content) {
+            return null;
+        }
+
+        // Bold black sub-headings
+        $content = str_replace(
+            '<div>',
+            '<div class="font-bold text-black mt-3">',
+            $content
+        );
+
+        // List styling
+        $content = str_replace(
+            '<ul>',
+            '<ul class="list-disc list-inside mt-1">',
+            $content
+        );
+
+        // List item styling — black text, comfortable padding
+        $content = str_replace(
+            '<li>',
+            '<li class="text-black pl-4 mt-1">',
+            $content
+        );
+
+        // Links — black, hover underline, open in new tab
+        $content = str_replace(
+            '<a href',
+            '<a class="text-black hover:underline" target="_blank" rel="noreferrer noopener" href',
+            $content
+        );
+
+        return $content;
     }
 }
