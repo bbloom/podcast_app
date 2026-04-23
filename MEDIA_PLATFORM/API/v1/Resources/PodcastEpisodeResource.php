@@ -57,7 +57,7 @@ class PodcastEpisodeResource extends JsonResource
                 ->map(fn ($link) => [
                     'title'       => $link->title,
                     'link'        => $link->link,
-                    'description' => $link->description,
+                    // 'description' => $link->description,  // not displaying the link's description in the front-ends
                 ])
                 ->values(),
         ];
