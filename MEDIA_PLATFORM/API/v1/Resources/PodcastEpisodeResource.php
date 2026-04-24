@@ -113,4 +113,23 @@ class PodcastEpisodeResource extends JsonResource
 
         return $content;
     }
+
+
+    // Add this method to your existing PodcastEpisodeResource class.
+    // The method receives the raw array from BobBloomShowArchive
+    // and returns a consistently shaped collection for the API payload.
+
+    public function transformBobBloomArchive(array $episodes): array
+    {
+        $baseUrl = \MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive::LOCATION_URL;
+
+        return array_map(function (array $ep) use ($baseUrl) {
+            return [
+                'episode_number' => $ep['episode_number'],
+                'title'          => $ep['title'],
+                'date'           => $ep['date'],
+                'duration'       => $ep['duration'],
+                'audio_url'      => $baseUrl . $ep['filename'],
+            ];
+        }, $episodes);
 }
