@@ -2,6 +2,7 @@
 
 namespace MediaPlatform\API\v1\Resources;
 
+use MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -123,9 +124,9 @@ class PodcastEpisodeResource extends JsonResource
      * Transform the raw BobBloomShowArchive episodes array into a consistently
      * shaped collection for the API payload.
      */
-    public function transformBobBloomArchive(array $episodes): array
+    public static function transformBobBloomArchive(array $episodes): array
     {
-        $baseUrl = \MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive::LOCATION_URL;
+        $baseUrl = BobBloomShowArchive::LOCATION_URL;
 
         return array_map(function (array $ep) use ($baseUrl) {
             return [

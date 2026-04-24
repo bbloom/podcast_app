@@ -97,9 +97,8 @@ class PodcastEpisodeApiService
 
     private function getBobBloomArchive(): array
     {
-        $archive  = new BobBloomShowArchive();
-        $resource = new PodcastEpisodeResource();
+        $archive = new BobBloomShowArchive();
 
-        return $resource->transformBobBloomArchive($archive->episodes());
+        return PodcastEpisodeResource::transformBobBloomArchive($archive->episodes());
     }
 }
