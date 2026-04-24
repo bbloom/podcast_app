@@ -55,8 +55,8 @@ class PodcastEpisodeResource extends JsonResource
             'links' => $this->links
                 ->where('enabled', true)
                 ->map(fn ($link) => [
-                    'title'       => $link->title,
-                    'link'        => $link->link,
+                    'title' => $link->title,
+                    'link'  => $link->link,
                     // 'description' => $link->description,  // not displaying the link's description in the front-ends
                 ])
                 ->values(),
@@ -115,10 +115,14 @@ class PodcastEpisodeResource extends JsonResource
     }
 
 
-    // Add this method to your existing PodcastEpisodeResource class.
-    // The method receives the raw array from BobBloomShowArchive
-    // and returns a consistently shaped collection for the API payload.
+    // -------------------------------------------------------------------------
+    // Bob Bloom Show archive transformation
+    // -------------------------------------------------------------------------
 
+    /**
+     * Transform the raw BobBloomShowArchive episodes array into a consistently
+     * shaped collection for the API payload.
+     */
     public function transformBobBloomArchive(array $episodes): array
     {
         $baseUrl = \MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive::LOCATION_URL;
@@ -132,4 +136,5 @@ class PodcastEpisodeResource extends JsonResource
                 'audio_url'      => $baseUrl . $ep['filename'],
             ];
         }, $episodes);
+    }
 }

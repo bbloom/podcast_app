@@ -7,6 +7,7 @@ use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
 use MediaPlatform\Tools\PhpServerlessProjectSponsors\Models\PhpServerlessProjectSponsor;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive;
+use MediaPlatform\API\v1\Resources\PodcastEpisodeResource;
 
 
 class PodcastEpisodeApiService
@@ -17,6 +18,7 @@ class PodcastEpisodeApiService
      *   - Published episodes for the requested show, each with their guests and links
      *   - All enabled guests (for dedicated guest pages)
      *   - All enabled sponsors
+     *   - The 57 original Bob Bloom Show archived episodes (bob-bloom-show only)
      */
     public function getPayload(string $podcastShowSlug): array
     {
@@ -31,9 +33,8 @@ class PodcastEpisodeApiService
             'sponsors' => $this->getSponsors(),
         ];
 
-
         if ($podcastShowSlug == 'bob-bloom-show') {
-            $payload['bob_bloom_archive'] = $this->getBobBloomArchive($podcastShowSlug);
+            $payload['bob_bloom_archive'] = $this->getBobBloomArchive();
         }
 
         return $payload;
@@ -94,11 +95,11 @@ class PodcastEpisodeApiService
     // 57 original Bob Bloom Show episodes
     // -------------------------------------------------------------------------
 
-    private function getBobBloomArchive(string $podcastShowSlug): array
+    private function getBobBloomArchive(): array
     {
         $archive  = new BobBloomShowArchive();
         $resource = new PodcastEpisodeResource();
 
         return $resource->transformBobBloomArchive($archive->episodes());
     }
-}    
+}
