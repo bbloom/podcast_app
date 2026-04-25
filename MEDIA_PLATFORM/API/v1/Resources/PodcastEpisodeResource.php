@@ -96,7 +96,7 @@ class PodcastEpisodeResource extends JsonResource
         // List styling
         $content = str_replace(
             '<ul>',
-            '<ul class="list-disc list-inside mt-1">',
+            '<ul class="list-disc list-inside mt-1 break-words">',
             $content
         );
 
