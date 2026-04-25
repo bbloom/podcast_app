@@ -38,7 +38,9 @@ class PodcastEpisodeResource extends JsonResource
             'itunes_enclosure_url'     => $this->itunes_enclosure_url,
             'itunes_image'             => $this->itunes_image,
             'itunes_pubdate'           => $this->itunes_pubdate,
-            'itunes_duration'          => $this->itunes_duration,
+            'itunes_duration' => $this->itunes_duration
+                ? '(' . preg_replace('/^00?:/', '', $this->itunes_duration) . ')'
+                : null,
             'itunes_episode'           => $this->itunes_episode,
             'itunes_season'            => $this->itunes_season,
             'itunes_episode_type'      => $this->itunes_episode_type,
