@@ -38,49 +38,92 @@
             />
             
         </div>
-        <p class="text-sm text-gray-500 mb-4">{{ $show->description }}</p>
+        <p class="text-lg text-black mb-4 mt-4">{{ $show->description }}</p>
 
         <table class="text-sm text-gray-600 border-collapse w-full">
+          <tbody class="divide-y divide-gray-300">
 
             {{-- Core --}}
             <tr><td colspan="2" class="pt-4 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">Core</td></tr>
             <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">ID</td>
+                <td class="py-1 text-gray-800 font-mono text-xs">{{ $show->id }}</td>
+            </tr>
+            <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Slug</td>
                 <td class="py-1 text-gray-800 font-mono text-xs">{{ $show->slug }}</td>
             </tr>
-            @if ($show->rss_link)
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Description</td>
+                <td class="py-1 text-gray-800 font-mono text-xs">{{ $show->description }}</td>
+            </tr>
             <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">RSS Link</td>
-                <td class="py-1"><a href="{{ $show->rss_link }}" class="text-purple-700 hover:underline text-xs" target="_blank">{{ $show->rss_link }}</a></td>
+                <td class="py-1"><a href="{{ $show->rss_link }}" class="text-purple-700 hover:underline text-xs" target="_blank">{{ $show->rss_link ?? '—'}}</a></td>
             </tr>
-            @endif
+
 
             {{-- iTunes --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">iTunes</td></tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Image</td>
+                <td class="py-1 text-gray-800">
+                    <a 
+                        href="{{ $show->itunes_image }}" 
+                        class="text-purple-700 hover:underline text-xs" 
+                        target="_blank"
+                    >
+                        {{ $show->itunes_image ?? '—' }}
+                    </a>
+                </td>
+            </tr>
             <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Language</td>
                 <td class="py-1 text-gray-800">{{ $show->itunes_language ?? '—' }}</td>
             </tr>
             <tr>
-                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Type</td>
-                <td class="py-1 text-gray-800">{{ $show->itunes_type ?? '—' }}</td>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Primary Category</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_category_primary ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Secondary Cat (optional)</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_category_secondary ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Explicit</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_explicit ? 'Yes' : 'No' }}</td>
             </tr>
             <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Author</td>
                 <td class="py-1 text-gray-800">{{ $show->itunes_author ?? '—' }}</td>
             </tr>
             <tr>
-                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Category</td>
-                <td class="py-1 text-gray-800">
-                    {{ $show->itunes_category_primary ?? '—' }}
-                    @if ($show->itunes_category_secondary)
-                        / {{ $show->itunes_category_secondary }}
-                    @endif
-                </td>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Link</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_link ?? '—' }}</td>
             </tr>
             <tr>
-                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Explicit</td>
-                <td class="py-1 text-gray-800">{{ $show->itunes_explicit ? 'Yes' : 'No' }}</td>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Email</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_email ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Name</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_name ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Title</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_title ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Type</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_type ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Copyright</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_copyright ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">New Feed URL</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_new_feed_url ?? 'n/a' }}</td>
             </tr>
             <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Block</td>
@@ -90,7 +133,16 @@
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Complete</td>
                 <td class="py-1 text-gray-800">{{ $show->itunes_complete ? 'Yes' : 'No' }}</td>
             </tr>
-
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Summary</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_summary ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Content Encoded</td>
+                <td class="py-1 text-gray-800">{{ $show->itunes_content_encoded ?? '—' }}</td>
+            </tr>
+            
+            
             {{-- Spotify --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">Spotify</td></tr>
             <tr>
@@ -105,6 +157,42 @@
             {{-- Website --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">Website</td></tr>
             <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Content</td>
+                <td class="py-1 text-gray-800">{{ $show->website_content ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Excerpt</td>
+                <td class="py-1 text-gray-800">{{ $show->website_excerpt ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Meta Description</td>
+                <td class="py-1 text-gray-800">{{ $show->website_meta_description ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Publish On</td>
+                <td class="py-1 text-gray-800">{{ $show->website_publish_on?->format('d M Y') ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Featured Image</td>
+                <td class="py-1 text-gray-800">
+                    @if ($show->website_featured_image)
+                        <a 
+                            href="{{ $show->website_featured_image }}" 
+                            class="text-purple-700 hover:underline text-xs" 
+                            target="_blank"
+                        >
+                            {{ $show->website_featured_image ?? '—' }}
+                        </a>
+                    @else 
+                    —
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Publish On</td>
+                <td class="py-1 text-gray-800">{{ $show->website_publish_on?->format('d M Y') ?? '—' }}</td>
+            </tr>
+            <tr>
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Visible</td>
                 <td class="py-1">
                     @if ($show->website_enabled)
@@ -114,10 +202,7 @@
                     @endif
                 </td>
             </tr>
-            <tr>
-                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Publish On</td>
-                <td class="py-1 text-gray-800">{{ $show->website_publish_on?->format('d M Y') ?? '—' }}</td>
-            </tr>
+            
 
             {{-- Meta --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">Record</td></tr>
@@ -129,8 +214,11 @@
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Updated</td>
                 <td class="py-1 text-gray-800">{{ $show->updated_at->format('d M Y') }}</td>
             </tr>
+          </tbody>  
         </table>
     </div>
+
+    <hr class="my-4 border-t-2 border-purple-200">
 
     {{-- Episodes --}}
     <div class="flex items-center justify-between mb-4">
@@ -142,9 +230,7 @@
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
             + New Episode
         </a>
-    </div>
-
-    
+    </div>    
 
     @if ($episodes->isEmpty())
         <div class="border border-gray-200 rounded-lg px-6 py-10 text-center text-sm text-gray-400">
@@ -199,6 +285,8 @@
     @endif
 
 
+    <hr class="my-4 border-t-2 border-purple-200">
+
     {{-- Footer Links --}}
     <div class="mt-8">
         <div class="flex items-center justify-between mb-4">
@@ -244,6 +332,9 @@
     </div>
     
 
+    <hr class="my-4 border-t-2 border-purple-200">
+
+
     {{-- Static Site Builds --}}
     <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider mt-8">Static Site Builds</div>
     <div class="border border-purple-500 rounded-lg px-6 py-4 mb-8">
@@ -251,7 +342,7 @@
             Trigger a static site build to push the latest published episodes to your front-end site(s).
         </p>
         <a href="{{ route('post_production.trigger_builds.select', $show) }}"
-           class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+           class="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
             Trigger Static Site Builds
         </a>
     </div>

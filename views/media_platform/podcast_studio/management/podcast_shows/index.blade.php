@@ -36,24 +36,30 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 min-w-0">
                             <span class="text-sm font-semibold text-gray-400 flex-shrink-0">
-                                ({{ $show->id }})
+                                (id #{{ $show->id }})
                             </span>
-                            <img 
-                                src="{{ $show->itunes_image }}" 
-                                alt="" 
-                                class="w-[100px] h-[100px] rounded-lg object-cover border border-gray-200 flex-shrink-0"
-                            >
+
+                            <a href="{{ route('podcast_shows.show', $show) }}">
+                                <img 
+                                    src="{{ $show->itunes_image }}" 
+                                    alt="" 
+                                    class="w-[100px] h-[100px] rounded-lg object-cover border border-gray-200 flex-shrink-0"
+                                >
+                            </a>
                         </div>
-                        <p class="mt-4 text-lg text-purple-700 truncate">{{ $show->description }}</p>
+                        <p class="mt-4 text-lg text-purple-700">{{ $show->description }}</p>
                     </div>
                     <div class="flex items-center gap-3 ml-4 flex-shrink-0">
                         <a href="{{ route('podcast_shows.show', $show) }}"
-                           class="text-xs text-gray-500 hover:text-purple-700 font-medium transition">
+                           class="inline-block bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                        >
                             Details
                         </a>
-                        <a href="{{ route('podcast_shows.delete.confirm', $show) }}"
-                           class="text-xs text-gray-400 hover:text-red-600 font-medium transition">
-                            Delete
+
+                        <a 
+                            href="{{ route('post_production.trigger_builds.select', $show) }}"          class="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                        >
+                            Trigger Static Site Builds
                         </a>
                     </div>
                 </div>                
