@@ -22,6 +22,8 @@ class PodcastShowResource extends JsonResource
             'description'      => $this->description,
             'itunes_image'     => $this->itunes_image,
             'itunes_copyright' => $this->itunes_copyright,
+            'website_url'      => $this->itunes_link,
+            'feed_url'         => $this->rss_link,
 
             // Footer links: embedded in full — small and show-specific.
             'footer_links' => $this->footerLinks
