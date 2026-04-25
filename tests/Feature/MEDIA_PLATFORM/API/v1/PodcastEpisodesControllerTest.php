@@ -6,7 +6,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use MediaPlatform\API\v1\Models\ApiClient;
 use MediaPlatform\API\v1\Models\ApiControl;
-use MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
@@ -508,5 +507,116 @@ class PodcastEpisodesControllerTest extends TestCase
 
         $this->assertIsArray($footerLinks);
         $this->assertEmpty($footerLinks);
+    }
+
+    // -------------------------------------------------------------------------
+    // Bob Bloom Show archive
+    // -------------------------------------------------------------------------
+
+    public function test_bob_bloom_show_response_contains_bob_bloom_archive_key(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->assertJsonStructure(['show', 'episodes', 'guests', 'sponsors', 'bob_bloom_archive']);
+    }
+
+    public function test_bob_bloom_archive_contains_57_episodes(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $archive = $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->json('bob_bloom_archive');
+
+        $this->assertCount(57, $archive);
+    }
+
+    public function test_bob_bloom_archive_episode_contains_expected_fields(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $episode = $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->json('bob_bloom_archive.0');
+
+        foreach (['episode_number', 'title', 'date', 'duration', 'audio_url'] as $field) {
+            $this->assertArrayHasKey($field, $episode, "Missing archive field: {$field}");
+        }
+    }
+
+    public function test_bob_bloom_archive_episode_does_not_expose_filename(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $episode = $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->json('bob_bloom_archive.0');
+
+        $this->assertArrayNotHasKey('filename', $episode, 'Raw filename should not be exposed');
+    }
+
+    public function test_bob_bloom_archive_audio_url_is_fully_qualified(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $episode = $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->json('bob_bloom_archive.0');
+
+        $this->assertStringStartsWith('https://', $episode['audio_url']);
+        $this->assertStringEndsWith('.mp3', $episode['audio_url']);
+    }
+
+    public function test_bob_bloom_archive_first_episode_has_correct_data(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $episode = $this->authenticatedGet(self::SHOW_SLUG)
+            ->assertOk()
+            ->json('bob_bloom_archive.0');
+
+        $this->assertEquals(1, $episode['episode_number']);
+        $this->assertEquals('Tienda Talk With Rafael Diaz-Tushman', $episode['title']);
+        $this->assertEquals('February 18, 2010', $episode['date']);
+        $this->assertEquals('29m 37s', $episode['duration']);
+    }
+
+    public function test_bob_bloom_archive_is_absent_for_other_shows(): void
+    {
+        $this->enableApi();
+        $this->makePublishedEpisode('another-show');
+
+        $response = $this->authenticatedGet('another-show')->assertOk();
+
+        $this->assertArrayNotHasKey('bob_bloom_archive', $response->json());
+    }
+
+    public function test_bob_bloom_archive_is_separate_from_regular_episodes(): void
+    {
+        $this->enableApi();
+        $regularEpisode = $this->makePublishedEpisode(self::SHOW_SLUG);
+
+        $response = $this->authenticatedGet(self::SHOW_SLUG)->assertOk();
+
+        $episodes = $response->json('episodes');
+        $archive  = $response->json('bob_bloom_archive');
+
+        // Regular episodes should contain the database episode
+        $slugs = array_column($episodes, 'slug');
+        $this->assertContains($regularEpisode->slug, $slugs);
+
+        // Archive episodes should not have a 'slug' field
+        $this->assertArrayNotHasKey('slug', $archive[0]);
+
+        // Archive episodes should have 'episode_number' which regular episodes don't
+        $this->assertArrayHasKey('episode_number', $archive[0]);
     }
 }

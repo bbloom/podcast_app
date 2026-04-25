@@ -30,13 +30,19 @@ class PodcastEpisodesController extends Controller
 
         $payload = $service->getPayload($podcastShowSlug);
 
-        return response()->json([
+        $response = [
             'show'     => $payload['show']
                 ? (new PodcastShowResource($payload['show']))->resolve()
                 : null,
             'episodes' => PodcastEpisodeResource::collection($payload['episodes'])->resolve(),
             'guests'   => PodcastGuestResource::collection($payload['guests'])->resolve(),
             'sponsors' => PodcastSponsorResource::collection($payload['sponsors'])->resolve(),
-        ]);
+        ];
+
+        if (isset($payload['bob_bloom_archive'])) {
+            $response['bob_bloom_archive'] = $payload['bob_bloom_archive'];
+        }
+
+        return response()->json($response);
     }
 }
