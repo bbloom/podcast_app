@@ -257,7 +257,7 @@
                                     {{ $episode->title }}
                                 </a>
                             </td>
-                            <td class="px-6 py-4 text-gray-600">{{ $episode->status?->title ?? '—' }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ $episode->status?->label() ?? '—' }}</td>
                             <td class="px-6 py-4 text-gray-500">{{ $episode->scheduled_date?->format('d M Y') ?? '—' }}</td>
                             <td class="px-6 py-4">
                                 @if ($episode->rss_feed_enabled)
