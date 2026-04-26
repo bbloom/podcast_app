@@ -11,10 +11,16 @@
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-bold text-gray-800">{{ $episode->title }}</h1>
 
-            <a href="{{ route('podcast_episodes.edit', $episode) }}"
-               class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
-                Edit
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('podcast_episodes.delete.confirm', $episode) }}"
+                class="bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                    Delete
+                </a>
+                <a href="{{ route('podcast_episodes.edit', $episode) }}"
+                class="bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                    Edit
+                </a>
+            </div>
         </div>
     </div>
 

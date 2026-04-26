@@ -117,13 +117,10 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('podcast_episodes.show', $episode) }}"
-                                   class="text-xs text-gray-500 hover:text-purple-700 font-medium transition mr-3">
+                                <a 
+                                    href="{{ route('podcast_episodes.show', $episode) }}"             class="inline-block bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                                >
                                     Details
-                                </a>
-                                <a href="{{ route('podcast_episodes.delete.confirm', $episode) }}"
-                                   class="text-xs text-gray-400 hover:text-red-600 font-medium transition">
-                                    Delete
                                 </a>
                             </td>
                         </tr>

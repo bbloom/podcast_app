@@ -6,10 +6,21 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    public function run(): void
+    {
+        
+        $this->call([
+            Podcast_episodes1ASeeder::class,
+        ]);
+
+
+    }
+
+
     /**
      * Seed the application's database.
      */
-    public function run(): void
+    public function donotrun(): void
     {
         // Prevents the seeding from being duplicated in production.
         // Because, need to run some seeders in production!
@@ -24,6 +35,7 @@ class DatabaseSeeder extends Seeder
             LlmSeeder::class,
             Podcast_showsSeeder::class,
             Podcast_episodes1Seeder::class,
+            Podcast_episodes1ASeeder::class,
             Podcast_episodes2Seeder::class,
             Podcast_episodes3Seeder::class,
             Podcast_episodes4Seeder::class,
