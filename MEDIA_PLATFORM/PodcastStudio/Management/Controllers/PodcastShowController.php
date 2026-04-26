@@ -15,7 +15,7 @@ class PodcastShowController extends Controller
      */
     public function index()
 {
-    $manualOrder = [3, 10, 11, 14, 2];
+    $manualOrder = [3, 10, 11, 4, 12, 2];
 
     $shows = PodcastShow::where('user_id', auth()->id())
         ->orderByRaw('array_position(ARRAY[' . implode(',', $manualOrder) . '], id)')
