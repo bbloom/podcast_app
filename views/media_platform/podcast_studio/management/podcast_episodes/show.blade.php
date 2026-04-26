@@ -169,7 +169,7 @@
             </tr>
             <tr class="border-b border-gray-300">
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap w-48">Image</td>
-                <td class="py-1 text-gray-800">{{ $episode->image ?: '—' }}</td>
+                <td class="py-1 text-gray-800">{{ $episode->itunes_image ?: '—' }}</td>
             </tr>
             <tr class="border-b border-gray-300">
                 <td class="pr-6 py-1 text-gray-500 whitespace-nowrap w-48">Explicit</td>
