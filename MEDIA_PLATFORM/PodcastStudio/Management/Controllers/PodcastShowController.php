@@ -14,14 +14,15 @@ class PodcastShowController extends Controller
      * Display all podcast shows belonging to the authenticated user.
      */
     public function index()
-    {
-        $shows = PodcastShow::where('user_id', auth()->id())
-            ->orderBy('title')
-            ->paginate(20);
+{
+    $manualOrder = [3, 10, 11, 14, 2];
 
-        return view('media_platform.podcast_studio.management.podcast_shows.index', compact('shows'));
-    }
+    $shows = PodcastShow::where('user_id', auth()->id())
+        ->orderByRaw('array_position(ARRAY[' . implode(',', $manualOrder) . '], id)')
+        ->paginate(20);
 
+    return view('media_platform.podcast_studio.management.podcast_shows.index', compact('shows'));
+}
     /**
      * Show the form for creating a new podcast show.
      */
