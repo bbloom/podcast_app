@@ -30,14 +30,51 @@
 
     @else
 
+        @php
+            /**
+             * Build a sort URL for a given column.
+             * If the column is already active, flip the direction; otherwise default to asc.
+             */
+            $sortUrl = function (string $key) use ($sort, $dir) {
+                $newDir = ($sort === $key && $dir === 'asc') ? 'desc' : 'asc';
+                return request()->fullUrlWithQuery(['sort' => $key, 'dir' => $newDir, 'page' => 1]);
+            };
+
+            $sortIcon = function (string $key) use ($sort, $dir) {
+                if ($sort !== $key) return '↕';
+                return $dir === 'asc' ? '↑' : '↓';
+            };
+        @endphp
+
         <div class="border border-gray-200 rounded-lg overflow-hidden">
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Show</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <a href="{{ $sortUrl('id') }}" class="hover:text-purple-700 transition">
+                                ID <span class="text-[10px]">{{ $sortIcon('id') }}</span>
+                            </a>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <a href="{{ $sortUrl('title') }}" class="hover:text-purple-700 transition">
+                                Title <span class="text-[10px]">{{ $sortIcon('title') }}</span>
+                            </a>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <a href="{{ $sortUrl('show') }}" class="hover:text-purple-700 transition">
+                                Show <span class="text-[10px]">{{ $sortIcon('show') }}</span>
+                            </a>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <a href="{{ $sortUrl('status') }}" class="hover:text-purple-700 transition">
+                                Status <span class="text-[10px]">{{ $sortIcon('status') }}</span>
+                            </a>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <a href="{{ $sortUrl('scheduled_date') }}" class="hover:text-purple-700 transition">
+                                Scheduled <span class="text-[10px]">{{ $sortIcon('scheduled_date') }}</span>
+                            </a>
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">RSS</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Website</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide"></th>
@@ -46,6 +83,7 @@
                 <tbody class="divide-y divide-purple-400">
                     @foreach ($episodes as $episode)
                         <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-gray-500 tabular-nums">{{ $episode->id }}</td>
                             <td class="px-6 py-4">
                                 <a href="{{ route('podcast_episodes.show', $episode) }}"
                                    class="font-medium text-purple-700 hover:underline">

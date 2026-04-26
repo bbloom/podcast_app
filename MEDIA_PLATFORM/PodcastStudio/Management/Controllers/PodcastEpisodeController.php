@@ -7,22 +7,57 @@ use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\Management\Requests\PodcastEpisodeRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PodcastEpisodeController extends Controller
 {
     /**
+     * Columns the episode index may be sorted by.
+     * Keys = allowed query-string values; values = actual DB columns.
+     */
+    private const SORTABLE_COLUMNS = [
+        'id'             => 'podcast_episodes.id',
+        'title'          => 'podcast_episodes.title',
+        'show'           => 'podcast_shows.title',
+        'status'         => 'podcast_episodes.status',
+        'scheduled_date' => 'podcast_episodes.scheduled_date',
+    ];
+
+    /**
      * Display all podcast episodes belonging to the authenticated user,
      * across all their shows.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $sortKey = $request->query('sort', 'id');
+        $sortDir = $request->query('dir', 'desc');
+
+        // Whitelist the sort column and direction.
+        if (! array_key_exists($sortKey, self::SORTABLE_COLUMNS)) {
+            $sortKey = 'id';
+        }
+        $sortDir = in_array($sortDir, ['asc', 'desc'], true) ? $sortDir : 'desc';
+
+        $sortColumn = self::SORTABLE_COLUMNS[$sortKey];
+
         $episodes = PodcastEpisode::forUser(auth()->id())
             ->with(['show'])
-            ->orderByDesc('created_at')
-            ->paginate(20);
+            ->when(
+                $sortKey === 'show',
+                // Join the shows table so we can sort by the show's title.
+                fn ($q) => $q->select('podcast_episodes.*')
+                             ->join('podcast_shows', 'podcast_shows.id', '=', 'podcast_episodes.podcast_show_id')
+            )
+            ->orderBy($sortColumn, $sortDir)
+            ->paginate(20)
+            ->appends(['sort' => $sortKey, 'dir' => $sortDir]);
 
-        return view('media_platform.podcast_studio.management.podcast_episodes.index', compact('episodes'));
+        return view('media_platform.podcast_studio.management.podcast_episodes.index', [
+            'episodes' => $episodes,
+            'sort'     => $sortKey,
+            'dir'      => $sortDir,
+        ]);
     }
 
 
