@@ -56,11 +56,14 @@
                             Details
                         </a>
 
-                        <a 
-                            href="{{ route('post_production.trigger_builds.select', $show) }}"          class="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
-                        >
-                            Trigger Static Site Builds
-                        </a>
+                        @if ($show->id != 2)
+                            <a 
+                                href="{{ route('post_production.trigger_builds.select', $show) }}"          class="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                         >
+                                Trigger Static Site Builds
+                            </a>
+                        @endif
+                        
                     </div>
                 </div>                
             @endforeach
