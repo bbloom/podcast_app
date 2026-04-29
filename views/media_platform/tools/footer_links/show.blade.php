@@ -1,6 +1,17 @@
 <x-layouts.app>
 <x-slot:title>{{ $footer_link->link_name }}</x-slot:title>
 
+{{-- Breadcrumb + heading --}}
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <a href="{{ route('podcast_episodes.index') }}" class="hover:text-purple-700 transition">← Footer Links</a>
+        <span>›</span>
+        <span class="text-gray-700">{{ $footer_link->link_name }}</span>
+    </div>
+
+    
+</div>
+
 <div class="max-w-2xl mx-auto">
 
     <div class="flex items-center justify-between mb-6">
