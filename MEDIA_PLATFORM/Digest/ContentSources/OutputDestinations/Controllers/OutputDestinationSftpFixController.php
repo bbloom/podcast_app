@@ -27,8 +27,6 @@ use Illuminate\Http\Request;
  * The test_passed reset is important — it prevents someone saving a corrected form and then skipping the test by hitting the back button.
  * OutputDestinationSftpFixController::auth has the same $keyAlreadySaved / $passwordAlreadySaved logic as step5Submit — this is intentional
  * and correct. In the fix flow the user may already have a key saved from the initial setup, so blank submission should preserve it.
- * OutputDestinationWordPressFixController::credentialsSubmit uses the same blank-to-keep pattern for the app password, since it's sensitive 
- * and shouldn't need to be re-entered if only the URL or username changed.
 */
 
 class OutputDestinationSftpFixController extends Controller

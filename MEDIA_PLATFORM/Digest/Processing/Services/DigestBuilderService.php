@@ -42,7 +42,6 @@ use Illuminate\Support\Facades\Log;
  * will be picked up again and re-rendered. This is safe because:
  *   - Webpage: overwrites the same file (dated filename means no orphan files)
  *   - Email: could send a duplicate, but this is a rare edge case
- *   - WordPress: could create a duplicate post (slug collision → WP auto-suffixes it)
  */
 class DigestBuilderService
 {
@@ -147,8 +146,8 @@ class DigestBuilderService
     }
 
     /**
-     * Generate the plain-text excerpt line used in the WordPress excerpt field
-     * and in notification emails. e.g. "12 items from 3 sources"
+     * Generate the plain-text excerpt line used in notification 
+     * emails. e.g. "12 items from 3 sources"
      */
     public function buildExcerpt(array $digestData): string
     {
@@ -162,7 +161,7 @@ class DigestBuilderService
     }
 
     /**
-     * Build the filename / WordPress slug for this digest run.
+     * Build the filename slug for this digest run.
      *
      * Format: {list-slug}-digest-{YYYY-MM-DD}
      *

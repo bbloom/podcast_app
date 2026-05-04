@@ -11,8 +11,7 @@ use Illuminate\Notifications\Notification;
  * DigestEmptyNotification — informs the user that a digest run found nothing new.
  *
  * Sent when PublishDigest finds zero pending summaries for a list. No file is
- * uploaded, no email digest is sent, and no WordPress post is created — only
- * this notification email is dispatched.
+ * uploaded, no email digest is sent — only this notification email is dispatched.
  *
  * WHY SEND THIS?
  * ──────────────

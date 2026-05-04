@@ -463,7 +463,7 @@ class WizardFlowTest extends TestCase
                 'schedule_time'      => '08:00',
             ],
         ])->post(route('lists.create.step3.submit'), [
-            'output_type' => 'wordpress',
+            'output_type' => 'bob_put_a_dummy_value_here',
         ])->assertSessionHasErrors('output_type');
     }
 

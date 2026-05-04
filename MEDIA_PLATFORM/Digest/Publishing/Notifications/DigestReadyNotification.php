@@ -16,7 +16,6 @@ use Illuminate\Notifications\Notification;
  * with a clickable link to it.
  *
  * NOT used for email output type — that type sends the full digest directly.
- * NOT used for WordPress — the post is publicly accessible without notification.
  */
 class DigestReadyNotification extends Notification
 {

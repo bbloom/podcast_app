@@ -20,10 +20,9 @@ DispatchDueLists
 
 | Class | Path | Responsibility |
 |---|---|---|
-| `PublishDigest` | `app/Processing/Jobs/PublishDigest.php` | Orchestrates the whole delivery: queries summaries, renders view, routes to SFTP / email / WordPress |
+| `PublishDigest` | `app/Processing/Jobs/PublishDigest.php` | Orchestrates the whole delivery: queries summaries, renders view, routes to SFTP / email 
 | `DigestBuilderService` | `app/Processing/Services/DigestBuilderService.php` | Queries pending summaries grouped by source; marks them as included after delivery |
 | `SftpService` | `app/Lists/Services/SftpService.php` | SFTP connection testing (pre-existing) **and** file upload (added in this phase) |
-| `WordPressService` | `app/Lists/Services/WordPressService.php` | Publishes a post to WordPress via the REST API using Application Password auth |
 | `DigestMailable` | `app/Mail/DigestMailable.php` | Sends the digest as a rich HTML email (used when `output_type = email`) |
 | `DigestReadyNotification` | `app/Notifications/DigestReadyNotification.php` | "Your digest is ready" nudge email when `output_type = webpage` and `notify_by_email = true` |
 | `DigestEmptyNotification` | `app/Notifications/DigestEmptyNotification.php` | Sent when a list runs but yields no new relevant summaries |
@@ -51,21 +50,6 @@ No `.html` extension — the web server should serve the file without one (confi
 `notify_by_email = true`, a `DigestReadyNotification` email is sent with a link to
 `{base_url}/{filename}`.
 
-### `wordpress`
-The digest is posted to a **WordPress site** as a new post via the WP REST API
-(`/wp/v2/posts`). Authentication uses WordPress Application Passwords (Basic Auth),
-which is the recommended approach since WP 5.6.
-
-Fields sent to WordPress:
-- `title` — List name + date
-- `slug` — Same `{list-slug}-digest-{YYYY-MM-DD}` pattern (no extension)
-- `content` — Full digest HTML (rendered from `views/digests/digest-wp.blade.php`)
-- `excerpt` — Plain-text summary: "{N} items from {source count} sources"
-- `status` — Configurable per OutputDestination (`publish`, `draft`, `private`)
-- `categories` — Optional category IDs array (from OutputDestination config)
-- `tags` — Optional tag IDs array (from OutputDestination config)
-- `date` — Set to the run date in ISO 8601 format
-
 ---
 
 ## Digest Views
@@ -77,7 +61,6 @@ All views live in `views/digests/`:
 | `_items.blade.php` | Shared partial — renders the list of source groups and summary cards |
 | `digest-email.blade.php` | Full HTML email shell (table-based, inline CSS, email-safe) |
 | `digest-webpage.blade.php` | Standalone HTML page (richer, browser-safe) |
-| `digest-wp.blade.php` | WordPress post body (clean HTML fragment, no shell — WP provides the outer page) |
 
 The `_items` partial is the **single source of truth** for digest content rendering.
 All three wrappers include it. This means layout changes only need to happen once.
@@ -97,7 +80,7 @@ When `PublishDigest` runs and finds **zero new relevant summaries**, it:
 
 ## Filename / Slug Convention
 
-The slug for both SFTP filenames and WordPress post slugs is derived from the list name:
+The slug for both SFTP filenames post slugs is derived from the list name:
 
 ```php
 strtolower(preg_replace('/[^a-z0-9]+/i', '-', trim($list->name)))
@@ -134,12 +117,12 @@ failure, only genuinely new summaries will appear.
 
 ## Error Handling & Gates
 
-`PublishDigest` checks `ProcessingGate::canPublish()` before doing any SFTP or
-WordPress work. If a Tier 3 alert exists for `sftp` or `infrastructure`, publishing
+`PublishDigest` checks `ProcessingGate::canPublish()` before doing any SFTP. 
+If a Tier 3 alert exists for `sftp` or `infrastructure`, publishing
 is blocked and an error is logged — but the job does **not** fail, so summaries
 are not marked as included. They will be picked up on the next successful run.
 
-SFTP failures and WordPress API failures each raise `AdminAlert::raiseIfNew()` at
+SFTP failures each raise `AdminAlert::raiseIfNew()` at
 Tier 2, so you will receive an email but processing is not fully blocked.
 
 ---

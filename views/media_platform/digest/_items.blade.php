@@ -7,7 +7,6 @@
     @include'd by all three digest wrappers:
       - digest-email.blade.php   (email shell)
       - digest-webpage.blade.php (standalone HTML page)
-      - digest-wp.blade.php      (WordPress post body)
 
     VARIABLES EXPECTED (passed down from the parent view):
       $digestData['groups']      — Collection of source groups from DigestBuilderService

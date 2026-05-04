@@ -27,15 +27,6 @@
             </div>
         </label>
 
-        <label class="flex items-start gap-4 border border-gray-200 rounded-xl p-5 mb-6 cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50">
-            <input type="radio" name="type" value="wordpress" class="mt-1 accent-purple-700"
-                {{ old('type', session('od_wizard.type')) === 'wordpress' ? 'checked' : '' }}>
-            <div>
-                <p class="text-sm font-semibold text-gray-800">WordPress</p>
-                <p class="text-xs text-gray-500 mt-0.5">Publish digests as posts via the WordPress REST API.</p>
-            </div>
-        </label>
-
         <div class="flex justify-between items-center">
             <a href="{{ route('output_destinations.create.step1') }}" class="text-sm text-purple-700 hover:underline flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>

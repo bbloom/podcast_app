@@ -98,7 +98,6 @@
                                         <span class="mx-1">·</span>
                                         {{ match(strtolower($list->output_type->value) ?? $list->output_type) {
                                             'email'     => 'Email',
-                                            'wordpress' => 'WordPress',
                                             default     => 'Web page',
                                         } }}
                                     </p>

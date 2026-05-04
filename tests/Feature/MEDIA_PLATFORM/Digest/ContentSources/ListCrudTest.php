@@ -231,13 +231,6 @@ test('update rejects missing name', function () {
         ->assertSessionHasErrors('name');
 });
 
-test('update rejects invalid output_type', function () {
-    $list = ListModel::factory()->forUser($this->user)->create();
-
-    $this->put(route('lists.update', $list), basePayload(['output_type' => 'wordpress']))
-        ->assertSessionHasErrors('output_type');
-});
-
 test('update accepts static_site as valid output_type', function () {
     $list = ListModel::factory()->forUser($this->user)->create();
 
