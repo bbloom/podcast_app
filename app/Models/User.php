@@ -99,4 +99,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(TextBasedRssFeed::class);
     }
+
+    /**
+     * The videos owned by this user.
+     */
+    public function videos(): HasMany
+    {
+        return $this->hasMany(\MediaPlatform\Videos\Models\Video::class);
+    }
 }

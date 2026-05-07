@@ -61,5 +61,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/API/v1/Routes/web.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/deploy_hooks.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/FooterLinks/Routes/footer_links.php';
 
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Videos/Routes/videos.php';
+
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';
