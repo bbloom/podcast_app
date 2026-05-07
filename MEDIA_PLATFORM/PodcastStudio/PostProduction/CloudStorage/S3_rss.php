@@ -53,4 +53,9 @@ class S3_rss
     {
         return 'rss';
     }
+
+    public function getFolderPath(): string
+    {
+       return "rss";
+    }
 }
