@@ -135,6 +135,29 @@
         </div>
     @endif
 
+    {{-- API Status --}}
+    @if ($hook->enabled)
+        <div class="border rounded-lg p-4 mb-8 {{ $apiStatus ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50' }}">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    @if ($apiStatus)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">● API Enabled</span>
+                        <span class="text-sm text-green-700">Ready for static site builds.</span>
+                    @else
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">● API Disabled</span>
+                        <span class="text-sm text-red-700">Builds will fail — the API must be enabled first.</span>
+                    @endif
+                </div>
+                @if (! $apiStatus)
+                    <a href="{{ route('api_management.dashboard') }}"
+                    class="text-sm font-semibold text-red-700 hover:text-red-900 hover:underline transition">
+                        Enable API →
+                    </a>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- Delete --}}
     <div class="mt-2 mb-6">
         <a href="{{ route('deploy_hooks.delete.confirm', $hook) }}"

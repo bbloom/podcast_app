@@ -29,6 +29,7 @@ use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use MediaPlatform\StaticSiteDeployHooks\Requests\DeployHookRequest;
 use MediaPlatform\StaticSiteDeployHooks\Services\DeployHookTriggerService;
+use MediaPlatform\API\v1\Models\ApiControl;
 
 class DeployHookController extends Controller
 {
@@ -201,7 +202,10 @@ class DeployHookController extends Controller
 
         $deploy_hook->load('triggerable');
 
-        return view('media_platform.static_site_deploy_hooks.show', ['hook' => $deploy_hook]);
+        return view('media_platform.static_site_deploy_hooks.show', [
+            'hook'      => $deploy_hook,
+            'apiStatus' => ApiControl::getStatus(),
+        ]);
     }
 
     /**
