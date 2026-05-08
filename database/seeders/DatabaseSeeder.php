@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -43,5 +44,14 @@ class DatabaseSeeder extends Seeder
                 ListModelSeeder::class,
         ]);
         }
+
+        /* 
+        Exactly. This is a classic PostgreSQL issue. Your seeders insert episodes with explicit id values (like 1 through 30), but PostgreSQL's auto-increment sequence doesn't advance when you insert with explicit IDs. So after seeding, the sequence is still at 1 (or wherever it was), and the next INSERT without an explicit ID generates an ID that already exists.
+
+        This tells PostgreSQL "the next ID should come after the highest existing one." You may want to check your other seeded tables too — any table where your seeders insert explicit IDs will have the same problem. Likely candidates: podcast_shows, podcast_guests, podcast_links, and any other tables with hardcoded IDs in seeders.
+
+        */
+
+        DB::statement("SELECT setval(pg_get_serial_sequence('podcast_episodes', 'id'), (SELECT MAX(id) FROM podcast_episodes))");
     }
 }
