@@ -88,38 +88,6 @@
                 </div>
             </div>
 
-            {{-- Videos --}}
-            <div class="border border-purple-300 rounded-lg overflow-hidden">
-                <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-                    🎬 Videos
-                </h2>
-                <div class="space-y-5 p-4">
-
-                    <div>
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Create</span>
-                        <div class="mt-2 space-y-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('videos.create.step1') }}"
-                                class="text-blue-600 hover:underline hover:text-gray-900">Create a video</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
-                        <div class="mt-2 space-y-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('videos.index') }}"
-                                class="text-blue-600 hover:underline hover:text-gray-900">All Videos</a>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
             {{-- Digest --}}
             <div class="border border-purple-300 rounded-lg overflow-hidden">
                 <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
@@ -179,6 +147,38 @@
                             </div>
                         </div>
                     @endcan
+
+                </div>
+            </div>
+
+            {{-- Videos --}}
+            <div class="border border-purple-300 rounded-lg overflow-hidden">
+                <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
+                    🎬 Videos
+                </h2>
+                <div class="space-y-5 p-4">
+
+                    <div>
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Create</span>
+                        <div class="mt-2 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-purple-400 font-bold">›</span>
+                                <a href="{{ route('videos.create.step1') }}"
+                                class="text-blue-600 hover:underline hover:text-gray-900">Create a video</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
+                        <div class="mt-2 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-purple-400 font-bold">›</span>
+                                <a href="{{ route('videos.index') }}"
+                                class="text-blue-600 hover:underline hover:text-gray-900">All Videos</a>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
             </div>
