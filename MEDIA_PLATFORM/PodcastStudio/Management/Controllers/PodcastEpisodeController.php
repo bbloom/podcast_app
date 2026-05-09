@@ -7,8 +7,10 @@ use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\Management\Requests\PodcastEpisodeRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class PodcastEpisodeController extends Controller
 {
@@ -23,6 +25,21 @@ class PodcastEpisodeController extends Controller
         'status'         => 'podcast_episodes.status',
         'scheduled_date' => 'podcast_episodes.scheduled_date',
     ];
+
+    /**
+     * Verify that the episode belongs to the authenticated user.
+     * Returns a redirect with a friendly error if ownership fails.
+     */
+    private function authorizeOwnership(PodcastEpisode $episode): ?RedirectResponse
+    {
+        if ($episode->user_id !== auth()->id()) {
+            return redirect()
+                ->route('podcast_episodes.index')
+                ->with('error', 'You do not have permission to access that episode.');
+        }
+
+        return null;
+    }
 
     /**
      * Display all podcast episodes belonging to the authenticated user,
@@ -68,9 +85,11 @@ class PodcastEpisodeController extends Controller
      * Display a single podcast episode.
      * Ownership check: only the owning user may view their episode.
      */
-    public function show(PodcastEpisode $podcast_episode)
+    public function show(PodcastEpisode $podcast_episode): View|RedirectResponse
     {
-        abort_if($podcast_episode->user_id !== auth()->id(), 403);
+        if ($redirect = $this->authorizeOwnership($podcast_episode)) {
+            return $redirect;
+        }
 
         $podcast_episode->load(['show']);
 
@@ -83,9 +102,11 @@ class PodcastEpisodeController extends Controller
     /**
      * Show the form for editing a podcast episode.
      */
-    public function edit(PodcastEpisode $podcast_episode)
+    public function edit(PodcastEpisode $podcast_episode): View|RedirectResponse
     {
-        abort_if($podcast_episode->user_id !== auth()->id(), 403);
+        if ($redirect = $this->authorizeOwnership($podcast_episode)) {
+            return $redirect;
+        }
 
         $shows    = PodcastShow::where('user_id', auth()->id())->orderBy('title')->get();
 
@@ -101,13 +122,20 @@ class PodcastEpisodeController extends Controller
     /**
      * Persist updates to a podcast episode.
      */
-    public function update(PodcastEpisodeRequest $request, PodcastEpisode $podcast_episode)
+    public function update(PodcastEpisodeRequest $request, PodcastEpisode $podcast_episode): RedirectResponse
     {
-        abort_if($podcast_episode->user_id !== auth()->id(), 403);
+        if ($redirect = $this->authorizeOwnership($podcast_episode)) {
+            return $redirect;
+        }
 
         // Ownership: ensure the selected show belongs to this user.
-        $show = PodcastShow::findOrFail($request->validated()['podcast_show_id']);
-        abort_if($show->user_id !== auth()->id(), 403);
+        $show = PodcastShow::find($request->validated()['podcast_show_id']);
+
+        if (! $show || $show->user_id !== auth()->id()) {
+            return redirect()
+                ->route('podcast_episodes.edit', $podcast_episode)
+                ->with('error', 'The selected podcast show could not be found.');
+        }
 
         $data         = $request->validated();
         $data['slug'] = Str::slug($data['title']);
@@ -128,9 +156,11 @@ class PodcastEpisodeController extends Controller
     /**
      * Show the delete confirmation page for a podcast episode.
      */
-    public function deleteConfirm(PodcastEpisode $podcast_episode)
+    public function deleteConfirm(PodcastEpisode $podcast_episode): View|RedirectResponse
     {
-        abort_if($podcast_episode->user_id !== auth()->id(), 403);
+        if ($redirect = $this->authorizeOwnership($podcast_episode)) {
+            return $redirect;
+        }
 
         $podcast_episode->load(['show', 'links', 'guests']);
 
@@ -145,9 +175,11 @@ class PodcastEpisodeController extends Controller
     /**
      * Delete a podcast episode.
      */
-    public function destroy(PodcastEpisode $podcast_episode)
+    public function destroy(PodcastEpisode $podcast_episode): RedirectResponse
     {
-        abort_if($podcast_episode->user_id !== auth()->id(), 403);
+        if ($redirect = $this->authorizeOwnership($podcast_episode)) {
+            return $redirect;
+        }
 
         if ($reason = $this->deleteBlockingReason($podcast_episode)) {
             return redirect()

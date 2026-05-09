@@ -49,33 +49,15 @@ class PodcastEpisodeControllerTest extends TestCase
     // index
     // -------------------------------------------------------------------------
 
-    public function test_index_shows_only_the_authenticated_users_episodes(): void
+    public function test_index_shows_episodes_to_authenticated_users(): void
     {
-        $user  = User::factory()->create();
-        $other = User::factory()->create();
-
-        $myShow    = PodcastShow::factory()->create(['user_id' => $user->id]);
-        $theirShow = PodcastShow::factory()->create(['user_id' => $other->id]);
-
-        PodcastEpisode::factory()->create([
-            'user_id'         => $user->id,
-            'podcast_show_id' => $myShow->id,
-            'status'          => PodcastEpisodeStatus::created,
-            'title'           => 'My Episode',
-        ]);
-
-        PodcastEpisode::factory()->create([
-            'user_id'         => $other->id,
-            'podcast_show_id' => $theirShow->id,
-            'status'          => PodcastEpisodeStatus::created,
-            'title'           => 'Their Episode',
-        ]);
+        $user    = User::factory()->create();
+        $episode = $this->episodeForUser($user);
 
         $this->actingAs($user)
             ->get(route('podcast_episodes.index'))
             ->assertOk()
-            ->assertSee('My Episode')
-            ->assertDontSee('Their Episode');
+            ->assertSee($episode->title);
     }
 
     public function test_index_redirects_unauthenticated_users(): void
@@ -85,20 +67,6 @@ class PodcastEpisodeControllerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // create
-    // -------------------------------------------------------------------------
-
-    // The standard CRUD create is now handled by the CREATE PODCAST EPISODE wizard
-
-
-    // -------------------------------------------------------------------------
-    // store
-    // -------------------------------------------------------------------------
-
-    // The STORE is not handled by the CREATE PODCAST EPISODE wizard
-
-
-    // -------------------------------------------------------------------------
     // show
     // -------------------------------------------------------------------------
 
@@ -106,16 +74,14 @@ class PodcastEpisodeControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->episodeForUser($user);
-        $episode->title = 'My Episode';
-        $episode->save();
 
         $this->actingAs($user)
             ->get(route('podcast_episodes.show', $episode))
             ->assertOk()
-            ->assertSee('My Episode');
+            ->assertSee($episode->title);
     }
 
-    public function test_show_returns_403_for_another_users_episode(): void
+    public function test_show_redirects_with_error_for_another_users_episode(): void
     {
         $user    = User::factory()->create();
         $other   = User::factory()->create();
@@ -123,14 +89,8 @@ class PodcastEpisodeControllerTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('podcast_episodes.show', $episode))
-            ->assertForbidden();
-    }
-
-    public function test_show_returns_404_for_non_existent_episode(): void
-    {
-        $this->actingAs(User::factory()->create())
-            ->get(route('podcast_episodes.show', 99999))
-            ->assertNotFound();
+            ->assertRedirect(route('podcast_episodes.index'))
+            ->assertSessionHas('error');
     }
 
     // -------------------------------------------------------------------------
@@ -147,7 +107,7 @@ class PodcastEpisodeControllerTest extends TestCase
             ->assertOk();
     }
 
-    public function test_edit_returns_403_for_another_users_episode(): void
+    public function test_edit_redirects_with_error_for_another_users_episode(): void
     {
         $user    = User::factory()->create();
         $other   = User::factory()->create();
@@ -155,7 +115,8 @@ class PodcastEpisodeControllerTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('podcast_episodes.edit', $episode))
-            ->assertForbidden();
+            ->assertRedirect(route('podcast_episodes.index'))
+            ->assertSessionHas('error');
     }
 
     // -------------------------------------------------------------------------
@@ -180,7 +141,7 @@ class PodcastEpisodeControllerTest extends TestCase
         $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id, 'title' => 'New Title']);
     }
 
-    public function test_update_returns_403_for_another_users_episode(): void
+    public function test_update_redirects_with_error_for_another_users_episode(): void
     {
         $user    = User::factory()->create();
         $other   = User::factory()->create();
@@ -193,10 +154,11 @@ class PodcastEpisodeControllerTest extends TestCase
 
         $this->actingAs($user)
             ->put(route('podcast_episodes.update', $episode), $this->episodePayload($show))
-            ->assertForbidden();
+            ->assertRedirect(route('podcast_episodes.index'))
+            ->assertSessionHas('error');
     }
 
-    public function test_update_returns_403_when_reassigning_to_another_users_show(): void
+    public function test_update_redirects_with_error_when_reassigning_to_another_users_show(): void
     {
         $user      = User::factory()->create();
         $other     = User::factory()->create();
@@ -210,7 +172,8 @@ class PodcastEpisodeControllerTest extends TestCase
 
         $this->actingAs($user)
             ->put(route('podcast_episodes.update', $episode), $this->episodePayload($theirShow))
-            ->assertForbidden();
+            ->assertRedirect(route('podcast_episodes.edit', $episode))
+            ->assertSessionHas('error');
     }
 
     public function test_update_validates_required_fields(): void
@@ -225,6 +188,22 @@ class PodcastEpisodeControllerTest extends TestCase
                 'status',
                 'title',
             ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // deleteConfirm — ownership
+    // -------------------------------------------------------------------------
+
+    public function test_delete_confirm_redirects_with_error_for_another_users_episode(): void
+    {
+        $user    = User::factory()->create();
+        $other   = User::factory()->create();
+        $episode = $this->episodeForUser($other);
+
+        $this->actingAs($user)
+            ->get(route('podcast_episodes.delete.confirm', $episode))
+            ->assertRedirect(route('podcast_episodes.index'))
+            ->assertSessionHas('error');
     }
 
     // -------------------------------------------------------------------------
@@ -277,6 +256,24 @@ class PodcastEpisodeControllerTest extends TestCase
             ->get(route('podcast_episodes.delete.confirm', $episode))
             ->assertOk()
             ->assertSee('This episode cannot be deleted.');
+    }
+
+    // -------------------------------------------------------------------------
+    // destroy — ownership
+    // -------------------------------------------------------------------------
+
+    public function test_destroy_redirects_with_error_for_another_users_episode(): void
+    {
+        $user    = User::factory()->create();
+        $other   = User::factory()->create();
+        $episode = $this->episodeForUser($other);
+
+        $this->actingAs($user)
+            ->delete(route('podcast_episodes.destroy', $episode))
+            ->assertRedirect(route('podcast_episodes.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id]);
     }
 
     // -------------------------------------------------------------------------

@@ -4,8 +4,8 @@ use MediaPlatform\PodcastStudio\Management\Controllers\PodcastEpisodeController;
 
 // -----------------------------------------------------------------------------
 // Podcast Episodes routes
-// All routes require authentication. Ownership (user_id) is enforced in the
-// controller via abort_if().
+// All routes require authentication. Ownership (user_id) is enforced in the 
+// controller via authorizeOwnership()
 // -----------------------------------------------------------------------------
 
 Route::get('/podcast-episodes', [PodcastEpisodeController::class, 'index'])
