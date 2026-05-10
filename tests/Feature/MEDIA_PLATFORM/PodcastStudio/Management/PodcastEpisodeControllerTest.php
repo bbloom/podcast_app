@@ -18,19 +18,6 @@ class PodcastEpisodeControllerTest extends TestCase
     // -------------------------------------------------------------------------
 
     /**
-     * Build a minimum valid episode payload.
-     * Requires a show already created in the DB.
-     */
-    private function episodePayload(PodcastShow $show, array $overrides = []): array
-    {
-        return array_merge([
-            'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created->value,
-            'title'           => 'My Test Episode',
-        ], $overrides);
-    }
-
-    /**
      * Create a show and episode belonging to the given user.
      * Returns the episode.
      */
@@ -94,101 +81,8 @@ class PodcastEpisodeControllerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // edit
+    // edit and update — see PodcastEpisodeUpdateControllerTest
     // -------------------------------------------------------------------------
-
-    public function test_edit_shows_form_to_the_episodes_owner(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->episodeForUser($user);
-
-        $this->actingAs($user)
-            ->get(route('podcast_episodes.edit', $episode))
-            ->assertOk();
-    }
-
-    public function test_edit_redirects_with_error_for_another_users_episode(): void
-    {
-        $user    = User::factory()->create();
-        $other   = User::factory()->create();
-        $episode = $this->episodeForUser($other);
-
-        $this->actingAs($user)
-            ->get(route('podcast_episodes.edit', $episode))
-            ->assertRedirect(route('podcast_episodes.index'))
-            ->assertSessionHas('error');
-    }
-
-    // -------------------------------------------------------------------------
-    // update
-    // -------------------------------------------------------------------------
-
-    public function test_update_saves_changes_to_the_episode(): void
-    {
-        $user    = User::factory()->create();
-        $show    = PodcastShow::factory()->create(['user_id' => $user->id]);
-        $episode = PodcastEpisode::factory()->create([
-            'user_id'         => $user->id,
-            'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
-            'title'           => 'Old Title',
-        ]);
-
-        $this->actingAs($user)
-            ->put(route('podcast_episodes.update', $episode), $this->episodePayload($show, ['title' => 'New Title']))
-            ->assertRedirect(route('podcast_episodes.show', $episode));
-
-        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id, 'title' => 'New Title']);
-    }
-
-    public function test_update_redirects_with_error_for_another_users_episode(): void
-    {
-        $user    = User::factory()->create();
-        $other   = User::factory()->create();
-        $show    = PodcastShow::factory()->create(['user_id' => $other->id]);
-        $episode = PodcastEpisode::factory()->create([
-            'user_id'         => $other->id,
-            'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
-        ]);
-
-        $this->actingAs($user)
-            ->put(route('podcast_episodes.update', $episode), $this->episodePayload($show))
-            ->assertRedirect(route('podcast_episodes.index'))
-            ->assertSessionHas('error');
-    }
-
-    public function test_update_redirects_with_error_when_reassigning_to_another_users_show(): void
-    {
-        $user      = User::factory()->create();
-        $other     = User::factory()->create();
-        $myShow    = PodcastShow::factory()->create(['user_id' => $user->id]);
-        $theirShow = PodcastShow::factory()->create(['user_id' => $other->id]);
-        $episode   = PodcastEpisode::factory()->create([
-            'user_id'         => $user->id,
-            'podcast_show_id' => $myShow->id,
-            'status'          => PodcastEpisodeStatus::created,
-        ]);
-
-        $this->actingAs($user)
-            ->put(route('podcast_episodes.update', $episode), $this->episodePayload($theirShow))
-            ->assertRedirect(route('podcast_episodes.edit', $episode))
-            ->assertSessionHas('error');
-    }
-
-    public function test_update_validates_required_fields(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->episodeForUser($user);
-
-        $this->actingAs($user)
-            ->put(route('podcast_episodes.update', $episode), [])
-            ->assertSessionHasErrors([
-                'podcast_show_id',
-                'status',
-                'title',
-            ]);
-    }
 
     // -------------------------------------------------------------------------
     // deleteConfirm — ownership
