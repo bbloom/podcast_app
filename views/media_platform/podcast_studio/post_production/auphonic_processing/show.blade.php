@@ -154,6 +154,34 @@
         @endif
 
     </div>
+    
+
+    {{-- Auphonic Credits --}}
+    @if ($auphonicCredits)
+        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Auphonic Account</div>
+        <div class="border rounded-lg px-6 py-4 mb-8 {{ $auphonicCredits['credits'] < 1 ? 'border-red-300 bg-red-50' : 'border-purple-500' }}">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-2xl font-bold {{ $auphonicCredits['credits'] < 1 ? 'text-red-700' : 'text-purple-700' }}">
+                        {{ number_format($auphonicCredits['credits'], 1) }}
+                    </span>
+                    <span class="text-sm text-gray-500 ml-1">credits remaining</span>
+                </div>
+                @if ($auphonicCredits['recharge_date'])
+                    <div class="text-xs text-gray-400">
+                        Recharges {{ \Carbon\Carbon::parse($auphonicCredits['recharge_date'])->format('M j, Y') }}
+                    </div>
+                @endif
+            </div>
+            @if ($auphonicCredits['credits'] < 1)
+                <p class="mt-2 text-sm text-red-600">
+                    Low credits — this production may fail. Top up at
+                    <a href="https://auphonic.com/engine/account/" target="_blank" class="underline hover:text-red-800">auphonic.com</a>.
+                </p>
+            @endif
+        </div>
+    @endif
+
 
     {{-- Submit section — only shown when S3 check passes --}}
     @if ($s3Status === 'match')

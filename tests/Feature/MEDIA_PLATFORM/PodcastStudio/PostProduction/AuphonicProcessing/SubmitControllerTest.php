@@ -11,6 +11,7 @@ use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\CloudStorage\S3_work_in_progress_audio;
 use Tests\TestCase;
 
+
 class SubmitControllerTest extends TestCase
 {
     use RefreshDatabase;
@@ -24,6 +25,27 @@ class SubmitControllerTest extends TestCase
     // The expected WAV filename — matches what Step3Controller would generate.
     // -------------------------------------------------------------------------
     private const EXPECTED_FILENAME = 'episode-001.wav';
+
+
+    // -------------------------------------------------------------------------
+    // Setup
+    // -------------------------------------------------------------------------
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Http::fake([
+            '*auphonic.com/api/user.json*' => Http::response([
+                'status_code' => 200,
+                'data' => [
+                    'credits'           => 5.0,
+                    'onetime_credits'   => 2.0,
+                    'recurring_credits' => 3.0,
+                    'recharge_date'     => '2026-06-15T00:00:00Z',
+                ],
+            ], 200),
+        ]);
+    }
 
     // -------------------------------------------------------------------------
     // Helper
@@ -310,6 +332,13 @@ class SubmitControllerTest extends TestCase
 
     /**
      * Submit renders the processing view on success.
+     *
+     * 
+     * test_submit_renders_processing_view_without_api_call_when_already_processing calls
+     * Http::fake() with no arguments (which fakes everything) and then asserts
+     * Http::assertNothingSent(). That will still pass because the episode is in 
+     * processing_at_auphonic status, so the controller returns the processing view before
+     * reaching fetchCredits(). 
      */
     public function test_submit_renders_processing_view_on_success(): void
     {

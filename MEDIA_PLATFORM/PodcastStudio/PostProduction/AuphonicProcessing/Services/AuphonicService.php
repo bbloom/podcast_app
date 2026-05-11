@@ -364,6 +364,58 @@ class AuphonicService
         return "https://auphonic.com/engine/production/{$auphonicProductionUuid}/";
     }
 
+    // ┌────────────────────────────────────────────────────────────────────────┐
+    // │  fetchCredits()                                                        │
+    // │                                                                        │
+    // │  Queries the Auphonic /api/user.json endpoint to retrieve the          │
+    // │  authenticated user's remaining processing credits.                     │
+    // │                                                                        │
+    // │  Returns an array with credit details, or null if the request fails.   │
+    // │  A null return is not fatal — the UI simply hides the credits display.  │
+    // └────────────────────────────────────────────────────────────────────────┘
+
+    /**
+     * Fetch the authenticated user's remaining Auphonic credits.
+     *
+     * Returns an associative array on success:
+     *   [
+     *     'credits'            => 2.87,   // total remaining (onetime + recurring)
+     *     'onetime_credits'    => 1.0,
+     *     'recurring_credits'  => 1.87,
+     *     'recharge_date'      => '2026-06-15T00:00:00Z',
+     *   ]
+     *
+     * Returns null if the API call fails for any reason.
+     *
+     * @return array|null
+     */
+    public function fetchCredits(): ?array
+    {
+        try {
+            $response = Http::withToken(config('podcast_post_production.auphonic.api_key'))
+                ->get(self::API_BASE . '/user.json');
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $data = $response->json('data');
+
+            if (! $data || ! isset($data['credits'])) {
+                return null;
+            }
+
+            return [
+                'credits'           => $data['credits'],
+                'onetime_credits'   => $data['onetime_credits'] ?? 0,
+                'recurring_credits' => $data['recurring_credits'] ?? 0,
+                'recharge_date'     => $data['recharge_date'] ?? null,
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     // =========================================================================
     // PRIVATE METHODS
     // =========================================================================

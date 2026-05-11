@@ -39,10 +39,12 @@ class SubmitController extends Controller
     // -------------------------------------------------------------------------
 
     /**
-     * Inject the S3 storage helper.
+     * Inject the S3 storage helper and AuphonicService.
      */
-    public function __construct(private readonly S3_work_in_progress_audio $s3Storage)
-    {
+    public function __construct(
+        private readonly S3_work_in_progress_audio $s3Storage,
+        private readonly AuphonicService $auphonic,
+    ) {
         //
     }
 
@@ -118,10 +120,11 @@ class SubmitController extends Controller
         };
 
         return view('media_platform.podcast_studio.post_production.auphonic_processing.show', [
-            'episode'    => $podcastEpisode,
-            's3Status'   => $s3Status,
-            'filesInS3'  => $filesInS3,
-            'consoleUrl' => $consoleUrl,
+            'episode'         => $podcastEpisode,
+            's3Status'        => $s3Status,
+            'filesInS3'       => $filesInS3,
+            'consoleUrl'      => $consoleUrl,
+            'auphonicCredits' => $this->auphonic->fetchCredits(),
         ]);
     }
 
