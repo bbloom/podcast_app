@@ -123,6 +123,12 @@ class AuphonicService
      * the /api/ path as a fallback. Auphonic has historically served downloads
      * from both, but the availability of each has varied over time.
      *
+     * IMPORTANT: Auphonic's download endpoints require the bearer token as a
+     * query parameter (?bearer_token=...), NOT in the Authorization header.
+     * The header works for all other API endpoints, but download URLs redirect
+     * to a file server that does not forward auth headers — resulting in an
+     * HTML login page instead of the MP3 file.
+     *
      * The file is saved to storage_path('app/podcasts/{filename}'). The directory
      * is created automatically if it does not exist.
      *
@@ -150,16 +156,30 @@ class AuphonicService
         $destinationPath = $destinationDir . '/' . $mp3Filename;
 
         // ── Build both candidate download URLs ────────────────────────────────
-        $engineUrl = self::DOWNLOAD_BASE_ENGINE . "/{$productionId}/{$mp3Filename}";
-        $apiUrl    = self::DOWNLOAD_BASE_API    . "/{$productionId}/{$mp3Filename}";
+        //
+        // The bearer token is passed as a query parameter because Auphonic's
+        // download endpoints redirect to a file server that does not forward
+        // the Authorization header. See:
+        // https://auphonic.com/help/api/query.html
+        // ──────────────────────────────────────────────────────────────────────
+        $engineUrl = self::DOWNLOAD_BASE_ENGINE . "/{$productionId}/{$mp3Filename}?bearer_token={$apiKey}";
+        $apiUrl    = self::DOWNLOAD_BASE_API    . "/{$productionId}/{$mp3Filename}?bearer_token={$apiKey}";
 
         // ── Attempt 1: /engine/ endpoint ──────────────────────────────────────
         try {
-            $response = Http::withToken($apiKey)->get($engineUrl);
+            $response = Http::get($engineUrl);
 
-            if ($response->successful()) {
+            if ($response->successful() && $this->isAudioContent($response)) {
                 file_put_contents($destinationPath, $response->body());
                 return $destinationPath;
+            }
+
+            if ($response->successful() && ! $this->isAudioContent($response)) {
+                \Illuminate\Support\Facades\Log::warning('AuphonicService: /engine/ returned non-audio content (possible login page). Trying /api/ fallback.', [
+                    'episode_id'               => $episode->id,
+                    'auphonic_production_uuid' => $productionId,
+                    'content_type'             => $response->header('Content-Type'),
+                ]);
             }
         } catch (\Throwable $e) {
             // Network-level failure on the first attempt — fall through to the
@@ -173,12 +193,24 @@ class AuphonicService
 
         // ── Attempt 2: /api/ fallback endpoint ────────────────────────────────
         try {
-            $response = Http::withToken($apiKey)->get($apiUrl);
+            $response = Http::get($apiUrl);
 
-            if ($response->successful()) {
+            if ($response->successful() && $this->isAudioContent($response)) {
                 file_put_contents($destinationPath, $response->body());
                 return $destinationPath;
             }
+
+            if ($response->successful() && ! $this->isAudioContent($response)) {
+                throw new \RuntimeException(
+                    'Both Auphonic download endpoints returned non-audio content (possible login page). ' .
+                    'The API key may be invalid or expired. ' .
+                    'Content-Type received: ' . ($response->header('Content-Type') ?? 'unknown')
+                );
+            }
+        } catch (\RuntimeException $e) {
+            // Re-throw RuntimeExceptions (including the one above) — they are
+            // our own descriptive errors, not network failures.
+            throw $e;
         } catch (\Throwable $e) {
             // Both endpoints have failed — throw a descriptive exception so the
             // controller can surface a meaningful error to the user.
@@ -194,6 +226,51 @@ class AuphonicService
             'The production may not be ready yet, or the file may not exist. ' .
             'Last HTTP status: ' . ($response->status() ?? 'unknown')
         );
+    }
+
+    // ┌────────────────────────────────────────────────────────────────────────┐
+    // │  isAudioContent()                                                      │
+    // │                                                                        │
+    // │  Validates that an HTTP response contains audio, not an HTML error      │
+    // │  page. Auphonic's download endpoints return HTTP 200 for login pages,   │
+    // │  so checking ->successful() alone is not sufficient.                    │
+    // └────────────────────────────────────────────────────────────────────────┘
+
+    /**
+     * Check whether the response body is audio content rather than an HTML page.
+     *
+     * Uses the Content-Type header as the primary check. Falls back to
+     * inspecting the first bytes of the body for HTML signatures, in case
+     * the Content-Type header is missing or generic (e.g. application/octet-stream).
+     *
+     * @param  Response  $response
+     * @return bool
+     */
+    private function isAudioContent(Response $response): bool
+    {
+        $contentType = strtolower($response->header('Content-Type') ?? '');
+
+        // ── Primary check: Content-Type header ────────────────────────────────
+        if (str_contains($contentType, 'audio/')) {
+            return true;
+        }
+
+        // application/octet-stream is ambiguous — could be a valid binary
+        // download. Fall through to the body check.
+        if (str_contains($contentType, 'text/html')) {
+            return false;
+        }
+
+        // ── Fallback: inspect the first bytes of the body ─────────────────────
+        $head = strtolower(substr($response->body(), 0, 100));
+
+        if (str_contains($head, '<!doctype') || str_contains($head, '<html')) {
+            return false;
+        }
+
+        // If Content-Type is not HTML and body doesn't start with HTML tags,
+        // assume it's a valid binary download (e.g. application/octet-stream).
+        return true;
     }
 
     // ┌────────────────────────────────────────────────────────────────────────┐

@@ -163,7 +163,7 @@ class AuphonicServiceTest extends TestCase
     public function test_download_mp3_saves_file_and_returns_path_on_engine_success(): void
     {
         Http::fake([
-            '*auphonic.com/engine/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200),
+            '*auphonic.com/engine/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'audio/mpeg']),
         ]);
 
         $episode = $this->makeEpisode();
@@ -182,7 +182,7 @@ class AuphonicServiceTest extends TestCase
     {
         Http::fake([
             '*auphonic.com/engine/download/audio-result/*' => Http::response('', 503),
-            '*auphonic.com/api/download/audio-result/*'    => Http::response(self::FAKE_MP3_CONTENT, 200),
+            '*auphonic.com/api/download/audio-result/*'    => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'audio/mpeg']),
         ]);
 
         $episode = $this->makeEpisode();
@@ -202,7 +202,7 @@ class AuphonicServiceTest extends TestCase
             '*auphonic.com/engine/download/audio-result/*' => function () {
                 throw new \RuntimeException('Connection refused.');
             },
-            '*auphonic.com/api/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200),
+            '*auphonic.com/api/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'audio/mpeg']),
         ]);
 
         $episode = $this->makeEpisode();
@@ -218,7 +218,7 @@ class AuphonicServiceTest extends TestCase
     public function test_download_mp3_creates_destination_directory_if_missing(): void
     {
         Http::fake([
-            '*auphonic.com/engine/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200),
+            '*auphonic.com/engine/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'audio/mpeg']),
         ]);
 
         // Ensure the directory does not exist before the call.
@@ -240,13 +240,72 @@ class AuphonicServiceTest extends TestCase
             rmdir($dir);
         }
 
-
         $this->assertDirectoryDoesNotExist($dir);
 
         $episode = $this->makeEpisode();
         $this->service()->downloadMp3($episode);
 
         $this->assertDirectoryExists($dir);
+    }
+
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  downloadMp3() — content validation                                    ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    /**
+     * downloadMp3() rejects an HTML login page from the /engine/ endpoint
+     * and falls back to /api/.
+     */
+    public function test_download_mp3_rejects_html_from_engine_and_falls_back_to_api(): void
+    {
+        $loginPage = '<!DOCTYPE html><html><head><title>Auphonic Login</title></head><body>Login</body></html>';
+
+        Http::fake([
+            '*auphonic.com/engine/download/audio-result/*' => Http::response($loginPage, 200, ['Content-Type' => 'text/html']),
+            '*auphonic.com/api/download/audio-result/*'    => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'audio/mpeg']),
+        ]);
+
+        $episode = $this->makeEpisode();
+        $path    = $this->service()->downloadMp3($episode);
+
+        $this->assertFileExists($path);
+        $this->assertSame(self::FAKE_MP3_CONTENT, file_get_contents($path));
+    }
+
+    /**
+     * downloadMp3() throws when both endpoints return HTML login pages.
+     */
+    public function test_download_mp3_throws_when_both_endpoints_return_html(): void
+    {
+        $loginPage = '<!DOCTYPE html><html><head><title>Auphonic Login</title></head><body>Login</body></html>';
+
+        Http::fake([
+            '*auphonic.com/engine/download/audio-result/*' => Http::response($loginPage, 200, ['Content-Type' => 'text/html']),
+            '*auphonic.com/api/download/audio-result/*'    => Http::response($loginPage, 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('non-audio content');
+
+        $episode = $this->makeEpisode();
+        $this->service()->downloadMp3($episode);
+    }
+
+    /**
+     * downloadMp3() accepts application/octet-stream responses (some servers
+     * use this for binary downloads instead of audio/mpeg).
+     */
+    public function test_download_mp3_accepts_octet_stream_content_type(): void
+    {
+        Http::fake([
+            '*auphonic.com/engine/download/audio-result/*' => Http::response(self::FAKE_MP3_CONTENT, 200, ['Content-Type' => 'application/octet-stream']),
+        ]);
+
+        $episode = $this->makeEpisode();
+        $path    = $this->service()->downloadMp3($episode);
+
+        $this->assertFileExists($path);
+        $this->assertSame(self::FAKE_MP3_CONTENT, file_get_contents($path));
     }
 
     // ╔════════════════════════════════════════════════════════════════════════╗
