@@ -47,9 +47,6 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podc
 
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/PhpServerlessProjectSponsors/Routes/phpserverlessproject_sponsors.php';
 
-require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PreProduction/Routes/create_episode.php';
-
-
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/dashboard.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/upload_recording.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/auphonic_processing.php';
@@ -62,6 +59,19 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/deploy_
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/FooterLinks/Routes/footer_links.php';
 
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Videos/Routes/videos.php';
+
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/podcast_episode_drafts.php';
+
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/podcast_episode_drafts.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/pre_production.php';
+
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Dashboard/Routes/podcast_studio_dashboard.php';
+
+
+// eventually going to retire this route file
+require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PreProduction/Routes/create_episode.php';
+
+
 
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';

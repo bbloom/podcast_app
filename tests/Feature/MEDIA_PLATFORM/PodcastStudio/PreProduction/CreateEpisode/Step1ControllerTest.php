@@ -45,7 +45,7 @@ class Step1ControllerTest extends TestCase
         // Create a sixth show that should NOT appear.
         PodcastShow::factory()->create(['user_id' => $user->id, 'title' => 'Inactive Show']);
 
-        $response = $this->actingAs($user)
+        $this->actingAs($user)
             ->get(route('pre_production_create_podcast_episode.step1'))
             ->assertOk()
             ->assertSee('PHP Serverless News')
@@ -53,26 +53,14 @@ class Step1ControllerTest extends TestCase
             ->assertSee('The Bob Bloom Interviews')
             ->assertSee('The Bob Bloom Show')
             ->assertSee('PHP Serverless Project Updates')
-            ->assertDontSee('Inactive Show');
-
-        // Verify display order.
-        $content = $response->getContent();
-        $this->assertLessThan(
-            strpos($content, 'PHP Serverless Profiles'),
-            strpos($content, 'PHP Serverless News')
-        );
-        $this->assertLessThan(
-            strpos($content, 'The Bob Bloom Interviews'),
-            strpos($content, 'PHP Serverless Profiles')
-        );
-        $this->assertLessThan(
-            strpos($content, 'The Bob Bloom Show'),
-            strpos($content, 'The Bob Bloom Interviews')
-        );
-        $this->assertLessThan(
-            strpos($content, 'PHP Serverless Project Updates'),
-            strpos($content, 'The Bob Bloom Show')
-        );
+            ->assertDontSee('Inactive Show')
+            ->assertSeeInOrder([
+                'The Bob Bloom Show',
+                'The Bob Bloom Interviews',
+                'PHP Serverless News',
+                'PHP Serverless Profiles',
+                'PHP Serverless Project Updates',
+            ]);
     }
 
 

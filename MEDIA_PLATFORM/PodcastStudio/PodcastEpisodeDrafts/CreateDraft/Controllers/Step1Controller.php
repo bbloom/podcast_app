@@ -1,6 +1,14 @@
 <?php
 
-namespace MediaPlatform\PodcastStudio\PreProduction\CreateEpisode\Controllers;
+// =============================================================================
+// Step1Controller — Create Draft Wizard
+//
+// Step 1: Select a podcast show.
+//
+// Path: MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/CreateDraft/Controllers/
+// =============================================================================
+
+namespace MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\CreateDraft\Controllers;
 
 use App\Http\Controllers\Controller;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
@@ -30,7 +38,7 @@ class Step1Controller extends Controller
             ->values();
 
         return view(
-            'media_platform.podcast_studio.pre_production.create_episode.wizard_step1',
+            'media_platform.podcast_studio.podcast_episode_drafts.wizard_step1',
             compact('shows')
         );
     }
@@ -48,12 +56,12 @@ class Step1Controller extends Controller
 
         if (! $show || $show->user_id !== auth()->id()) {
             return redirect()
-                ->route('pre_production_create_podcast_episode.step1')
+                ->route('podcast_episode_drafts.create.step1')
                 ->with('error', 'Had trouble finding that show in the database. Please try again!');
         }
 
-        session(['wizard.create_episode.podcast_show_id' => $show->id]);
+        session(['wizard.create_draft.podcast_show_id' => $show->id]);
 
-        return redirect()->route('pre_production_create_podcast_episode.step2');
+        return redirect()->route('podcast_episode_drafts.create.step2');
     }
 }

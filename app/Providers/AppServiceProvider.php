@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/media_platform/static_site_deploy_hooks'),
             database_path('migrations/media_platform/tools/footer_links'),
             database_path('migrations/media_platform/videos'),
+            database_path('migrations/media_platform/podcast_studio/podcast_episode_drafts'),
         ]);
 
         // -------------------------------------------------------------------------

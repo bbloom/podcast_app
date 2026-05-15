@@ -9,17 +9,10 @@
         </div>
     @endsession
 
-    {{-- ------------------------------------------------------------------ --}}
-    {{-- Shared styles (defined once as Blade comments for reference):       --}}
-    {{--   Card:   border border-purple-300 rounded-lg overflow-hidden       --}}
-    {{--   Header: bg-purple-50 border-l-4 border-l-purple-600 px-4 py-3    --}}
-    {{--   Link:   flex items-center gap-2 + purple › arrow prefix           --}}
-    {{-- ------------------------------------------------------------------ --}}
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
         {{-- ================================================================ --}}
-        {{-- LEFT COLUMN — everyday workflow                                  --}}
+        {{-- LEFT COLUMN                                                      --}}
         {{-- ================================================================ --}}
         <div class="space-y-6">
 
@@ -31,60 +24,14 @@
                 <div class="space-y-5 p-4">
 
                     <div>
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pre-Production</span>
                         <div class="mt-2 space-y-2">
                             <div class="flex items-center gap-2">
                                 <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Create a podcast episode</a>
+                                <a href="{{ route('podcast_studio.dashboard') }}"
+                                   class="text-blue-600 hover:underline hover:text-gray-900">Dashboard</a>
                             </div>
                         </div>
                     </div>
-
-                    <div>
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Post-Production</span>
-                        <div class="mt-2 space-y-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('post_production.dashboard') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Post-Production Dashboard</a>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('deploy_hooks.index') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Deploy Hooks</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</span>
-                        <div class="mt-2 space-y-2">
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('podcast_shows.index') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Podcast Shows</a>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('podcast_episodes.index') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Podcast Episodes</a>
-                            </div>
-                            @can('admin')
-                                <div class="flex items-center gap-2">
-                                    <span class="text-purple-400 font-bold">›</span>
-                                    <a href="{{ route('podcast_guests.index') }}"
-                                       class="text-blue-600 hover:underline hover:text-gray-900">Podcast Guests</a>
-                                </div>
-                            @endcan
-                            <div class="flex items-center gap-2">
-                                <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('podcast_links.index') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Podcast Links</a>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 
@@ -196,7 +143,7 @@
         </div>
 
         {{-- ================================================================ --}}
-        {{-- RIGHT COLUMN — account + admin housekeeping                      --}}
+        {{-- RIGHT COLUMN                                                     --}}
         {{-- ================================================================ --}}
         <div class="space-y-6">
 

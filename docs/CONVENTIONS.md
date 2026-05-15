@@ -61,8 +61,39 @@ MEDIA_PLATFORM/
 │   ├── Services/
 │   └── README_STATIC_SITE.md
 ├── PodcastStudio/
+│   ├── Dashboard/
+│   │   ├── Controllers/
+│   │   │   └── PodcastStudioDashboardController.php
+│   │   └── Routes/
+│   │       └── podcast_studio_dashboard.php
+│   ├── PodcastEpisodeDrafts/
+│   │   ├── Controllers/
+│   │   │   └── PodcastEpisodeDraftController.php
+│   │   ├── CreateDraft/
+│   │   │   └── Controllers/
+│   │   │       ├── Step1Controller.php
+│   │   │       └── Step2Controller.php
+│   │   ├── PreProduction/
+│   │   │   ├── Controllers/
+│   │   │   │   ├── Step1Controller.php
+│   │   │   │   ├── Step2Controller.php
+│   │   │   │   ├── Step3Controller.php
+│   │   │   │   └── Step4Controller.php
+│   │   │   └── Routes/
+│   │   │       └── pre_production.php
+│   │   ├── Enums/
+│   │   │   └── PodcastEpisodeDraftStatus.php
+│   │   ├── Models/
+│   │   │   └── PodcastEpisodeDraft.php
+│   │   ├── Requests/
+│   │   │   └── PodcastEpisodeDraftRequest.php
+│   │   └── Routes/
+│   │       └── podcast_episode_drafts.php
+│   ├── CreateProductionEpisode/  ← planned (Wizard 2 — draft → production episode)
+│   │   ├── Controllers/
+│   │   └── Routes/
 │   ├── Management/        ← active (Controllers, Models, Requests, Routes)
-│   ├── PreProduction/     ← active (CreateEpisode wizard — Step1, Step2, Step3)
+│   ├── PreProduction/     ← legacy (CreateEpisode wizard — to be retired once CreateProductionEpisode is complete)
 │   └── PostProduction/    ← active
 │       ├── AuphonicProcessing/
 │       │   └── Presets/   ← Auphonic_preset.php — per-show preset UUIDs
@@ -95,6 +126,8 @@ MEDIA_PLATFORM/
 
 - `MediaPlatform\` maps to `MEDIA_PLATFORM/`
 - Example: `MediaPlatform\Digest\ContentSources\Youtube\Controllers\YoutubeChannelWizardController`
+- Example: `MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft`
+- Example: `MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\PreProduction\Controllers\Step1Controller`
 - Database factories: `Database\Factories\Media_platform\...` maps to `database/factories/Media_platform/...`
 
 ### Views
@@ -102,6 +135,9 @@ MEDIA_PLATFORM/
 - Root: `views/media_platform/`
 - Dot-notation prefix: `media_platform.`
 - Example: `view('media_platform.digest.content_sources.podcasts.index')`
+- Example: `view('media_platform.podcast_studio.dashboard.dashboard')`
+- Example: `view('media_platform.podcast_studio.podcast_episode_drafts.show')`
+- Example: `view('media_platform.podcast_studio.podcast_episode_drafts.pre_production.wizard_step1')`
 - Shared components: `views/components/`
 - Digest items partial: `media_platform.digest._items`
 - Static site deploy hooks views: `views/media_platform/static_site_deploy_hooks/`
@@ -116,6 +152,7 @@ MEDIA_PLATFORM/
 - `database/migrations/media_platform/tools/database_backup/`
 - `database/migrations/media_platform/api/`
 - `database/migrations/media_platform/podcast_studio/management/`
+- `database/migrations/media_platform/podcast_studio/podcast_episode_drafts/`
 - `database/migrations/media_platform/static_site_deploy_hooks/`
 - Note: the migrations folder hierarchy does not fully mirror `MEDIA_PLATFORM/`
 
@@ -124,6 +161,9 @@ MEDIA_PLATFORM/
 - `routes/web.php` and `routes/console.php` are thin orchestrators that `require` feature route files
 - Feature route files live inside their feature folder under a `Routes/` subfolder
 - Example: `MEDIA_PLATFORM/Configuration/Routes/language_models.php`
+- Example: `MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/podcast_episode_drafts.php`
+- Example: `MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/pre_production.php`
+- Example: `MEDIA_PLATFORM/PodcastStudio/Dashboard/Routes/podcast_studio_dashboard.php`
 - API routes are loaded via `routes/api.php`, which Laravel automatically prefixes with `/api`
 
 ## Naming
@@ -140,6 +180,7 @@ MEDIA_PLATFORM/
 - Sensitive fields use Laravel's `encrypted` cast
 - `DeployHook` uses `encrypted` cast on the `url` column
 - Define named Eloquent scopes on models to avoid duplicating query logic across controllers and services. See `PodcastEpisode` for examples: `scopeForUser()`, `scopeWithStatus()`, `scopeOrderByScheduledDate()`, `scopeEligibleForRssFeed()`, `scopeEligibleForPublishOnWebsite()`
+- `PodcastShow` has `drafts()` (HasMany → PodcastEpisodeDraft) and `episodes()` (HasMany → PodcastEpisode) relationships
 
 ## Slugs
 
@@ -153,9 +194,12 @@ MEDIA_PLATFORM/
 - Examples:
   - `MEDIA_PLATFORM/Digest/Enums/OutputType.php` — `MediaPlatform\Digest\Enums\OutputType`
   - `MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/Bucket.php` — `MediaPlatform\PodcastStudio\PostProduction\Enums\Bucket`
+  - `MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Enums/PodcastEpisodeDraftStatus.php` — `MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus`
   - `MEDIA_PLATFORM/StaticSiteDeployHooks/Enums/DeployHookProvider.php` — `MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider`
 - There is no global top-level `Enums/` folder
 - `OutputType` enum: `Webpage`, `Email`, `StaticSite` — controls digest delivery mechanism
+- `PodcastEpisodeDraftStatus` enum: `working_on_draft`, `ready_to_create_production_episode` — tracks draft lifecycle
+- `PodcastEpisodeStatus` enum: tracks production pipeline from `created` through `published` — does NOT include draft-phase statuses (those belong to `PodcastEpisodeDraftStatus`)
 - The `lists.output_type` column is a plain `string`, not a MySQL `enum` — the PHP `OutputType` enum is the sole authority on valid values
 - Adding a new output type requires only: a new enum case, a new strategy class, and registration in `DeliveryStrategyResolver`
 
@@ -210,17 +254,59 @@ MEDIA_PLATFORM/
 - API dashboard shows pending fetch warnings for published digests awaiting static site retrieval
 - See `MEDIA_PLATFORM/API/v1/README.md` for full API documentation
 
+## Podcast Studio
+
+### Assembly Line Model
+
+- The Podcast Studio follows an assembly line model: episodes move through stations from idea to publication
+- The stations are: Drafting → Pre-Production → Episode Creation → Recording → Post-Production → Publishing
+- The Podcast Studio Dashboard (`PodcastStudio/Dashboard/`) is the main entry point — it shows the assembly line at a glance
+- The main app dashboard links to the Podcast Studio Dashboard as a single card entry point
+
+### Episode Drafts
+
+- Every episode begins as a draft — drafts are mandatory, not optional
+- Drafts are lightweight: only `title` is required at creation; all other fields are optional during drafting
+- The `podcast_episode_drafts` table accumulates all inputs needed for episode creation
+- Draft content supports Markdown, rendered via `Str::markdown()` with custom `.markdown-content` CSS in `head.blade.php`
+- Confirmed guests are attached via the `podcast_guest_episode_draft` pivot; the `guest_notes` string field captures prospective guest names not yet in the system
+
+### Pre-Production
+
+- Pre-production is the focused process of finalizing a draft for production — distinct from the open-ended drafting phase
+- A 4-step wizard at `PodcastEpisodeDrafts/PreProduction/`
+- Upon completion, the draft's status changes from `working_on_draft` to `ready_to_create_production_episode`
+
+### Create Production Episode — planned
+
+- A wizard at `CreateProductionEpisode/` that converts a finalized draft into a `podcast_episodes` record
+- Includes a pre-flight checklist and user confirmation before the one-way door
+- Reuses existing Step3Controller derivation logic for the 30+ production fields
+
+### Five Active Shows
+
+- Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter and order:
+  1. The Bob Bloom Show
+  2. The Bob Bloom Interviews
+  3. PHP Serverless News
+  4. PHP Serverless Profiles
+  5. PHP Serverless Project Updates
+- This pattern is used in: Create Draft wizard Step1, Pre-Production wizard Step1, Create Episode wizard Step1, Podcast Studio Dashboard
+
 ## UI & Blade
 
 - Purple / `purple-700` accent theme throughout
 - No modals — use dedicated confirmation pages for destructive actions
 - No bulk delete on index pages
-- Wizards used for multi-step create flows
+- Wizards for multi-step create flows
 - Wizard step dots: each wizard has its own dedicated `_step_dots.blade.php` partial — never share step dot partials between wizards
 - Section headers in show/edit views use `<div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">` above a `border border-purple-500 rounded-lg` card
-- Informational hint text below form fields uses `<ul class="mt-3 ml-3 space-y-1 text-xs text-gray-400 list-disc list-outside pl-5">`
+- Informational hint text below form fields uses `<ul class="mt-3 ml-3 space-y-1 text-xs text-gray-600 list-disc list-outside pl-5">`
 - Dashboard layout: two-column grid (`md:grid-cols-2`), left column for everyday workflow, right column for admin housekeeping
-- Dashboard section cards: `border border-purple-300 rounded-lg overflow-hidden`, header `bg-purple-50 border-b border-purple-300`, links with `<span class="text-purple-400 font-bold">></span>` prefix
+- Dashboard section cards: `border border-purple-300 rounded-lg overflow-hidden`, header `bg-purple-50 border-b border-purple-300`, links with `<span class="text-purple-400 font-bold">›</span>` prefix
+- Markdown rendering: use `{!! Str::markdown($content) !!}` wrapped in a `<div class="markdown-content">` — custom CSS defined in `head.blade.php` (Tailwind CDN does not include the typography plugin, so `prose` classes are not available)
+- Tailwind CSS loaded via CDN (`<script src="https://cdn.tailwindcss.com"></script>`) — not compiled locally
+- Alpine.js loaded via CDN
 
 ## Testing
 
@@ -229,6 +315,8 @@ MEDIA_PLATFORM/
 - CSRF is bypassed in `bootstrap/app.php` via `defined('PHPUNIT_COMPOSER_INSTALL')`
 - Pest does not define this constant automatically, so it is manually defined at the top of `tests/Pest.php` with `define('PHPUNIT_COMPOSER_INSTALL', true)`
 - Test namespaces mirror folder paths: `Tests\Feature\MEDIA_PLATFORM\Digest\ContentSources\Youtube\`
+- Test namespaces mirror folder paths: `Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PodcastEpisodeDrafts\`
+- Test namespaces mirror folder paths: `Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PodcastEpisodeDrafts\PreProduction\`
 - Note: the tests folder hierarchy does not fully mirror `MEDIA_PLATFORM/`
 - One test class per controller — e.g. `Step1ControllerTest`, `Step2ControllerTest`, `Step3ControllerTest`
 
@@ -238,6 +326,7 @@ MEDIA_PLATFORM/
 2. Verify relationship names — read the model file to confirm exact relationship method names, return types, and related models
 3. Test realistic states — don't assume empty model means all nulls; check for defaults. Don't assume `user_id` maps to a `user()` relationship
 4. When testing form submissions that redirect back with errors, assert old input is preserved using `assertSessionHasOldInput()`
+5. When testing views that list shows, create shows with titles from the `ACTIVE_SHOWS` constant — factory-generated random titles won't appear
 
 ### Coverage Goals
 
@@ -262,7 +351,7 @@ MEDIA_PLATFORM/
 ## Wizard conventions
 
 - Each wizard step has its own dedicated controller: `Step1Controller`, `Step2Controller`, `Step3Controller`
-- Session key pattern for wizard state: `wizard.<wizard-name>.<field>` — e.g. `wizard.create_episode.podcast_show_id`
+- Session key pattern for wizard state: `wizard.<wizard-name>.<field>` — e.g. `wizard.create_episode.podcast_show_id`, `wizard.create_draft.podcast_show_id`, `wizard.draft_pre_production.draft_id`
 - The final step controller owns all population methods and the database persist
 - Population methods are named `get_field_name()` in snake_case
 - Population methods are grouped and commented by section (General, Status, iTunes, Website, etc.)

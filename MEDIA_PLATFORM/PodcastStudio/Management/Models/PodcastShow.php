@@ -11,6 +11,7 @@ use Database\Factories\Media_platform\PodcastStudio\Management\PodcastShowFactor
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
+use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 
 
 class PodcastShow extends Model
@@ -125,5 +126,13 @@ class PodcastShow extends Model
     public function footerLinks(): HasMany
     {
         return $this->hasMany(FooterLink::class, 'podcast_show_id');
+    }
+
+    /**
+     * The episode drafts belonging to this show.
+     */
+    public function drafts(): HasMany
+    {
+        return $this->hasMany(PodcastEpisodeDraft::class, 'podcast_show_id');
     }
 }

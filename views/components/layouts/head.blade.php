@@ -20,4 +20,21 @@
     <style>
         [x-cloak] { display: none !important; }
     </style>
+
+    <style>
+        [x-cloak] { display: none !important; }
+
+        /* Markdown rendering */
+        .markdown-content h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .markdown-content h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .markdown-content p { margin-bottom: 0.75rem; }
+        .markdown-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-content li { margin-bottom: 0.25rem; }
+        .markdown-content a { color: #7e22ce; text-decoration: underline; }
+        .markdown-content strong { font-weight: 700; }
+        .markdown-content blockquote { border-left: 3px solid #d1d5db; padding-left: 1rem; color: #6b7280; margin-bottom: 0.75rem; }
+        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.875rem; }
+    </style>
 </head>

@@ -71,8 +71,12 @@
                     class="text-purple-700 hover:underline">
                     <span x-text="open ? 'Hide' : 'Show'"></span>
                     </a>
-                    <div x-show="open" x-transition class="mt-2 text-gray-800">
-                    {{ $episode->draft ?? '(there is no draft)' }}
+                    <div x-show="open" x-transition class="mt-2 markdown-content text-gray-800">
+                        @if ($episode->draft)
+                            {!! Str::markdown($episode->draft) !!}
+                        @else
+                            (there is no draft)
+                        @endif
                     </div>
                 </td>
             </tr>

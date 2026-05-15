@@ -7,9 +7,6 @@ enum PodcastEpisodeStatus: string
     // Episode has just been created via the create-episode wizard.
     case created                         = 'created';
 
-    // Episode draft is being written.
-    case working_on_draft                = 'working-on-draft';
-
     // Draft is complete — episode is ready for the raw WAV recording to be uploaded to S3.
     case ready_to_upload_recording       = 'ready-to-upload-recording';
 
@@ -54,7 +51,6 @@ enum PodcastEpisodeStatus: string
     {
         return match($this) {
             self::created                         => 'Created',
-            self::working_on_draft                => 'Working on Draft',
             self::ready_to_upload_recording       => 'Ready to Upload Recording to S3',
             self::ready_for_auphonic              => 'Ready for Auphonic',
             self::processing_at_auphonic          => 'Processing at Auphonic',
