@@ -12,7 +12,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PodcastEpisodeDrafts\PrePro
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 use Tests\TestCase;

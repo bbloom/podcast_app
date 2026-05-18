@@ -24,7 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\Enums\OutputType;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use MediaPlatform\StaticSiteDeployHooks\Requests\DeployHookRequest;

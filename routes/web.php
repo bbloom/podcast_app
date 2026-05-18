@@ -40,10 +40,10 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/HealthChecks/Routes/health_che
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/DatabaseBackup/Routes/routes.php';
 
 // Podcast Studio — Management
-require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_shows.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Shows/Routes/podcast_shows.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_episodes.php';
-require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_links.php';
-require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Management/Routes/podcast_guests.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Links/Routes/podcast_links.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/podcast_guests.php';
 
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/PhpServerlessProjectSponsors/Routes/phpserverlessproject_sponsors.php';
 
@@ -65,7 +65,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/R
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/podcast_episode_drafts.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Routes/pre_production.php';
 
-require dirname(__DIR__) . '/MEDIA_PLATFORM/PodcastStudio/Dashboard/Routes/podcast_studio_dashboard.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Dashboard/Routes/podcasts_dashboard.php';
 
 
 // eventually going to retire this route file

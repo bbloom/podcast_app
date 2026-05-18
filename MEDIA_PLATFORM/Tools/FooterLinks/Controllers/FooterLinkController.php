@@ -17,7 +17,7 @@ namespace MediaPlatform\Tools\FooterLinks\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
 use MediaPlatform\Tools\FooterLinks\Requests\FooterLinkRequest;
 

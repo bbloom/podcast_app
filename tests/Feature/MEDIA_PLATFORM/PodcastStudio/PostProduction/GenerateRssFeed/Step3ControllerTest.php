@@ -7,7 +7,7 @@ use Aws\S3\S3Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services\GenerateRssFeedResult;
 use MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services\RssFeedGeneratorService;
 use Tests\TestCase;

@@ -14,7 +14,7 @@ namespace MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Controllers;
 use App\Http\Controllers\Controller;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Requests\PodcastEpisodeDraftRequest;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Http\Request;
 
 class PodcastEpisodeDraftController extends Controller

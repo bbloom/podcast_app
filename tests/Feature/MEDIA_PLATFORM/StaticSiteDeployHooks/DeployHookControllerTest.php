@@ -26,7 +26,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\StaticSiteDeployHooks;
 use App\Models\User;
 use Database\Factories\Media_platform\StaticSiteDeployHooks\DeployHookFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use Tests\TestCase;

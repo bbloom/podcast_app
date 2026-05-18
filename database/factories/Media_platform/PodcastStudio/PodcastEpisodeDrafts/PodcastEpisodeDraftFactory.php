@@ -10,7 +10,7 @@ namespace Database\Factories\Media_platform\PodcastStudio\PodcastEpisodeDrafts;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 

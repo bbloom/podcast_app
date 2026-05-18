@@ -4,7 +4,9 @@ namespace MediaPlatform\PodcastStudio\Management\Models;
 
 use Database\Factories\Media_platform\PodcastStudio\Management\PodcastEpisodeFactory;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
+use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
+use MediaPlatform\Podcasts\Links\Models\PodcastLink;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use App\Models\User;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;

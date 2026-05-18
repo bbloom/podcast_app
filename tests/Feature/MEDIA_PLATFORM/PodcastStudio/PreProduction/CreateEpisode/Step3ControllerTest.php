@@ -7,7 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PreProduction\CreateEpisode\Controllers\Step3Controller;
 use Tests\TestCase;
 

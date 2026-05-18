@@ -17,7 +17,7 @@ namespace MediaPlatform\PodcastStudio\PostProduction\PublishOnWebsite\Controller
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
 class TriggerBuildsResultController extends Controller
 {

@@ -20,9 +20,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastGuest;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastLink;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
+use MediaPlatform\Podcasts\Links\Models\PodcastLink;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
 
 class PodcastEpisodeDraft extends Model

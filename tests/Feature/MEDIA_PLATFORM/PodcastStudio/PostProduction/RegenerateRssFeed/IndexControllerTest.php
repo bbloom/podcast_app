@@ -4,7 +4,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PostProduction\RegenerateRs
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;
 
 class IndexControllerTest extends TestCase

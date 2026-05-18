@@ -4,7 +4,7 @@ namespace MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services;
 
 // Models
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
 // Native PHP
 use DOMDocument;

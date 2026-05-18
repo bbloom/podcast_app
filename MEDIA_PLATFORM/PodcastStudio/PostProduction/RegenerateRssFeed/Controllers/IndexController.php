@@ -12,7 +12,7 @@
 namespace MediaPlatform\PodcastStudio\PostProduction\RegenerateRssFeed\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
 class IndexController extends Controller
 {

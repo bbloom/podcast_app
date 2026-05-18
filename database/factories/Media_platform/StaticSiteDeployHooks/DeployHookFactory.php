@@ -18,7 +18,7 @@
 namespace Database\Factories\Media_platform\StaticSiteDeployHooks;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 

@@ -7,7 +7,7 @@ use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
 use MediaPlatform\Digest\ContentSources\Podcasts\Models\Podcast;
 use MediaPlatform\Digest\ContentSources\TextBasedRssFeeds\Models\TextBasedRssFeed;
 use MediaPlatform\Digest\ContentSources\Youtube\Models\YoutubeChannel;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/media_platform/podcast_studio/management'),
             database_path('migrations/media_platform/tools/phpserverlessproject_sponsors'),
             database_path('migrations/media_platform/api'),
-            database_path('migrations/media_platform/podcast_studio/management'),
+            database_path('migrations/media_platform/podcasts'),
             database_path('migrations/media_platform/static_site_deploy_hooks'),
             database_path('migrations/media_platform/tools/footer_links'),
             database_path('migrations/media_platform/videos'),

@@ -19,7 +19,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\AuphonicProcessing\Services\AuphonicService;
 use Tests\TestCase;
 

@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;
 
 class Step2ControllerTest extends TestCase

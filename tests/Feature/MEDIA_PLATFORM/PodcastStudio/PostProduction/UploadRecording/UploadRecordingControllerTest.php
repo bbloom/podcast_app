@@ -5,7 +5,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PostProduction\UploadRecord
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\UploadRecording\Exceptions\UploadRecordingException;
 use MediaPlatform\PodcastStudio\PostProduction\UploadRecording\Services\UploadRecordingService;
 use App\Models\User;

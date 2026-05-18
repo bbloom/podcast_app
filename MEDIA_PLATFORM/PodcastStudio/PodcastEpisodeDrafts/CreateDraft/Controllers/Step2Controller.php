@@ -14,7 +14,7 @@ namespace MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\CreateDraft\Controlle
 
 use App\Http\Controllers\Controller;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Requests\PodcastEpisodeDraftRequest;
 

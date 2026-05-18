@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;
 
 class PodcastEpisodeControllerTest extends TestCase
@@ -127,7 +127,7 @@ class PodcastEpisodeControllerTest extends TestCase
 
         \DB::table('podcast_link_episode')->insert([
             'podcast_episode_id' => $episode->id,
-            'podcast_link_id'    => \MediaPlatform\PodcastStudio\Management\Models\PodcastLink::factory()->create()->id,
+            'podcast_link_id'    => \MediaPlatform\Podcasts\Links\Models\PodcastLink::factory()->create()->id,
         ]);
 
         $this->actingAs($user)
@@ -143,7 +143,7 @@ class PodcastEpisodeControllerTest extends TestCase
 
         \DB::table('podcast_guest_episode')->insert([
             'podcast_episode_id' => $episode->id,
-            'podcast_guest_id'   => \MediaPlatform\PodcastStudio\Management\Models\PodcastGuest::factory()->create()->id,
+            'podcast_guest_id'   => \MediaPlatform\Podcasts\Guests\Models\PodcastGuest::factory()->create()->id,
         ]);
 
         $this->actingAs($user)
@@ -199,7 +199,7 @@ class PodcastEpisodeControllerTest extends TestCase
 
         \DB::table('podcast_link_episode')->insert([
             'podcast_episode_id' => $episode->id,
-            'podcast_link_id'    => \MediaPlatform\PodcastStudio\Management\Models\PodcastLink::factory()->create()->id,
+            'podcast_link_id'    => \MediaPlatform\Podcasts\Links\Models\PodcastLink::factory()->create()->id,
         ]);
 
         $this->actingAs($user)
@@ -217,7 +217,7 @@ class PodcastEpisodeControllerTest extends TestCase
 
         \DB::table('podcast_guest_episode')->insert([
             'podcast_episode_id' => $episode->id,
-            'podcast_guest_id'   => \MediaPlatform\PodcastStudio\Management\Models\PodcastGuest::factory()->create()->id,
+            'podcast_guest_id'   => \MediaPlatform\Podcasts\Guests\Models\PodcastGuest::factory()->create()->id,
         ]);
 
         $this->actingAs($user)

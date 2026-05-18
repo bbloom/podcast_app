@@ -12,8 +12,8 @@ namespace Tests\Feature\MEDIA_PLATFORM\PodcastStudio\PodcastEpisodeDrafts;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastLink;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Links\Models\PodcastLink;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 use Tests\TestCase;
 

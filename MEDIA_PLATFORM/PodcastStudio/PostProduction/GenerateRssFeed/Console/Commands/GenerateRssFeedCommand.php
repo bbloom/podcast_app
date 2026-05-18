@@ -2,7 +2,7 @@
 
 namespace MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Console\Commands;
 
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services\RssFeedGeneratorService;
 use Illuminate\Console\Command;
 

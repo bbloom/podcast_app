@@ -11,7 +11,7 @@
 namespace MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\CreateDraft\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
 class Step1Controller extends Controller
 {

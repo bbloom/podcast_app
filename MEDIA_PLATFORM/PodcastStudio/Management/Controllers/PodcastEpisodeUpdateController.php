@@ -5,7 +5,7 @@ namespace MediaPlatform\PodcastStudio\Management\Controllers;
 use App\Http\Controllers\Controller;
 use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
 use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\Management\Requests\UpdatePodcastEpisodeRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;

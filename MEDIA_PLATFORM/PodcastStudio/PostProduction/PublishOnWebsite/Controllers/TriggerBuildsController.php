@@ -27,7 +27,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use MediaPlatform\StaticSiteDeployHooks\Services\DeployHookTriggerService;
 

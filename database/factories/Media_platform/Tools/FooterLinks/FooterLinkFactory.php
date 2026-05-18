@@ -4,7 +4,7 @@ namespace Database\Factories\Media_platform\Tools\FooterLinks;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
 
 class FooterLinkFactory extends Factory

@@ -25,7 +25,7 @@ use Aws\S3\S3Client;
 use Aws\S3\Exception\S3Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PostProduction\CloudStorage\S3_rss;
 use MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Services\RssFeedGeneratorService;
 

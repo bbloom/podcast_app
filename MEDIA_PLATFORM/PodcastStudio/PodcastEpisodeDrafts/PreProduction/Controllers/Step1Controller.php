@@ -12,7 +12,7 @@
 namespace MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\PreProduction\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastShow;
+use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 
