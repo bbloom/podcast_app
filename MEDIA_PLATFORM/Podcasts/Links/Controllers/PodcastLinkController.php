@@ -6,27 +6,46 @@ use App\Http\Controllers\Controller;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Links\Models\PodcastLink;
 use MediaPlatform\Podcasts\Links\Requests\PodcastLinkRequest;
+use Illuminate\Http\RedirectResponse;
 
 class PodcastLinkController extends Controller
 {
+    // =========================================================================
+    // Ownership
+    // =========================================================================
+
+    /**
+     * Verify that the link belongs to the authenticated user.
+     * Returns a redirect with a friendly error if ownership fails.
+     */
+    private function authorizeOwnership(PodcastLink $link): ?RedirectResponse
+    {
+        if ($link->user_id !== auth()->id()) {
+            return redirect()
+                ->route('podcast_links.index')
+                ->with('error', 'You do not have permission to access that link.');
+        }
+
+        return null;
+    }
+
     // =========================================================================
     // CRUD
     // =========================================================================
 
     /**
-     * Display all podcast links.
+     * Display all podcast links belonging to the authenticated user.
      * Sortable by 'id' (default, descending) or 'title' (ascending).
-     * Direction toggles when the same column is clicked again.
      */
     public function index()
     {
-        // Allowed sort columns — whitelist to prevent SQL injection.
         $allowedSorts = ['id', 'title'];
 
         $sort      = in_array(request('sort'), $allowedSorts) ? request('sort') : 'id';
         $direction = request('direction') === 'asc' ? 'asc' : 'desc';
 
-        $links = PodcastLink::orderBy($sort, $direction)
+        $links = PodcastLink::where('user_id', auth()->id())
+            ->orderBy($sort, $direction)
             ->paginate(config('admin.pagination_show'))
             ->withQueryString();
 
@@ -62,83 +81,37 @@ class PodcastLinkController extends Controller
                 ->with('warning', "This URL already exists as link #{$existingByUrl->id}: \"{$existingByUrl->title}\".");
         }
 
-        $title = null;
+        $title       = null;
         $description = null;
 
         // ── Attempt to scrape title and description via Embed ─────────────
         try {
-            $embed    = new \Embed\Embed();
-            $info     = $embed->get($request->input('link'));
-            $title    = $this->prependTitleWithProvider($info->title, $info->providerName);
+            $embed       = new \Embed\Embed();
+            $info        = $embed->get($request->input('link'));
+            $title       = $this->prependTitleWithProvider($info->title, $info->providerName);
             $description = $info->description ?? null;
         } catch (\Throwable $e) {
             // Network failure, invalid URL, or any other Embed exception.
             // Fall through with nulls — the user will fill in via edit view.
         }
 
-        // ── Duplicate title check (after Embed) ──────────────────────────
-        if (! empty($title)) {
-            $existingByTitle = PodcastLink::where('title', $title)->first();
-
-            if ($existingByTitle) {
-                return redirect()
-                    ->route('podcast_links.create')
-                    ->withInput()
-                    ->with('warning', "A link with this title already exists as link #{$existingByTitle->id}: \"{$existingByTitle->title}\".");
-            }
-        }
-
-        // ── Always save the link ──────────────────────────────────────────
-        $podcastLink = PodcastLink::create([
+        $link = PodcastLink::create([
+            'user_id'     => auth()->id(),
             'link'        => $request->input('link'),
             'title'       => $title,
             'description' => $description,
-            'enabled'     => true,
+            'enabled'     => $request->boolean('enabled'),
         ]);
 
-        // ── Route based on whether we got a title ─────────────────────────
-        if (! empty($podcastLink->title)) {
+        if ($title) {
             return redirect()
-                ->route('podcast_links.show', $podcastLink)
-                ->with('success', 'Link saved successfully.');
+                ->route('podcast_links.show', $link)
+                ->with('success', 'Link created successfully.');
         }
 
         return redirect()
-            ->route('podcast_links.edit', $podcastLink)
-            ->with('warning', 'The link was saved but the title could not be found automatically. Please enter it manually.');
-    }
-
-    // =========================================================================
-    // Embed helpers
-    // =========================================================================
-
-    /**
-     * Prepend the provider name (normalised) to the page title.
-     * e.g. "AWS: New for AWS Lambda – Container Image Support"
-     */
-    private function prependTitleWithProvider(?string $title, ?string $provider): string
-    {
-        if (empty($title)) {
-            return '';
-        }
-
-        $prefix = $this->getSiteName($provider ?? '');
-
-        return $prefix ? $prefix . ': ' . $title : $title;
-    }
-
-    /**
-     * Normalise provider names to preferred short-form labels.
-     * Add entries here as new sources are encountered.
-     */
-    private function getSiteName(string $provider): string
-    {
-        return match ($provider) {
-            'Amazon Web Services' => 'AWS',
-            'The JetBrains Blog'  => 'JetBrains',
-            ''                    => '',
-            default               => $provider,
-        };
+            ->route('podcast_links.edit', $link)
+            ->with('warning', 'Link saved, but the title could not be fetched automatically. Please fill it in.');
     }
 
     /**
@@ -146,10 +119,11 @@ class PodcastLinkController extends Controller
      */
     public function show(PodcastLink $podcast_link)
     {
-        return view(
-            'media_platform.podcasts.links.show',
-            ['link' => $podcast_link]
-        );
+        if ($redirect = $this->authorizeOwnership($podcast_link)) {
+            return $redirect;
+        }
+
+        return view('media_platform.podcasts.links.show', ['link' => $podcast_link]);
     }
 
     /**
@@ -157,10 +131,11 @@ class PodcastLinkController extends Controller
      */
     public function edit(PodcastLink $podcast_link)
     {
-        return view(
-            'media_platform.podcasts.links.edit',
-            ['link' => $podcast_link]
-        );
+        if ($redirect = $this->authorizeOwnership($podcast_link)) {
+            return $redirect;
+        }
+
+        return view('media_platform.podcasts.links.edit', ['link' => $podcast_link]);
     }
 
     /**
@@ -168,6 +143,10 @@ class PodcastLinkController extends Controller
      */
     public function update(PodcastLinkRequest $request, PodcastLink $podcast_link)
     {
+        if ($redirect = $this->authorizeOwnership($podcast_link)) {
+            return $redirect;
+        }
+
         $podcast_link->update($request->validated());
 
         return redirect()
@@ -180,10 +159,11 @@ class PodcastLinkController extends Controller
      */
     public function deleteConfirm(PodcastLink $podcast_link)
     {
-        return view(
-            'media_platform.podcasts.links.delete_confirm',
-            ['link' => $podcast_link]
-        );
+        if ($redirect = $this->authorizeOwnership($podcast_link)) {
+            return $redirect;
+        }
+
+        return view('media_platform.podcasts.links.delete_confirm', ['link' => $podcast_link]);
     }
 
     /**
@@ -192,6 +172,10 @@ class PodcastLinkController extends Controller
      */
     public function destroy(PodcastLink $podcast_link)
     {
+        if ($redirect = $this->authorizeOwnership($podcast_link)) {
+            return $redirect;
+        }
+
         if ($podcast_link->episodes()->exists()) {
             return redirect()
                 ->route('podcast_links.delete.confirm', $podcast_link)
@@ -216,7 +200,6 @@ class PodcastLinkController extends Controller
      */
     public function attachIndex(PodcastEpisode $podcast_episode)
     {
-        // Get IDs of links already attached to this episode.
         $attachedIds = $podcast_episode->links()->pluck('podcast_links.id');
 
         $links = PodcastLink::where('enabled', true)
@@ -235,7 +218,6 @@ class PodcastLinkController extends Controller
      */
     public function attach(PodcastEpisode $podcast_episode, PodcastLink $podcast_link)
     {
-        // syncWithoutDetaching prevents duplicate pivot rows.
         $podcast_episode->links()->syncWithoutDetaching([$podcast_link->id]);
 
         return redirect()
@@ -253,5 +235,22 @@ class PodcastLinkController extends Controller
         return redirect()
             ->route('podcast_episodes.show', $podcast_episode)
             ->with('success', 'Link detached successfully.');
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    /**
+     * Prepend the provider name to the title if available.
+     * e.g. "YouTube: My Video Title"
+     */
+    private function prependTitleWithProvider(?string $title, ?string $provider): ?string
+    {
+        if (! $title) {
+            return null;
+        }
+
+        return $provider ? "{$provider}: {$title}" : $title;
     }
 }

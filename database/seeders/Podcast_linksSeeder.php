@@ -307,5 +307,10 @@ class Podcast_linksSeeder extends Seeder
                 'updated_at' => now(),
             ]));
         }
+
+        DB::table('podcast_links')
+            ->whereNull('user_id')
+            ->update(['user_id' => 1])
+        ;
     }
 }

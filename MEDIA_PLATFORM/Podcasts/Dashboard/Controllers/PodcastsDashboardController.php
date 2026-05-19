@@ -14,7 +14,7 @@ namespace MediaPlatform\Podcasts\Dashboard\Controllers;
 
 use App\Http\Controllers\Controller;
 use MediaPlatform\Podcast\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
 use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;

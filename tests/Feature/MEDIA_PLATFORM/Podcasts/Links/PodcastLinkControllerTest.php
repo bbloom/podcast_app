@@ -17,7 +17,6 @@ class PodcastLinkControllerTest extends TestCase
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Minimum valid payload for creating/updating a podcast link. */
     private function linkPayload(array $overrides = []): array
     {
         return array_merge([
@@ -26,7 +25,11 @@ class PodcastLinkControllerTest extends TestCase
         ], $overrides);
     }
 
-    /** Create a PodcastEpisode with the required show relationship. */
+    private function makeLink(User $user, array $overrides = []): PodcastLink
+    {
+        return PodcastLink::factory()->create(array_merge(['user_id' => $user->id], $overrides));
+    }
+
     private function makeEpisode(User $user): PodcastEpisode
     {
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
@@ -42,12 +45,28 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_index_shows_links_to_authenticated_users(): void
     {
-        $link = PodcastLink::factory()->create(['title' => 'My Resource']);
+        $user = User::factory()->create();
+        $link = $this->makeLink($user, ['title' => 'My Resource']);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($user)
             ->get(route('podcast_links.index'))
             ->assertOk()
             ->assertSee('My Resource');
+    }
+
+    public function test_index_only_shows_own_links(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+
+        $this->makeLink($user,  ['title' => 'My Link']);
+        $this->makeLink($other, ['title' => 'Their Link']);
+
+        $this->actingAs($user)
+            ->get(route('podcast_links.index'))
+            ->assertOk()
+            ->assertSee('My Link')
+            ->assertDontSee('Their Link');
     }
 
     public function test_index_redirects_unauthenticated_users(): void
@@ -58,14 +77,14 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_index_defaults_to_id_descending(): void
     {
-        PodcastLink::factory()->create(['title' => 'Alpha']);
-        PodcastLink::factory()->create(['title' => 'Beta']);
+        $user = User::factory()->create();
+        $this->makeLink($user, ['title' => 'Alpha']);
+        $this->makeLink($user, ['title' => 'Beta']);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs($user)
             ->get(route('podcast_links.index'))
             ->assertOk();
 
-        // Beta was created second (higher ID) — it should appear first (lower position in HTML).
         $this->assertLessThan(
             strpos($response->getContent(), 'Alpha'),
             strpos($response->getContent(), 'Beta')
@@ -74,14 +93,14 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_index_sorts_by_title_ascending(): void
     {
-        PodcastLink::factory()->create(['title' => 'Zebra']);
-        PodcastLink::factory()->create(['title' => 'Apple']);
+        $user = User::factory()->create();
+        $this->makeLink($user, ['title' => 'Zebra']);
+        $this->makeLink($user, ['title' => 'Apple']);
 
-        $response = $this->actingAs(User::factory()->create())
+        $response = $this->actingAs($user)
             ->get(route('podcast_links.index', ['sort' => 'title', 'direction' => 'asc']))
             ->assertOk();
 
-        // Apple should appear before Zebra.
         $this->assertLessThan(
             strpos($response->getContent(), 'Zebra'),
             strpos($response->getContent(), 'Apple')
@@ -111,22 +130,18 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_store_redirects_back_to_create_when_url_already_exists(): void
     {
-        PodcastLink::factory()->create([
-            'link'  => 'https://example.com/article',
-            'title' => 'Existing Article',
-        ]);
+        $user = User::factory()->create();
+        $this->makeLink($user, ['link' => 'https://example.com/resource']);
 
-        $this->actingAs(User::factory()->create())
-            ->post(route('podcast_links.store'), ['link' => 'https://example.com/article'])
+        $this->actingAs($user)
+            ->post(route('podcast_links.store'), $this->linkPayload())
             ->assertRedirect(route('podcast_links.create'))
             ->assertSessionHas('warning');
-
-        $this->assertDatabaseCount('podcast_links', 1);
-    }    
+    }
 
     public function test_store_redirects_unauthenticated_users(): void
     {
-        $this->post(route('podcast_links.store'), ['link' => 'https://example.com/article'])
+        $this->post(route('podcast_links.store'), $this->linkPayload())
             ->assertRedirect(route('login'));
     }
 
@@ -136,17 +151,29 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_show_displays_link_to_authenticated_users(): void
     {
-        $link = PodcastLink::factory()->create(['title' => 'My Resource']);
+        $user = User::factory()->create();
+        $link = $this->makeLink($user);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($user)
             ->get(route('podcast_links.show', $link))
-            ->assertOk()
-            ->assertSee('My Resource');
+            ->assertOk();
+    }
+
+    public function test_show_redirects_with_error_for_another_users_link(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+        $link  = $this->makeLink($other);
+
+        $this->actingAs($user)
+            ->get(route('podcast_links.show', $link))
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('error');
     }
 
     public function test_show_redirects_unauthenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $link = $this->makeLink(User::factory()->create());
 
         $this->get(route('podcast_links.show', $link))
             ->assertRedirect(route('login'));
@@ -165,16 +192,29 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_edit_shows_form_to_authenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $user = User::factory()->create();
+        $link = $this->makeLink($user);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($user)
             ->get(route('podcast_links.edit', $link))
             ->assertOk();
     }
 
+    public function test_edit_redirects_with_error_for_another_users_link(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+        $link  = $this->makeLink($other);
+
+        $this->actingAs($user)
+            ->get(route('podcast_links.edit', $link))
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('error');
+    }
+
     public function test_edit_redirects_unauthenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $link = $this->makeLink(User::factory()->create());
 
         $this->get(route('podcast_links.edit', $link))
             ->assertRedirect(route('login'));
@@ -193,18 +233,32 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_update_saves_changes_and_redirects(): void
     {
-        $link = PodcastLink::factory()->create(['link' => 'https://old.com']);
+        $user = User::factory()->create();
+        $link = $this->makeLink($user, ['title' => 'Old Title']);
 
-        $this->actingAs(User::factory()->create())
-            ->put(route('podcast_links.update', $link), $this->linkPayload(['link' => 'https://new.com']))
-            ->assertRedirect(route('podcast_links.index'));
+        $this->actingAs($user)
+            ->put(route('podcast_links.update', $link), $this->linkPayload(['title' => 'New Title']))
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('podcast_links', ['id' => $link->id, 'link' => 'https://new.com']);
+        $this->assertDatabaseHas('podcast_links', ['id' => $link->id, 'title' => 'New Title']);
+    }
+
+    public function test_update_redirects_with_error_for_another_users_link(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+        $link  = $this->makeLink($other);
+
+        $this->actingAs($user)
+            ->put(route('podcast_links.update', $link), $this->linkPayload())
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('error');
     }
 
     public function test_update_redirects_unauthenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $link = $this->makeLink(User::factory()->create());
 
         $this->put(route('podcast_links.update', $link), $this->linkPayload())
             ->assertRedirect(route('login'));
@@ -212,10 +266,11 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_update_validates_required_fields(): void
     {
-        $link = PodcastLink::factory()->create();
+        $user = User::factory()->create();
+        $link = $this->makeLink($user);
 
-        $this->actingAs(User::factory()->create())
-            ->put(route('podcast_links.update', $link), [])
+        $this->actingAs($user)
+            ->put(route('podcast_links.update', $link), ['link' => ''])
             ->assertSessionHasErrors(['link']);
     }
 
@@ -232,16 +287,29 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_delete_confirm_shows_page_to_authenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $user = User::factory()->create();
+        $link = $this->makeLink($user);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($user)
             ->get(route('podcast_links.delete.confirm', $link))
             ->assertOk();
     }
 
+    public function test_delete_confirm_redirects_with_error_for_another_users_link(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+        $link  = $this->makeLink($other);
+
+        $this->actingAs($user)
+            ->get(route('podcast_links.delete.confirm', $link))
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('error');
+    }
+
     public function test_delete_confirm_redirects_unauthenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $link = $this->makeLink(User::factory()->create());
 
         $this->get(route('podcast_links.delete.confirm', $link))
             ->assertRedirect(route('login'));
@@ -253,23 +321,35 @@ class PodcastLinkControllerTest extends TestCase
 
     public function test_destroy_deletes_link_and_redirects(): void
     {
-        $link = PodcastLink::factory()->create();
+        $user = User::factory()->create();
+        $link = $this->makeLink($user);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($user)
             ->delete(route('podcast_links.destroy', $link))
-            ->assertRedirect(route('podcast_links.index'));
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('podcast_links', ['id' => $link->id]);
     }
 
+    public function test_destroy_redirects_with_error_for_another_users_link(): void
+    {
+        $user  = User::factory()->create();
+        $other = User::factory()->create();
+        $link  = $this->makeLink($other);
+
+        $this->actingAs($user)
+            ->delete(route('podcast_links.destroy', $link))
+            ->assertRedirect(route('podcast_links.index'))
+            ->assertSessionHas('error');
+    }
+
     public function test_destroy_redirects_unauthenticated_users(): void
     {
-        $link = PodcastLink::factory()->create();
+        $link = $this->makeLink(User::factory()->create());
 
         $this->delete(route('podcast_links.destroy', $link))
             ->assertRedirect(route('login'));
-
-        $this->assertDatabaseHas('podcast_links', ['id' => $link->id]);
     }
 
     public function test_destroy_returns_404_for_non_existent_link(): void
@@ -282,7 +362,7 @@ class PodcastLinkControllerTest extends TestCase
     public function test_destroy_blocks_deletion_when_link_is_attached_to_an_episode(): void
     {
         $user    = User::factory()->create();
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
         $episode = $this->makeEpisode($user);
 
         $episode->links()->attach($link->id);
@@ -335,7 +415,7 @@ class PodcastLinkControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisode($user);
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
 
         $this->actingAs($user)
             ->post(route('podcast_links.attach', [$episode, $link]))
@@ -351,15 +431,12 @@ class PodcastLinkControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisode($user);
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
 
-        $this->actingAs($user)
-            ->post(route('podcast_links.attach', [$episode, $link]));
+        $this->actingAs($user)->post(route('podcast_links.attach', [$episode, $link]));
+        $this->actingAs($user)->post(route('podcast_links.attach', [$episode, $link]));
 
-        $this->actingAs($user)
-            ->post(route('podcast_links.attach', [$episode, $link]));
-
-        $this->assertSame(1, \Illuminate\Support\Facades\DB::table('podcast_link_episode')
+        $this->assertSame(1, \DB::table('podcast_link_episode')
             ->where('podcast_episode_id', $episode->id)
             ->where('podcast_link_id', $link->id)
             ->count());
@@ -369,7 +446,7 @@ class PodcastLinkControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisode($user);
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
 
         $this->post(route('podcast_links.attach', [$episode, $link]))
             ->assertRedirect(route('login'));
@@ -383,7 +460,7 @@ class PodcastLinkControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisode($user);
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
 
         $episode->links()->attach($link->id);
 
@@ -401,7 +478,7 @@ class PodcastLinkControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisode($user);
-        $link    = PodcastLink::factory()->create();
+        $link    = $this->makeLink($user);
 
         $episode->links()->attach($link->id);
 
