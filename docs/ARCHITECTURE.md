@@ -22,11 +22,12 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `output_destinations` — where digests are delivered (e.g. SFTP)
 - `published_digests` — persisted digest payloads for static site output type; one record per digest run per list; served via the API to static site generators
 - `language_models` — available AI models for summarisation
-- `podcast_episode_drafts` — lightweight planning and drafting workspace for podcast episodes; accumulates all inputs needed for episode creation (title, episode number, date, draft/script, website content, links, guests); status tracked via `PodcastEpisodeDraftStatus` enum
-- `podcast_link_episode_draft` — pivot table joining links to episode drafts
-- `podcast_guest_episode_draft` — pivot table joining guests to episode drafts
-- `podcast_guest_episode` — pivot table joining guests to episodes (PodcastStudio)
-- `podcast_link_episode` — pivot table joining links to episodes (PodcastStudio)
+- `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Phase 3 Finalize Script Wizard)
+- `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table
+- `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
+- `podcast_guests` — guest profiles for interview show episodes
+- `podcast_guest_episode` — pivot table joining guests to published episodes
+- `podcast_link_episode` — pivot table joining links to published episodes
 - `api_controls` — single-row on/off switch for the public API
 - `api_clients` — authorised front-end domains and their hashed bearer tokens
 - `deploy_hooks` — polymorphic table of static site deploy hook URLs; belongs to any triggerable model (PodcastShow, ListModel)
@@ -95,70 +96,58 @@ Deploy hooks (`DeployHook`) are polymorphic via `triggerable_type` / `triggerabl
 - Managed via the Admin UI at Dashboard → API Management
 - See `MEDIA_PLATFORM/API/v1/README.md` for full detail
 
-## PodcastStudio
+## Podcasts
 
-- Active feature — the central hub for podcast production across five shows
-- The Podcast Studio has its own dedicated dashboard at `PodcastStudio/Dashboard/` — the main app dashboard links to it as a single entry point
-- The podcast production pipeline follows an assembly line model: episodes move through stations from idea to publication
+- Lives at `MEDIA_PLATFORM/Podcasts/` — the central hub for podcast production across five shows
+- The Podcasts module has its own dedicated dashboard — the main app dashboard links to it as a single entry point
+- The production pipeline: Recording → Post-Production → Publishing, tracked via `PodcastEpisodeStatus` enum on `podcast_episodes_published.status`
+- Published episodes are served via the API to Astro static site front-ends
 
-### Episode Drafts (`PodcastEpisodeDrafts/`)
+### Module Structure (`Podcasts/`)
 
-- Every episode begins as a draft in the `podcast_episode_drafts` table
-- Drafts accumulate all inputs needed for episode creation: title, episode number, date, draft/script text, website content, website excerpt, links, and guests
-- Status tracked via `PodcastEpisodeDraftStatus` enum: `working_on_draft` → `ready_to_create_production_episode`
-- The `guest_notes` field (string, optional) captures prospective guest names/notes for guests not yet in the system; confirmed guests are attached via the `podcast_guest_episode_draft` pivot
-- Links are attached via the `podcast_link_episode_draft` pivot; upon episode creation, links and guests are migrated to the episode's pivots
-- CRUD + Create Draft wizard at `PodcastEpisodeDrafts/Controllers/` and `PodcastEpisodeDrafts/CreateDraft/Controllers/`
-- Draft content supports Markdown; rendered via `Str::markdown()` with custom `.markdown-content` CSS (Tailwind CDN does not include the typography plugin)
+- `Dashboard/` — podcast dashboard controller and routes
+- `Enums/` — `PodcastEpisodeStatus` enum
+- `Shows/` — CRUD for podcast shows (Controllers, Models, Requests, Routes); shows have `intro_template` and `outro_template` columns
+- `Guests/` — CRUD for podcast guests, plus attach/detach to episodes
+- `Links/` — CRUD for podcast links, plus attach/detach to episodes; scoped by `user_id`
+- `Publishing/` — Published episode CRUD (Controllers, Models, Requests, Routes) and full Post-Production pipeline
+- `ArchivedEpisodes/` — `BobBloomShowArchive` for legacy archive data
 
-### Pre-Production (`PodcastEpisodeDrafts/PreProduction/`)
+### Post-Production (`Publishing/PostProduction/`)
 
-- A 4-step wizard that walks an existing draft through finalization
-- Step 1: Select a show and pick a draft (only drafts with `working_on_draft` status)
-- Step 2: Finalize title, episode number, and scheduled date
-- Step 3: Finalize draft/script content
-- Step 4: Finalize website content and excerpt → sets status to `ready_to_create_production_episode`
-- All fields are updated on the `podcast_episode_drafts` record — no data moves between tables during pre-production
+- `UploadRecording` — pre-signed S3 PUT upload, S3 file confirmation, status → `ready_for_auphonic`
+- `AuphonicProcessing` — S3 file verification, Auphonic submission, webhook processing, MP3 download, clean-up; see `AuphonicProcessing/README.md`
+- `UploadProductionAudio` — two-path MP3 upload (Auphonic download or manual upload), getID3 metadata extraction, S3 + R2 upload; see `UploadProductionAudio/README.md`
+- `GenerateRssFeed` — generates RSS XML, validates it, uploads to staging for external validation, promotes to live S3 + R2, advances status to `ready_to_publish`; see `GenerateRssFeed/README.md`
+- `PublishOnWebsite` — sets `website_enabled = true`, advances status to `published`, redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes go straight to the index
+- `RegenerateRssFeed` — show-level maintenance flow, rebuilds entire RSS feed from all eligible episodes; operates independently of any episode's pipeline status
+- `CloudStorage/` — S3 and R2 bucket/endpoint resolution classes
+- `Dashboard/` — Post-Production pipeline dashboard
 
-### Create Production Episode (`CreateProductionEpisode/`) — planned
+### Five Active Shows
 
-- A wizard that takes a draft with `ready_to_create_production_episode` status and creates the production `podcast_episodes` record
-- Step 1: Select a show → see only eligible drafts → pick one
-- Step 2: Pre-flight validation checklist
-- Step 3: User confirmation → Step3Controller logic runs → episode created → links/guests migrated → draft deleted
-- Reuses the existing Step3Controller field population and derivation logic
-
-### Management (`Management/`)
-
-- Manages shows, episodes, statuses, links, and guests
-- Episodes relate to guests via the `podcast_guest_episode` pivot table
-- Episodes relate to links via the `podcast_link_episode` pivot table
-
-### Post-Production (`PostProduction/`)
-
-- Post-production pipeline status is tracked via the `PodcastEpisodeStatus` enum on the `podcast_episodes.status` column
-- Cloud storage credentials live in `config/podcast_post_production.php`, read from `.env`
-- Bucket names, providers, file types, and Auphonic preset UUIDs are defined as PHP enums under `PostProduction/Enums/`
-- `UploadRecording` is complete — handles pre-signed S3 PUT upload, S3 file confirmation, and status advancement to `ready_for_auphonic`
-- `AuphonicProcessing` is complete — handles S3 file verification, Auphonic submission, webhook processing, MP3 download, and clean-up; see `AuphonicProcessing/README.md` for full detail
-- `UploadProductionAudio` is complete — handles the two-path MP3 upload (Auphonic download or manual upload from local machine), getID3 metadata extraction, S3 and R2 upload, and clean-up; see `UploadProductionAudio/README.md` for full detail
-- `GenerateRssFeed` is complete — generates the RSS XML feed, validates it, uploads to staging for external validation, promotes to live S3 and R2, and advances the episode status to `ready_to_publish`; see `GenerateRssFeed/README.md` for full detail
-- `PublishOnWebsite` is complete — sets `website_enabled = true`, advances the episode status to `published`, and when `website_publish_on <= today` redirects to the "Trigger Static Site Builds" step
-- `RegenerateRssFeed` is complete — a show-level maintenance flow that rebuilds the entire RSS feed from all eligible episodes, uploads to staging for external validation, and promotes to live S3 and R2; operates independently of any episode's pipeline status
-
-### Podcast Studio Dashboard (`Dashboard/`)
-
-- Dedicated dashboard for the Podcast Studio, separate from the main app dashboard
-- Shows overview: per-show counts of drafts in progress, drafts ready for production, episodes in production
-- Assembly line view: sections for Drafting, Ready to Create Production Episode, In Production, Recently Published
-- Quick actions: New Draft, Pre-Production, Post-Production
-- Management links: Shows, Episodes, Drafts, Links, Guests, Deploy Hooks
+Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter and order:
+1. The Bob Bloom Show
+2. The Bob Bloom Interviews
+3. PHP Serverless News
+4. PHP Serverless Profiles
+5. PHP Serverless Project Updates
 
 ### Status Enums
 
-- `PodcastEpisodeDraftStatus` (`PodcastEpisodeDrafts/Enums/`): `working_on_draft`, `ready_to_create_production_episode` — tracks draft lifecycle
-- `PodcastEpisodeStatus` (`Management/Enums/`): `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published` — tracks production pipeline
-- These are deliberately separate enums: draft statuses apply only to drafts, production statuses apply only to episodes
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Enums/`): tracks the production pipeline —
+  `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published` (episode recorded but intentionally not published, set manually)
+- `ready_to_upload_recording` retained for backward compatibility — marked for removal once the Phase 3 Publishing wizard refactor is complete
+
+### Phase 3 — Planning (upcoming)
+
+Phase 3 will add a Planning module at `MEDIA_PLATFORM/Podcasts/Planning/` with:
+- New `podcast_episodes_planning` table — creative and assembly workspace; records are hard-deleted on publishing (no soft deletes)
+- New `PodcastEpisodePlanningStatus` enum (separate from `PodcastEpisodeStatus`)
+- Wizards: Create Episode, Finalize Script (uses `intro_template`/`outro_template` from `podcast_shows`), Prepare for Publishing
+- Focused field editors for `theme` and `script`
+- Guest interaction feature
+- Publishing handoff: populates `podcast_episodes_published`, hard-deletes the planning record
 
 ## Static Site Deploy Hooks
 

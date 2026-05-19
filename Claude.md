@@ -17,15 +17,16 @@
 - Never modify .env
 - Never modify any .env files, whose files start with: ".env"
 
-## Podcast Studio Context
-- The Podcast Studio follows an assembly line model for podcast production
-- Every episode begins as a draft in `podcast_episode_drafts` — drafts are mandatory
-- The assembly line: Drafting → Pre-Production → Episode Creation → Recording → Post-Production → Publishing
-- Draft statuses use `PodcastEpisodeDraftStatus` enum; production statuses use `PodcastEpisodeStatus` enum — these are deliberately separate
-- The "one-way door": once a `podcast_episodes` record is created via Step3Controller, 30+ fields are derived and locked. Everything upstream of this must be right before crossing
+## Podcasts Context
+- The Podcasts module lives at `MEDIA_PLATFORM/Podcasts/`
+- The production pipeline: Recording → Post-Production → Publishing
+- Published episodes are stored in `podcast_episodes_published`; the API serves from this table
+- Production statuses use `PodcastEpisodeStatus` enum at `MEDIA_PLATFORM/Podcasts/Enums/`
+- Pipeline: `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`
 - Controllers listing podcast shows use `private const ACTIVE_SHOWS` for consistent filtering and ordering
+- Migrations live at `database/migrations/media_platform/podcasts/`
 - One table per migration file
-- Markdown in draft/episode content rendered via `Str::markdown()` with `.markdown-content` CSS class
+- Phase 3 will add a Planning module (`MEDIA_PLATFORM/Podcasts/Planning/`) with `podcast_episodes_planning` table, planning wizards, and `PodcastEpisodePlanningStatus` enum (separate from `PodcastEpisodeStatus`)
 
 ## Git
 - Do not run git add, git commit, or git push — that is the developer's responsibility
