@@ -39,6 +39,11 @@ enum PodcastEpisodeStatus: string
     // Episode is live on the website and in the RSS feed.
     case published                       = 'published';
 
+    // Episode was recorded but intentionally not published.
+    // Set manually.
+    case not_published = 'not-published';
+
+
 
     // -------------------------------------------------------------------------
     // Human-readable label for display in the UI.
@@ -60,6 +65,7 @@ enum PodcastEpisodeStatus: string
             self::ready_to_upload_rss_feed        => 'Ready to Upload RSS Feed to S3 & R2',
             self::ready_to_publish                => 'Ready to Publish on Website',
             self::published                       => 'Published',
+            self::not_published                   => 'Not Published',
         };
     }
 }
