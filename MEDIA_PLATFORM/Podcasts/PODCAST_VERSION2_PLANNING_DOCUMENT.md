@@ -48,23 +48,30 @@ MEDIA_PLATFORM/
 ### Version 2 — New (`MEDIA_PLATFORM/Podcasts/`)
 
 ```
+### Version 2 — New (`MEDIA_PLATFORM/Podcasts/`)
+
+```
 MEDIA_PLATFORM/
 └── Podcasts/
     ├── Planning/
-    │   ├── CreateEpisodeWizard/
-    │   ├── FinalizeScriptWizard/
-    │   ├── PrepareForPublishingWizard/
-    │   ├── EditThemeField/
-    │   ├── EditScriptField/
     │   ├── CRUD/
+    │   │   ├── Controllers/
+    │   │   ├── Models/
+    │   │   ├── Enums/
+    │   │   ├── Requests/
+    │   │   └── Routes/
+    │   ├── CreateEpisodeWizard/
     │   │   └── Controllers/
-    │   └── Common/
-    │       ├── Models/
-    │       ├── Enums/
-    │       ├── Requests/
-    │       └── Routes/
+    │   ├── FinalizeScriptWizard/
+    │   │   └── Controllers/
+    │   ├── PrepareForPublishingWizard/
+    │   │   └── Controllers/
+    │   ├── EditThemeField/
+    │   │   └── Controllers/
+    │   └── EditScriptField/
+    │       └── Controllers/
     ├── Publishing/
-    │   └── (Post Production wizard — refactored from PodcastStudio/PostProduction/)
+    │   └── (Post Production wizard)
     ├── Shows/
     │   ├── Controllers/
     │   ├── Models/
@@ -73,6 +80,7 @@ MEDIA_PLATFORM/
     ├── Guests/
     ├── Links/
     └── Dashboard/
+
 ```
 
 ---
