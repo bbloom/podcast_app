@@ -32,6 +32,10 @@ class PodcastShow extends Model
         'description',
         'rss_link',
 
+        // intro and outro templates
+        'intro_template',
+        'outro_template',
+
         // iTunes
         'itunes_image',
         'itunes_language',

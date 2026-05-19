@@ -63,6 +63,37 @@
             </tr>
 
 
+            {{-- intro and outro templates --}}
+            <tr x-data="{ open: false }">
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Intro Template</td>
+                <td class="py-1">
+                    @if ($show->intro_template)
+                        <a href="javascript:void(0);" @click="open = !open" class="text-purple-700 hover:underline text-xs">
+                            <span x-text="open ? 'Hide' : 'Show'"></span>
+                        </a>
+                        <div x-show="open" x-transition class="mt-2 text-gray-800 text-xs whitespace-pre-wrap font-mono">{{ $show->intro_template }}</div>
+                    @else
+                        <span class="text-gray-400">—</span>
+                    @endif
+                </td>
+            </tr>
+            <tr x-data="{ open: false }">
+                <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Outro Template</td>
+                <td class="py-1">
+                    @if ($show->outro_template)
+                        <a href="javascript:void(0);" @click="open = !open" class="text-purple-700 hover:underline text-xs">
+                            <span x-text="open ? 'Hide' : 'Show'"></span>
+                        </a>
+                        <div x-show="open" x-transition class="mt-2 text-gray-800 text-xs whitespace-pre-wrap font-mono">{{ $show->outro_template }}</div>
+                    @else
+                        <span class="text-gray-400">—</span>
+                    @endif
+                </td>
+            </tr>
+
+
+
+
             {{-- iTunes --}}
             <tr><td colspan="2" class="pt-6 pb-1 text-xs font-semibold text-purple-700 uppercase tracking-wider">iTunes</td></tr>
             <tr>

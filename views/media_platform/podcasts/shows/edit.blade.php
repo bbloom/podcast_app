@@ -53,6 +53,32 @@
             @error('rss_link') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
+
+        {{-- ================================================================ --}}
+        {{-- TEMPLATES                                                        --}}
+        {{-- ================================================================ --}}
+        
+        {{-- Intro Template --}}
+        <div class="mb-6">
+            <label for="intro_template" class="block text-sm font-semibold text-gray-700 mb-2">Intro Template</label>
+            <textarea id="intro_template" name="intro_template" rows="6"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize @error('intro_template') border-red-400 @enderror">{{ old('intro_template', $show->intro_template) }}</textarea>
+            @error('intro_template') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+            <p class="mt-1 ml-2 text-xs text-gray-500">
+                Available placeholders: <code>@{{episode_number}}</code>, <code>@{{title}}</code>, <code>@{{sponsors}}</code>
+            </p>
+        </div>
+
+        {{-- Outro Template --}}
+        <div class="mb-6">
+            <label for="outro_template" class="block text-sm font-semibold text-gray-700 mb-2">Outro Template</label>
+            <textarea id="outro_template" name="outro_template" rows="6"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize @error('outro_template') border-red-400 @enderror">{{ old('outro_template', $show->outro_template) }}</textarea>
+            @error('outro_template') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+        </div>
+
+
+
         {{-- ================================================================ --}}
         {{-- ITUNES / APPLE PODCASTS                                          --}}
         {{-- ================================================================ --}}

@@ -27,6 +27,10 @@ class PodcastShowRequest extends FormRequest
             // Core — optional fields
             'rss_link' => ['nullable', 'url', 'max:255'],
 
+            // intro and outro templates
+            'intro_template' => ['nullable', 'string'],
+            'outro_template' => ['nullable', 'string'],
+            
             // iTunes — optional fields
             'itunes_image'              => ['nullable', 'url', 'max:255'],
             'itunes_language'           => ['nullable', 'string', 'max:10'],

@@ -191,6 +191,49 @@ class PodcastShowControllerTest extends TestCase
             ->assertSessionHasErrors(['title', 'description']);
     }
 
+
+    public function test_update_saves_intro_and_outro_templates(): void
+    {
+        $user = User::factory()->create();
+        $show = PodcastShow::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->put(route('podcast_shows.update', $show), $this->showPayload([
+                'intro_template' => 'Welcome to {{title}}, episode {{episode_number}}.',
+                'outro_template' => 'Thanks for listening. See you next time.',
+            ]))
+            ->assertRedirect(route('podcast_shows.show', $show));
+
+        $this->assertDatabaseHas('podcast_shows', [
+            'id'             => $show->id,
+            'intro_template' => 'Welcome to {{title}}, episode {{episode_number}}.',
+            'outro_template' => 'Thanks for listening. See you next time.',
+        ]);
+    }
+
+    public function test_update_allows_null_intro_and_outro_templates(): void
+    {
+        $user = User::factory()->create();
+        $show = PodcastShow::factory()->create([
+            'user_id'        => $user->id,
+            'intro_template' => 'Old intro.',
+            'outro_template' => 'Old outro.',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('podcast_shows.update', $show), $this->showPayload([
+                'intro_template' => null,
+                'outro_template' => null,
+            ]))
+            ->assertRedirect(route('podcast_shows.show', $show));
+
+        $this->assertDatabaseHas('podcast_shows', [
+            'id'             => $show->id,
+            'intro_template' => null,
+            'outro_template' => null,
+        ]);
+    }
+
     // -------------------------------------------------------------------------
     // deleteConfirm
     // -------------------------------------------------------------------------
