@@ -233,7 +233,7 @@ class Step2ControllerTest extends TestCase
             ->assertRedirect(route('post_production.generate_rss_feed.step2', $episode))
             ->assertSessionHas('wizard.generate_rss_feed.enclosure_manually_verified_' . $episode->id, true);
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                      => $episode->id,
             'itunes_enclosure_length' => '47823104',
             'itunes_duration'         => '01:15:32',

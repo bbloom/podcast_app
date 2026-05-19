@@ -42,7 +42,7 @@ class Podcast_episodes4Seeder extends Seeder
         $rows = $this->rows();
 
         foreach ($rows as $row) {
-            DB::table('podcast_episodes')->insertOrIgnore($row);
+            DB::table('podcast_episodes_published')->insertOrIgnore($row);
         }
 
         DB::statement('SET session_replication_role = DEFAULT;');

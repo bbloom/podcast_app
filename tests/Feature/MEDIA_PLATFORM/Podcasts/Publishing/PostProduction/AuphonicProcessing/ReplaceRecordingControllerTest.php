@@ -52,7 +52,7 @@ class ReplaceRecordingControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.replace_recording', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_upload_recording->value,
         ]);
@@ -69,7 +69,7 @@ class ReplaceRecordingControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.replace_recording', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                       => $episode->id,
             'raw_input_audio_filename' => 'bobbloomshow47.wav',
         ]);

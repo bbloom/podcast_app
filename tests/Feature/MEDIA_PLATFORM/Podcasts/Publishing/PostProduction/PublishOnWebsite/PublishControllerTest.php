@@ -65,7 +65,7 @@ class PublishControllerTest extends TestCase
             ->assertRedirect(route('post_production.trigger_builds.select', $episode->show))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'website_enabled' => true,
             'status'          => PodcastEpisodeStatus::published->value,
@@ -86,7 +86,7 @@ class PublishControllerTest extends TestCase
             ->assertRedirect(route('post_production.publish_on_website.index'))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'website_enabled' => true,
             'status'          => PodcastEpisodeStatus::published->value,
@@ -112,7 +112,7 @@ class PublishControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.publish_on_website.publish', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                 => $episode->id,
             'website_publish_on' => now()->addMonth()->toDateString(),
         ]);
@@ -164,7 +164,7 @@ class PublishControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.publish_on_website.publish', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'website_enabled' => false,
             'status'          => PodcastEpisodeStatus::ready_for_auphonic->value,

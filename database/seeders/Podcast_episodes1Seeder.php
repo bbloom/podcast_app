@@ -806,7 +806,7 @@ class Podcast_episodes1Seeder extends Seeder
 
         // Insert each episode, skipping any that already exist (idempotent).
         foreach ($episodes as $episode) {
-            DB::table('podcast_episodes')->updateOrInsert(
+            DB::table('podcast_episodes_published')->updateOrInsert(
                 ['id' => $episode['id']],
                 $episode
             );
@@ -817,6 +817,6 @@ class Podcast_episodes1Seeder extends Seeder
 
         // Advance the PostgreSQL sequence past the highest inserted ID so that
         // future auto-increment inserts do not collide with the seeded IDs.
-        DB::statement("SELECT setval('podcast_episodes_id_seq', (SELECT MAX(id) FROM podcast_episodes))");
+        DB::statement("SELECT setval('podcast_episodes_id_seq', (SELECT MAX(id) FROM podcast_episodes_published))");
     }
 }

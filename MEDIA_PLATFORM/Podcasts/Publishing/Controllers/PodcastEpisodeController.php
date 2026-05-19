@@ -20,11 +20,11 @@ class PodcastEpisodeController extends Controller
      * Keys = allowed query-string values; values = actual DB columns.
      */
     private const SORTABLE_COLUMNS = [
-        'id'             => 'podcast_episodes.id',
-        'title'          => 'podcast_episodes.title',
+        'id'             => 'podcast_episodes_published.id',
+        'title'          => 'podcast_episodes_published.title',
         'show'           => 'podcast_shows.title',
-        'status'         => 'podcast_episodes.status',
-        'scheduled_date' => 'podcast_episodes.scheduled_date',
+        'status'         => 'podcast_episodes_published.status',
+        'scheduled_date' => 'podcast_episodes_published.scheduled_date',
     ];
 
     /**
@@ -64,8 +64,8 @@ class PodcastEpisodeController extends Controller
             ->when(
                 $sortKey === 'show',
                 // Join the shows table so we can sort by the show's title.
-                fn ($q) => $q->select('podcast_episodes.*')
-                             ->join('podcast_shows', 'podcast_shows.id', '=', 'podcast_episodes.podcast_show_id')
+                fn ($q) => $q->select('podcast_episodes_published.*')
+                             ->join('podcast_shows', 'podcast_shows.id', '=', 'podcast_episodes_published.podcast_show_id')
             )
             ->orderBy($sortColumn, $sortDir)
             ->paginate(20)

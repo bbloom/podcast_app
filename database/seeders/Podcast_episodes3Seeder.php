@@ -20,7 +20,7 @@ class Podcast_episodes3Seeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('podcast_episodes')->insert([
+        DB::table('podcast_episodes_published')->insert([
 
             // -----------------------------------------------------------------
             // ID 55 — Bob Bloom Show #24

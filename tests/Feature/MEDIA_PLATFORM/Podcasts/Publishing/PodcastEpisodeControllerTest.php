@@ -167,7 +167,7 @@ class PodcastEpisodeControllerTest extends TestCase
             ->assertRedirect(route('podcast_episodes.index'))
             ->assertSessionHas('error');
 
-        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id]);
+        $this->assertDatabaseHas('podcast_episodes_published', ['id' => $episode->id]);
     }
 
     // -------------------------------------------------------------------------
@@ -189,7 +189,7 @@ class PodcastEpisodeControllerTest extends TestCase
             ->assertRedirect(route('podcast_episodes.show', $episode))
             ->assertSessionHas('error');
 
-        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id]);
+        $this->assertDatabaseHas('podcast_episodes_published', ['id' => $episode->id]);
     }
 
     public function test_destroy_is_blocked_when_episode_has_links(): void
@@ -207,7 +207,7 @@ class PodcastEpisodeControllerTest extends TestCase
             ->assertRedirect(route('podcast_episodes.show', $episode))
             ->assertSessionHas('error');
 
-        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id]);
+        $this->assertDatabaseHas('podcast_episodes_published', ['id' => $episode->id]);
     }
 
     public function test_destroy_is_blocked_when_episode_has_guests(): void
@@ -225,6 +225,6 @@ class PodcastEpisodeControllerTest extends TestCase
             ->assertRedirect(route('podcast_episodes.show', $episode))
             ->assertSessionHas('error');
 
-        $this->assertDatabaseHas('podcast_episodes', ['id' => $episode->id]);
+        $this->assertDatabaseHas('podcast_episodes_published', ['id' => $episode->id]);
     }
 }

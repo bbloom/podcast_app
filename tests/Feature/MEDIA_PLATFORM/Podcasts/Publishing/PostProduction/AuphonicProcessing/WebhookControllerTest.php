@@ -65,7 +65,7 @@ class WebhookControllerTest extends TestCase
             'status_string' => 'Done',
         ]);
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::auphonic_complete->value,
         ]);
@@ -103,7 +103,7 @@ class WebhookControllerTest extends TestCase
             'status_string' => 'Error',
         ]);
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::processing_at_auphonic->value,
         ]);
@@ -175,7 +175,7 @@ class WebhookControllerTest extends TestCase
         ])->assertOk();
 
         // Status must not have changed.
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::auphonic_complete->value,
         ]);

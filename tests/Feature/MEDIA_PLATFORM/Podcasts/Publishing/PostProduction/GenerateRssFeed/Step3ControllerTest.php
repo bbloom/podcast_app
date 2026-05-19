@@ -152,7 +152,7 @@ class Step3ControllerTest extends TestCase
             ->withSession($this->withStep1Session($episode))
             ->get(route('post_production.generate_rss_feed.step3', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed->value,
         ]);

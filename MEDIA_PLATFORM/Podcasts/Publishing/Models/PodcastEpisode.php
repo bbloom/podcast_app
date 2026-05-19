@@ -24,7 +24,7 @@ class PodcastEpisode extends Model
     // -------------------------------------------------------------------------
     // Table name — always explicit per conventions.
     // -------------------------------------------------------------------------
-    protected $table = 'podcast_episodes';
+    protected $table = 'podcast_episodes_published';
 
     // -------------------------------------------------------------------------
     // Mass-assignable columns.
@@ -151,7 +151,7 @@ class PodcastEpisode extends Model
      */
     public function scopeForUser(Builder $query, int $userId): Builder
     {
-        return $query->where('podcast_episodes.user_id', $userId);
+        return $query->where('podcast_episodes_published.user_id', $userId);
     }
 
     /**

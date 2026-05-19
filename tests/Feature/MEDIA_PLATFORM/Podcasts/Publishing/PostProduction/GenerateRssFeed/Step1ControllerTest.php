@@ -148,7 +148,7 @@ class Step1ControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.generate_rss_feed.step1.store', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed->value,
         ]);

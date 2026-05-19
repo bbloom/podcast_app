@@ -305,7 +305,7 @@ class SubmitControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.submit', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                       => $episode->id,
             'auphonic_production_uuid' => self::FAKE_PRODUCTION_UUID,
         ]);
@@ -324,7 +324,7 @@ class SubmitControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.submit', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::processing_at_auphonic->value,
         ]);
@@ -429,7 +429,7 @@ class SubmitControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.submit', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_for_auphonic->value,
         ]);

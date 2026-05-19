@@ -353,8 +353,8 @@ paths, service providers. **No logic changes.** Tests must be green at the end.
 
 #### Step 6 — Publishing (PostProduction)
 - Move `PodcastStudio/PostProduction/` → `Podcasts/Publishing/`
-- Update namespace: `MediaPlatform\Podcasts\Publishing\PostProduction\` → `MediaPlatform\Podcasts\Publishing\`
-- Update view paths: `media_platform.podcasts.publishing.post_production.*` → `media_platform.podcasts.publishing.*`
+- Update namespace: `MediaPlatform\PodcastStudio\PostProduction\` → `MediaPlatform\Podcasts\Publishing\`
+- Update view paths: `media_platform.podcast_studio.post_production.*` → `media_platform.podcasts.publishing.*`
 - Update Auphonic webhook CSRF exclusion path in `bootstrap/app.php` if class-based; URL path is unchanged
 - Update route file `require` in `routes/web.php`
 - Update tests
@@ -366,8 +366,12 @@ paths, service providers. **No logic changes.** Tests must be green at the end.
 - Delete now-empty `PodcastStudio/Management/`
 - Delete now-empty `PodcastStudio/`
 
-#### Step 8 — AppServiceProvider
-- Update all `loadMigrationsFrom()` paths for podcast migrations
+#### Step 8 — Migration files
+- Move `database/migrations/media_platform/podcast_studio/management/` → `database/migrations/media_platform/podcasts/`
+- Move `database/migrations/media_platform/podcast_studio/podcast_episode_drafts/` → `database/migrations/media_platform/podcasts/` (or discard with the retired table)
+
+#### Step 9 — AppServiceProvider
+- Update all `loadMigrationsFrom()` paths to `database/migrations/media_platform/podcasts/`
 - Update morph map: ensure `podcast_show` alias points to new `PodcastShow` class path
 - Verify all podcast-related bindings and registrations
 

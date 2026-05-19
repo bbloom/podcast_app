@@ -391,7 +391,7 @@ class Podcast_link_episodeSeeder extends Seeder
         The `->all()` at the end just converts the collection back to a plain PHP array, since `isset()` works on arrays.        
         */
         
-        $existingEpisodeIds = DB::table('podcast_episodes')->pluck('id')->flip()->all();
+        $existingEpisodeIds = DB::table('podcast_episodes_published')->pluck('id')->flip()->all();
 
         foreach ($rows as $row) {
             if (! isset($existingEpisodeIds[$row['podcast_episode_id']])) {

@@ -199,7 +199,7 @@ class ResubmitControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.resubmit', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                       => $episode->id,
             'auphonic_production_uuid' => self::NEW_PRODUCTION_UUID,
         ]);
@@ -218,7 +218,7 @@ class ResubmitControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.resubmit', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::processing_at_auphonic->value,
         ]);
@@ -333,7 +333,7 @@ class ResubmitControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Processing at Auphonic');
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::processing_at_auphonic->value,
         ]);

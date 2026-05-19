@@ -52,6 +52,6 @@ class DatabaseSeeder extends Seeder
 
         */
 
-        DB::statement("SELECT setval(pg_get_serial_sequence('podcast_episodes', 'id'), (SELECT MAX(id) FROM podcast_episodes))");
+        DB::statement("SELECT setval(pg_get_serial_sequence('podcast_episodes_published', 'id'), (SELECT MAX(id) FROM podcast_episodes_published))");
     }
 }

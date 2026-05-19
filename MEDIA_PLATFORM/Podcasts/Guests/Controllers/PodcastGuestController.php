@@ -124,7 +124,7 @@ class PodcastGuestController extends Controller
      */
     public function attachEpisodeIndex(PodcastGuest $podcast_guest)
     {
-        $attachedIds = $podcast_guest->episodes()->pluck('podcast_episodes.id');
+        $attachedIds = $podcast_guest->episodes()->pluck('podcast_episodes_published.id');
 
         $episodes = PodcastEpisode::whereNotIn('id', $attachedIds)
             ->orderBy('title')

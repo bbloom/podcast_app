@@ -1018,6 +1018,6 @@ class Podcast_episodes2Seeder extends Seeder
             ],
         ];
 
-        DB::table('podcast_episodes')->insertOrIgnore($rows);
+        DB::table('podcast_episodes_published')->insertOrIgnore($rows);
     }
 }

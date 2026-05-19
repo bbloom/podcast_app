@@ -154,7 +154,7 @@ class CleanUpControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                       => $episode->id,
             'auphonic_production_uuid' => null,
         ]);
@@ -173,7 +173,7 @@ class CleanUpControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_upload_production_file->value,
         ]);
@@ -267,7 +267,7 @@ class CleanUpControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::auphonic_complete->value,
         ]);
@@ -295,7 +295,7 @@ class CleanUpControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_upload_production_file->value,
         ]);
@@ -325,7 +325,7 @@ class CleanUpControllerTest extends TestCase
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_upload_production_file->value,
         ]);

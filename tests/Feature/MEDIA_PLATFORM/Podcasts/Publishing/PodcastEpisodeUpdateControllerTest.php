@@ -166,7 +166,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
             ->assertRedirect(route('podcast_episodes.show', $episode))
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                 => $episode->id,
             'title'              => '#5 - Updated Title',
             'slug'               => 'bob-bloom-show-ep5-old-title',
@@ -204,7 +204,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
 
         // Slug must remain unchanged — it was set by the create wizard
         // and should never be recalculated by the update method.
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'    => $episode->id,
             'title' => '#5 - My Updated Episode',
             'slug'  => 'bob-bloom-show-ep5-my-episode',
@@ -233,7 +233,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
             ->put(route('podcast_episodes.update', $episode), $payload)
             ->assertRedirect(route('podcast_episodes.show', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'title'           => '#6 - Replacement Episode',
             'slug'            => 'bob-bloom-show-ep6-replacement-episode',
@@ -268,7 +268,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
             ->put(route('podcast_episodes.update', $episode), $payload)
             ->assertRedirect(route('podcast_episodes.show', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'itunes_explicit' => false,
             'itunes_block'    => false,
@@ -302,7 +302,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
             ->put(route('podcast_episodes.update', $episode), $payload)
             ->assertRedirect(route('podcast_episodes.show', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'              => $episode->id,
             'itunes_explicit' => true,
             'itunes_block'    => true,

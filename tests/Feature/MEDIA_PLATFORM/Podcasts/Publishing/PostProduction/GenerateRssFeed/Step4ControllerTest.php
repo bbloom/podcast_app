@@ -141,7 +141,7 @@ class Step4ControllerTest extends TestCase
             ->withSession($this->withFullSession($episode))
             ->post(route('post_production.generate_rss_feed.step4.failed', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed->value,
         ]);

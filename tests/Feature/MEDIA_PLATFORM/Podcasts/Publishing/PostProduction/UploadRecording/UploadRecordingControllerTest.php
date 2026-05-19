@@ -273,7 +273,7 @@ class UploadRecordingControllerTest extends TestCase
             ->withSession([self::SESSION_KEY => self::PENDING_KEY])
             ->post(route('post_production.upload_recording.complete', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_for_auphonic->value,
         ]);
@@ -295,7 +295,7 @@ class UploadRecordingControllerTest extends TestCase
             ->withSession([self::SESSION_KEY => self::PENDING_KEY])
             ->post(route('post_production.upload_recording.complete', $episode));
 
-        $this->assertDatabaseHas('podcast_episodes', [
+        $this->assertDatabaseHas('podcast_episodes_published', [
             'id'                       => $episode->id,
             'raw_input_audio_filename' => 'my-recording.wav',
         ]);
