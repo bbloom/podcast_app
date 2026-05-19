@@ -3,7 +3,7 @@
 namespace MediaPlatform\Podcasts\Links\Models;
 
 use Database\Factories\Media_platform\Podcasts\Links\PodcastLinkFactory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

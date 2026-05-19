@@ -4,8 +4,7 @@ namespace MediaPlatform\Podcasts\Shows\Models;
 
 use App\Models\User;
 use Database\Factories\Media_platform\Podcasts\Shows\PodcastShowFactory;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
-use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -126,13 +125,5 @@ class PodcastShow extends Model
     public function footerLinks(): HasMany
     {
         return $this->hasMany(FooterLink::class, 'podcast_show_id');
-    }
-
-    /**
-     * The episode drafts belonging to this show.
-     */
-    public function drafts(): HasMany
-    {
-        return $this->hasMany(PodcastEpisodeDraft::class, 'podcast_show_id');
     }
 }

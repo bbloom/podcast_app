@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use MediaPlatform\API\v1\Models\ApiClient;
 use MediaPlatform\API\v1\Models\ApiControl;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;

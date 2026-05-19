@@ -13,7 +13,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use MediaPlatform\PodcastStudio\Management\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
 
 return new class extends Migration
 {

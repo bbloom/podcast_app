@@ -3,7 +3,7 @@
 namespace MediaPlatform\Podcasts\Guests\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Podcasts\Guests\Requests\PodcastGuestRequest;
 

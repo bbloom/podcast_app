@@ -221,77 +221,13 @@
 
     <hr class="my-4 border-t-2 border-purple-200">
 
-    {{-- ── Episode Drafts ───────────────────────────────────────────────────────── --}}
-    {{-- Episode Drafts --}}
-    <hr class="my-4 border-t-2 border-purple-200">
-
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-purple-700">
-            Episode Drafts
-            <span class="ml-1 text-sm font-normal text-gray-400">({{ $show->drafts()->count() }})</span>
-        </h2>
-        <a href="{{ route('podcast_episode_drafts.create.step1') }}"
-           class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-            + New Draft
-        </a>
-    </div>
-
-    @php $drafts = $show->drafts()->orderByDesc('id')->get(); @endphp
-
-    @if ($drafts->isEmpty())
-        <div class="border border-gray-200 rounded-lg px-6 py-10 text-center text-sm text-gray-400">
-            No episode drafts yet for this show.
-        </div>
-    @else
-        <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Ep#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Date</th>
-                        <th class="px-6 py-3"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-purple-400">
-                    @foreach ($drafts as $draft)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 text-gray-600 tabular-nums">{{ $draft->episode_number ?? '—' }}</td>
-                            <td class="px-6 py-4">
-                                <a href="{{ route('podcast_episode_drafts.show', $draft) }}"
-                                   class="font-medium text-purple-700 hover:underline">
-                                    {{ $draft->title }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">{{ $draft->date?->format('M d, Y') ?? '—' }}</td>
-                            <td class="px-6 py-4 text-right">
-                                <a href="{{ route('podcast_episode_drafts.show', $draft) }}"
-                                   class="inline-block bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
-                                    Details
-                                </a>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
-
-
-
-
-    <hr class="my-4 border-t-2 border-purple-200">
-
     {{-- Episodes --}}
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold text-purple-700">
             Episodes
             <span class="ml-1 text-sm font-normal text-gray-400">({{ $show->episodes()->count() }})</span>
         </h2>
-        <a href="{{ route('pre_production_create_podcast_episode.step1') }}"
-           class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-            + New Episode
-        </a>
+
     </div>    
 
     @if ($episodes->isEmpty())

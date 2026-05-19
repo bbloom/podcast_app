@@ -2,11 +2,11 @@
 
 namespace MediaPlatform\API\v1\Services;
 
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Tools\PhpServerlessProjectSponsors\Models\PhpServerlessProjectSponsor;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\Management\ArchivedEpisodes\BobBloomShowArchive;
+use MediaPlatform\Podcasts\ArchivedEpisodes\BobBloomShowArchive;
 use MediaPlatform\API\v1\Resources\PodcastEpisodeResource;
 
 

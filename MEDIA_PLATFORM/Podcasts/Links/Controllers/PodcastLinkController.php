@@ -3,7 +3,7 @@
 namespace MediaPlatform\Podcasts\Links\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Links\Models\PodcastLink;
 use MediaPlatform\Podcasts\Links\Requests\PodcastLinkRequest;
 

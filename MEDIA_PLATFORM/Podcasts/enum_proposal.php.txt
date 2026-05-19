@@ -233,6 +233,16 @@ What do you think? I next want to dive into "FinalizeScriptWizard"
 
 =========
 
+MEDIA_PLATFORM/
+└── Podcasts/
+    ├── Publishing/
+        ├── Controllers/
+        ├── Models/
+    │   ├── Enums/
+    │   ├── Requests/
+    │   └── Routes/
+    
+
 
 
 

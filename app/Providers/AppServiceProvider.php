@@ -87,7 +87,7 @@ class AppServiceProvider extends ServiceProvider
             \MediaPlatform\Tools\HealthChecks\Console\Commands\HealthCheckCommand::class,
             \MediaPlatform\Digest\Processing\Console\Commands\ProcessListsCommand::class,
             \MediaPlatform\Tools\DatabaseBackup\Commands\BackupDatabaseCommand::class,
-            \MediaPlatform\PodcastStudio\PostProduction\GenerateRssFeed\Console\Commands\GenerateRssFeedCommand::class,
+            \MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Console\Commands\GenerateRssFeedCommand::class,
         ]);
 
         /**

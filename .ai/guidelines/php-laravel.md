@@ -193,7 +193,7 @@ MEDIA_PLATFORM/
 - The namespace mirrors the folder path exactly
 - Examples:
   - `MEDIA_PLATFORM/Digest/Enums/OutputType.php` — `MediaPlatform\Digest\Enums\OutputType`
-  - `MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/Bucket.php` — `MediaPlatform\PodcastStudio\PostProduction\Enums\Bucket`
+  - `MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/Bucket.php` — `MediaPlatform\Podcasts\Publishing\PostProduction\Enums\Bucket`
   - `MEDIA_PLATFORM/PodcastStudio/PodcastEpisodeDrafts/Enums/PodcastEpisodeDraftStatus.php` — `MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus`
   - `MEDIA_PLATFORM/StaticSiteDeployHooks/Enums/DeployHookProvider.php` — `MediaPlatform\StaticSiteDeployHooks\Enums\DeployHookProvider`
 - There is no global top-level `Enums/` folder

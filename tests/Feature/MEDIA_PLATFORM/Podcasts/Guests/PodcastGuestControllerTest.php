@@ -5,7 +5,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Guests;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;

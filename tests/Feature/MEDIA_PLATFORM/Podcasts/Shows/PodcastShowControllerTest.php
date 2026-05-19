@@ -4,7 +4,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Shows;
 
 use App\Models\User;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\Management\Models\PodcastEpisode;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
