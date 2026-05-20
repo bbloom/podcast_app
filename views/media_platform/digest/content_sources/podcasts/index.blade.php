@@ -2,7 +2,7 @@
 
     <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-bold text-gray-800">My Podcasts</h1>
-        <a href="{{ route('podcasts.create.step1') }}"
+        <a href="{{ route('digest-podcasts.create.step1') }}"
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
             + Add Podcast
         </a>
@@ -22,7 +22,7 @@
             </svg>
             <p class="text-sm font-semibold text-gray-500 mb-1">No podcasts yet</p>
             <p class="text-sm text-gray-400 mb-6">Add your first podcast to start building digests.</p>
-            <a href="{{ route('podcasts.create.step1') }}"
+            <a href="{{ route('digest-podcasts.create.step1') }}"
                class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
                 Add a Podcast
             </a>
@@ -74,11 +74,11 @@
 
                     {{-- Actions --}}
                     <div class="flex items-center gap-3 flex-shrink-0">
-                        <a href="{{ route('podcasts.show', $podcast) }}"
+                        <a href="{{ route('digest-podcasts.show', $podcast) }}"
                             class="text-xs text-gray-500 hover:text-purple-700 font-medium transition">
                             Details
                         </a>
-                        <a href="{{ route('podcasts.delete.confirm', $podcast) }}"
+                        <a href="{{ route('digest-podcasts.delete.confirm', $podcast) }}"
                            class="text-xs text-gray-400 hover:text-red-600 font-medium transition">
                             Delete
                         </a>

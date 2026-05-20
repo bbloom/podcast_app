@@ -2,7 +2,7 @@
 
     <div class="mb-8">
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <a href="{{ route('podcasts.index') }}" class="hover:text-purple-700 transition">My Podcasts</a>
+            <a href="{{ route('digest-podcasts.index') }}" class="hover:text-purple-700 transition">My Podcasts</a>
             <span>›</span>
             <span class="text-gray-700">Edit</span>
         </div>
@@ -62,7 +62,7 @@
     </div>
 
     {{-- Edit form --}}
-    <form method="POST" action="{{ route('podcasts.update', $podcast) }}">
+    <form method="POST" action="{{ route('digest-podcasts.update', $podcast) }}">
         @csrf
         @method('PUT')
 
@@ -92,12 +92,12 @@
         </div>
 
         <div class="flex items-center justify-between">
-            <a href="{{ route('podcasts.delete.confirm', $podcast) }}"
+            <a href="{{ route('digest-podcasts.delete.confirm', $podcast) }}"
                class="text-sm text-red-500 hover:text-red-700 font-medium transition">
                 Delete this podcast
             </a>
             <div class="flex gap-3">
-                <a href="{{ route('podcasts.index') }}"
+                <a href="{{ route('digest-podcasts.index') }}"
                    class="text-sm text-gray-500 hover:text-gray-700 font-semibold px-5 py-3 transition">
                     Cancel
                 </a>

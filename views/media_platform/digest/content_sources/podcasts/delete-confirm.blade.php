@@ -2,7 +2,7 @@
 
     <div class="mb-8">
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <a href="{{ route('podcasts.index') }}" class="hover:text-purple-700 transition">My Podcasts</a>
+            <a href="{{ route('digest-podcasts.index') }}" class="hover:text-purple-700 transition">My Podcasts</a>
             <span>›</span>
             <span class="text-gray-700">Delete</span>
         </div>
@@ -58,11 +58,11 @@
 
     {{-- Actions --}}
     <div class="flex items-center justify-between">
-        <a href="{{ route('podcasts.edit', $podcast) }}"
+        <a href="{{ route('digest-podcasts.edit', $podcast) }}"
            class="text-sm text-gray-500 hover:text-gray-700 font-semibold py-3 transition">
             ← Cancel
         </a>
-        <form method="POST" action="{{ route('podcasts.destroy', $podcast) }}">
+        <form method="POST" action="{{ route('digest-podcasts.destroy', $podcast) }}">
             @csrf
             @method('DELETE')
             <button

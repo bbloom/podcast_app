@@ -118,10 +118,10 @@ class WizardFlowTest extends TestCase
                 'schedule_day'       => null,
                 'schedule_time'      => '08:00',
                 'output_type'        => 'email',
-                'redirect_to'        => 'podcasts.create.step3',
+                'redirect_to'        => 'digest-podcasts.create.step3',
             ],
         ])->post(route('lists.create.step6.submit'))
-          ->assertRedirect(route('podcasts.create.step3'))
+          ->assertRedirect(route('digest-podcasts.create.step3'))
           ->assertSessionHas('success');
     }
 

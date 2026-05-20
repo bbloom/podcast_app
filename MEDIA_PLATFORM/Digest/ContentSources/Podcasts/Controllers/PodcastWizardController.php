@@ -73,7 +73,7 @@ class PodcastWizardController extends Controller
         $request->session()->put('podcast_wizard.rss_url',   $rssUrl);
         $request->session()->put('podcast_wizard.feed_data', $result['data']);
 
-        return redirect()->route('podcasts.create.step2');
+        return redirect()->route('digest-podcasts.create.step2');
     }
 
     // -------------------------------------------------------------------------
@@ -83,13 +83,13 @@ class PodcastWizardController extends Controller
     public function step2(Request $request)
     {
         if (! $request->session()->has('podcast_wizard.rss_url')) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         $podcast = $request->session()->get('podcast_wizard.feed_data');
 
         if (! $podcast) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         return view('media_platform.digest.content_sources.podcasts.wizard-step2', compact('podcast'));
@@ -98,12 +98,12 @@ class PodcastWizardController extends Controller
     public function step2Submit(Request $request)
     {
         if (! $request->session()->has('podcast_wizard.rss_url')) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         $request->session()->put('podcast_wizard.confirmed', true);
 
-        return redirect()->route('podcasts.create.step3');
+        return redirect()->route('digest-podcasts.create.step3');
     }
 
     // -------------------------------------------------------------------------
@@ -113,7 +113,7 @@ class PodcastWizardController extends Controller
     public function step3(Request $request)
     {
         if (! $request->session()->get('podcast_wizard.confirmed')) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         $lists = ListModel::where('user_id', auth()->id())
@@ -129,13 +129,13 @@ class PodcastWizardController extends Controller
     public function step3Submit(Request $request)
     {
         if (! $request->session()->get('podcast_wizard.confirmed')) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         $feedData = $request->session()->get('podcast_wizard.feed_data');
 
         if (! $feedData) {
-            return redirect()->route('podcasts.create.step1');
+            return redirect()->route('digest-podcasts.create.step1');
         }
 
         $listIds         = $request->input('list_ids', []);
@@ -192,7 +192,7 @@ class PodcastWizardController extends Controller
         $request->session()->put('podcast_wizard.saved_title',      $title);
         $request->session()->put('podcast_wizard.saved_list_count', count($listIds));
 
-        return redirect()->route('podcasts.create.step4');
+        return redirect()->route('digest-podcasts.create.step4');
     }
 
     // -------------------------------------------------------------------------
@@ -230,7 +230,7 @@ class PodcastWizardController extends Controller
             'enabled' => $request->boolean('enabled'),
         ]);
 
-        return redirect()->route('podcasts.index')
+        return redirect()->route('digest-podcasts.index')
             ->with('success', 'Podcast updated successfully.');
     }
 
@@ -282,7 +282,7 @@ class PodcastWizardController extends Controller
     {
         $this->authorizeOwnership($podcast);
 
-        return $this->handleAttach($request, $podcast, 'podcasts.show');
+        return $this->handleAttach($request, $podcast, 'digest-podcasts.show');
     }
 
     /**
@@ -292,7 +292,7 @@ class PodcastWizardController extends Controller
     {
         $this->authorizeOwnership($podcast);
 
-        return $this->handleUpdateListSource($request, $podcast, $listSource, 'podcasts.show');
+        return $this->handleUpdateListSource($request, $podcast, $listSource, 'digest-podcasts.show');
     }
 
     /**
@@ -312,7 +312,7 @@ class PodcastWizardController extends Controller
     {
         $this->authorizeOwnership($podcast);
 
-        return $this->handleDetach($podcast, $listSource, 'podcasts.show');
+        return $this->handleDetach($podcast, $listSource, 'digest-podcasts.show');
     }
 
     // -------------------------------------------------------------------------
@@ -332,7 +332,7 @@ class PodcastWizardController extends Controller
 
         $podcast->delete();
 
-        return redirect()->route('podcasts.index')
+        return redirect()->route('digest-podcasts.index')
             ->with('success', 'Podcast deleted.');
     }
 

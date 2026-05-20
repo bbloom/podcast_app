@@ -29,7 +29,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         Podcast::factory()->forUser($this->user)->count(2)->create();
 
-        $this->get(route('podcasts.index'))
+        $this->get(route('digest-podcasts.index'))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.index')
             ->assertViewHas('podcasts');
@@ -39,20 +39,20 @@ class PodcastWizardControllerTest extends TestCase
 
     public function test_step1_renders_form(): void
     {
-        $this->get(route('podcasts.create.step1'))
+        $this->get(route('digest-podcasts.create.step1'))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.wizard-step1');
     }
 
     public function test_step1_submit_validates_required_url(): void
     {
-        $this->post(route('podcasts.create.step1.submit'), [])
+        $this->post(route('digest-podcasts.create.step1.submit'), [])
             ->assertSessionHasErrors('rss_url');
     }
 
     public function test_step1_submit_validates_url_format(): void
     {
-        $this->post(route('podcasts.create.step1.submit'), ['rss_url' => 'not-a-url'])
+        $this->post(route('digest-podcasts.create.step1.submit'), ['rss_url' => 'not-a-url'])
             ->assertSessionHasErrors('rss_url');
     }
 
@@ -62,7 +62,7 @@ class PodcastWizardControllerTest extends TestCase
             'rss_url' => 'https://example.com/podcast.xml',
         ]);
 
-        $this->post(route('podcasts.create.step1.submit'), [
+        $this->post(route('digest-podcasts.create.step1.submit'), [
             'rss_url' => 'https://example.com/podcast.xml',
         ])->assertSessionHasErrors('rss_url');
     }
@@ -76,18 +76,18 @@ class PodcastWizardControllerTest extends TestCase
 
         Http::fake(['example.com/*' => Http::response($this->podcastXml())]);
 
-        $this->post(route('podcasts.create.step1.submit'), [
+        $this->post(route('digest-podcasts.create.step1.submit'), [
             'rss_url' => 'https://example.com/podcast.xml',
-        ])->assertRedirect(route('podcasts.create.step2'));
+        ])->assertRedirect(route('digest-podcasts.create.step2'));
     }
 
     public function test_step1_submit_fetches_feed_and_stores_in_session(): void
     {
         Http::fake(['example.com/*' => Http::response($this->podcastXml())]);
 
-        $this->post(route('podcasts.create.step1.submit'), [
+        $this->post(route('digest-podcasts.create.step1.submit'), [
             'rss_url' => 'https://example.com/podcast.xml',
-        ])->assertRedirect(route('podcasts.create.step2'))
+        ])->assertRedirect(route('digest-podcasts.create.step2'))
           ->assertSessionHas('podcast_wizard.rss_url')
           ->assertSessionHas('podcast_wizard.feed_data');
     }
@@ -96,7 +96,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         Http::fake(['example.com/*' => Http::response('', 500)]);
 
-        $this->post(route('podcasts.create.step1.submit'), [
+        $this->post(route('digest-podcasts.create.step1.submit'), [
             'rss_url' => 'https://example.com/podcast.xml',
         ])->assertSessionHasErrors('rss_url');
     }
@@ -105,7 +105,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         Http::fake(['example.com/*' => Http::response('not xml at all')]);
 
-        $this->post(route('podcasts.create.step1.submit'), [
+        $this->post(route('digest-podcasts.create.step1.submit'), [
             'rss_url' => 'https://example.com/podcast.xml',
         ])->assertSessionHasErrors('rss_url');
     }
@@ -114,8 +114,8 @@ class PodcastWizardControllerTest extends TestCase
 
     public function test_step2_redirects_to_step1_without_session(): void
     {
-        $this->get(route('podcasts.create.step2'))
-            ->assertRedirect(route('podcasts.create.step1'));
+        $this->get(route('digest-podcasts.create.step2'))
+            ->assertRedirect(route('digest-podcasts.create.step1'));
     }
 
     public function test_step2_renders_with_valid_session(): void
@@ -123,7 +123,7 @@ class PodcastWizardControllerTest extends TestCase
         $this->withSession([
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
-        ])->get(route('podcasts.create.step2'))
+        ])->get(route('digest-podcasts.create.step2'))
           ->assertOk()
           ->assertViewIs('media_platform.digest.content_sources.podcasts.wizard-step2')
           ->assertViewHas('podcast');
@@ -134,23 +134,23 @@ class PodcastWizardControllerTest extends TestCase
         $this->withSession([
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
-        ])->post(route('podcasts.create.step2.submit'))
-          ->assertRedirect(route('podcasts.create.step3'))
+        ])->post(route('digest-podcasts.create.step2.submit'))
+          ->assertRedirect(route('digest-podcasts.create.step3'))
           ->assertSessionHas('podcast_wizard.confirmed', true);
     }
 
     public function test_step2_submit_redirects_to_step1_without_session(): void
     {
-        $this->post(route('podcasts.create.step2.submit'))
-            ->assertRedirect(route('podcasts.create.step1'));
+        $this->post(route('digest-podcasts.create.step2.submit'))
+            ->assertRedirect(route('digest-podcasts.create.step1'));
     }
 
     // ── step 3: assign to lists ────────────────────────────────────────────────
 
     public function test_step3_redirects_to_step1_without_confirmation(): void
     {
-        $this->get(route('podcasts.create.step3'))
-            ->assertRedirect(route('podcasts.create.step1'));
+        $this->get(route('digest-podcasts.create.step3'))
+            ->assertRedirect(route('digest-podcasts.create.step1'));
     }
 
     public function test_step3_renders_with_valid_session(): void
@@ -161,7 +161,7 @@ class PodcastWizardControllerTest extends TestCase
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
             'podcast_wizard.confirmed' => true,
-        ])->get(route('podcasts.create.step3'))
+        ])->get(route('digest-podcasts.create.step3'))
           ->assertOk()
           ->assertViewIs('media_platform.digest.content_sources.podcasts.wizard-step3')
           ->assertViewHas('lists')
@@ -174,7 +174,7 @@ class PodcastWizardControllerTest extends TestCase
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
             'podcast_wizard.confirmed' => true,
-        ])->post(route('podcasts.create.step3.submit'), [])
+        ])->post(route('digest-podcasts.create.step3.submit'), [])
           ->assertSessionHasErrors('list_ids');
     }
 
@@ -187,7 +187,7 @@ class PodcastWizardControllerTest extends TestCase
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
             'podcast_wizard.confirmed' => true,
-        ])->post(route('podcasts.create.step3.submit'), [
+        ])->post(route('digest-podcasts.create.step3.submit'), [
             'list_ids' => [$otherList->id],
         ])->assertSessionHasErrors('list_ids');
     }
@@ -200,9 +200,9 @@ class PodcastWizardControllerTest extends TestCase
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
             'podcast_wizard.confirmed' => true,
-        ])->post(route('podcasts.create.step3.submit'), [
+        ])->post(route('digest-podcasts.create.step3.submit'), [
             'list_ids' => $lists->pluck('id')->toArray(),
-        ])->assertRedirect(route('podcasts.create.step4'));
+        ])->assertRedirect(route('digest-podcasts.create.step4'));
 
         $this->assertDatabaseHas('podcasts', [
             'user_id' => $this->user->id,
@@ -233,7 +233,7 @@ class PodcastWizardControllerTest extends TestCase
             'podcast_wizard.rss_url'   => 'https://example.com/podcast.xml',
             'podcast_wizard.feed_data' => $this->feedData(),
             'podcast_wizard.confirmed' => true,
-        ])->post(route('podcasts.create.step3.submit'), [
+        ])->post(route('digest-podcasts.create.step3.submit'), [
             'list_ids' => [$list->id],
         ]);
 
@@ -251,7 +251,7 @@ class PodcastWizardControllerTest extends TestCase
         $this->withSession([
             'podcast_wizard.saved_title'      => 'My Podcast',
             'podcast_wizard.saved_list_count' => 2,
-        ])->get(route('podcasts.create.step4'))
+        ])->get(route('digest-podcasts.create.step4'))
           ->assertOk()
           ->assertViewIs('media_platform.digest.content_sources.podcasts.wizard-step4')
           ->assertViewHas('title', 'My Podcast')
@@ -260,7 +260,7 @@ class PodcastWizardControllerTest extends TestCase
 
     public function test_step4_uses_defaults_when_session_empty(): void
     {
-        $this->get(route('podcasts.create.step4'))
+        $this->get(route('digest-podcasts.create.step4'))
             ->assertOk()
             ->assertViewHas('title', 'Podcast')
             ->assertViewHas('listCount', 0);
@@ -272,7 +272,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create();
 
-        $this->get(route('podcasts.edit', $podcast))
+        $this->get(route('digest-podcasts.edit', $podcast))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.edit');
     }
@@ -282,7 +282,7 @@ class PodcastWizardControllerTest extends TestCase
         $otherUser = \App\Models\User::factory()->create();
         $podcast   = Podcast::factory()->forUser($otherUser)->create();
 
-        $this->get(route('podcasts.edit', $podcast))
+        $this->get(route('digest-podcasts.edit', $podcast))
             ->assertForbidden();
     }
 
@@ -292,7 +292,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create();
 
-        $this->get(route('podcasts.show', $podcast))
+        $this->get(route('digest-podcasts.show', $podcast))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.show')
             ->assertViewHas('podcast')
@@ -309,7 +309,7 @@ class PodcastWizardControllerTest extends TestCase
 
         $this->createListSource($podcast->id, 'podcast', $attached->id);
 
-        $response       = $this->get(route('podcasts.show', $podcast));
+        $response       = $this->get(route('digest-podcasts.show', $podcast));
         $availableLists = $response->viewData('availableLists');
 
         $this->assertFalse($availableLists->contains('id', $attached->id));
@@ -321,13 +321,13 @@ class PodcastWizardControllerTest extends TestCase
         $otherUser = \App\Models\User::factory()->create();
         $podcast   = Podcast::factory()->forUser($otherUser)->create();
 
-        $this->get(route('podcasts.show', $podcast))
+        $this->get(route('digest-podcasts.show', $podcast))
             ->assertForbidden();
     }
 
     public function test_show_returns_404_for_missing_record(): void
     {
-        $this->get(route('podcasts.show', 99999))
+        $this->get(route('digest-podcasts.show', 99999))
             ->assertNotFound();
     }
 
@@ -337,8 +337,8 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create(['enabled' => true]);
 
-        $this->put(route('podcasts.update', $podcast), ['enabled' => '0'])
-            ->assertRedirect(route('podcasts.index'))
+        $this->put(route('digest-podcasts.update', $podcast), ['enabled' => '0'])
+            ->assertRedirect(route('digest-podcasts.index'))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('podcasts', ['id' => $podcast->id, 'enabled' => false]);
@@ -349,7 +349,7 @@ class PodcastWizardControllerTest extends TestCase
         $otherUser = \App\Models\User::factory()->create();
         $podcast   = Podcast::factory()->forUser($otherUser)->create();
 
-        $this->put(route('podcasts.update', $podcast), ['enabled' => '1'])
+        $this->put(route('digest-podcasts.update', $podcast), ['enabled' => '1'])
             ->assertForbidden();
     }
 
@@ -359,7 +359,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create();
 
-        $this->get(route('podcasts.delete.confirm', $podcast))
+        $this->get(route('digest-podcasts.delete.confirm', $podcast))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.delete-confirm');
     }
@@ -368,8 +368,8 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create();
 
-        $this->delete(route('podcasts.destroy', $podcast))
-            ->assertRedirect(route('podcasts.index'))
+        $this->delete(route('digest-podcasts.destroy', $podcast))
+            ->assertRedirect(route('digest-podcasts.index'))
             ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('podcasts', ['id' => $podcast->id]);
@@ -380,7 +380,7 @@ class PodcastWizardControllerTest extends TestCase
         $otherUser = \App\Models\User::factory()->create();
         $podcast   = Podcast::factory()->forUser($otherUser)->create();
 
-        $this->delete(route('podcasts.destroy', $podcast))
+        $this->delete(route('digest-podcasts.destroy', $podcast))
             ->assertForbidden();
     }
 
@@ -391,10 +391,10 @@ class PodcastWizardControllerTest extends TestCase
         $podcast = Podcast::factory()->forUser($this->user)->create();
         $list    = ListModel::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'description',
-        ])->assertRedirect(route('podcasts.show', $podcast))
+        ])->assertRedirect(route('digest-podcasts.show', $podcast))
           ->assertSessionHas('success');
 
         $this->assertDatabaseHas('list_sources', [
@@ -411,7 +411,7 @@ class PodcastWizardControllerTest extends TestCase
         $podcast = Podcast::factory()->forUser($this->user)->create();
         $list    = ListModel::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'search',
             'search_terms'    => 'AI, robotics',
@@ -430,7 +430,7 @@ class PodcastWizardControllerTest extends TestCase
         $podcast = Podcast::factory()->forUser($this->user)->create();
         $list    = ListModel::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'summary',
             'search_terms'    => 'should be ignored',
@@ -450,7 +450,7 @@ class PodcastWizardControllerTest extends TestCase
 
         $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'description',
         ])->assertSessionHasErrors('list_id');
@@ -462,7 +462,7 @@ class PodcastWizardControllerTest extends TestCase
         $otherUser = \App\Models\User::factory()->create();
         $otherList = ListModel::factory()->forUser($otherUser)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $otherList->id,
             'processing_mode' => 'description',
         ])->assertSessionHasErrors('list_id');
@@ -474,7 +474,7 @@ class PodcastWizardControllerTest extends TestCase
         $podcast   = Podcast::factory()->forUser($otherUser)->create();
         $list      = ListModel::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'description',
         ])->assertForbidden();
@@ -484,7 +484,7 @@ class PodcastWizardControllerTest extends TestCase
     {
         $podcast = Podcast::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [])
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [])
             ->assertSessionHasErrors(['list_id', 'processing_mode']);
     }
 
@@ -493,7 +493,7 @@ class PodcastWizardControllerTest extends TestCase
         $podcast = Podcast::factory()->forUser($this->user)->create();
         $list    = ListModel::factory()->forUser($this->user)->create();
 
-        $this->post(route('podcasts.list_sources.attach', $podcast), [
+        $this->post(route('digest-podcasts.list_sources.attach', $podcast), [
             'list_id'         => $list->id,
             'processing_mode' => 'invalid_mode',
         ])->assertSessionHasErrors('processing_mode');
@@ -507,9 +507,9 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($this->user)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id, 'description');
 
-        $this->patch(route('podcasts.list_sources.update', [$podcast, $listSource]), [
+        $this->patch(route('digest-podcasts.list_sources.update', [$podcast, $listSource]), [
             'processing_mode' => 'summary',
-        ])->assertRedirect(route('podcasts.show', $podcast))
+        ])->assertRedirect(route('digest-podcasts.show', $podcast))
           ->assertSessionHas('success');
 
         $this->assertDatabaseHas('list_sources', [
@@ -525,7 +525,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($this->user)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id, 'description');
 
-        $this->patch(route('podcasts.list_sources.update', [$podcast, $listSource]), [
+        $this->patch(route('digest-podcasts.list_sources.update', [$podcast, $listSource]), [
             'processing_mode' => 'search',
             'search_terms'    => 'machine learning',
         ]);
@@ -543,7 +543,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($this->user)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id, 'search', 'AI');
 
-        $this->patch(route('podcasts.list_sources.update', [$podcast, $listSource]), [
+        $this->patch(route('digest-podcasts.list_sources.update', [$podcast, $listSource]), [
             'processing_mode' => 'description',
         ]);
 
@@ -561,7 +561,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($otherUser)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->patch(route('podcasts.list_sources.update', [$podcast, $listSource]), [
+        $this->patch(route('digest-podcasts.list_sources.update', [$podcast, $listSource]), [
             'processing_mode' => 'summary',
         ])->assertForbidden();
     }
@@ -573,7 +573,7 @@ class PodcastWizardControllerTest extends TestCase
         $list         = ListModel::factory()->forUser($this->user)->create();
         $listSource   = $this->createListSource($otherPodcast->id, 'podcast', $list->id);
 
-        $this->patch(route('podcasts.list_sources.update', [$podcast, $listSource]), [
+        $this->patch(route('digest-podcasts.list_sources.update', [$podcast, $listSource]), [
             'processing_mode' => 'summary',
         ])->assertForbidden();
     }
@@ -586,7 +586,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($this->user)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->get(route('podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
+        $this->get(route('digest-podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
             ->assertOk()
             ->assertViewIs('media_platform.digest.content_sources.podcasts.detach-confirm')
             ->assertViewHas('source')
@@ -600,7 +600,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($otherUser)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->get(route('podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
+        $this->get(route('digest-podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
             ->assertForbidden();
     }
 
@@ -611,7 +611,7 @@ class PodcastWizardControllerTest extends TestCase
         $list         = ListModel::factory()->forUser($this->user)->create();
         $listSource   = $this->createListSource($otherPodcast->id, 'podcast', $list->id);
 
-        $this->get(route('podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
+        $this->get(route('digest-podcasts.list_sources.detach.confirm', [$podcast, $listSource]))
             ->assertForbidden();
     }
 
@@ -623,8 +623,8 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($this->user)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->delete(route('podcasts.list_sources.detach', [$podcast, $listSource]))
-            ->assertRedirect(route('podcasts.show', $podcast))
+        $this->delete(route('digest-podcasts.list_sources.detach', [$podcast, $listSource]))
+            ->assertRedirect(route('digest-podcasts.show', $podcast))
             ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('list_sources', ['id' => $listSource->id]);
@@ -649,7 +649,7 @@ class PodcastWizardControllerTest extends TestCase
 
         $this->assertDatabaseHas('summaries', ['list_source_id' => $listSource->id]);
 
-        $this->delete(route('podcasts.list_sources.detach', [$podcast, $listSource]));
+        $this->delete(route('digest-podcasts.list_sources.detach', [$podcast, $listSource]));
 
         $this->assertDatabaseMissing('summaries', ['list_source_id' => $listSource->id]);
     }
@@ -661,7 +661,7 @@ class PodcastWizardControllerTest extends TestCase
         $list       = ListModel::factory()->forUser($otherUser)->create();
         $listSource = $this->createListSource($podcast->id, 'podcast', $list->id);
 
-        $this->delete(route('podcasts.list_sources.detach', [$podcast, $listSource]))
+        $this->delete(route('digest-podcasts.list_sources.detach', [$podcast, $listSource]))
             ->assertForbidden();
     }
 
@@ -672,7 +672,7 @@ class PodcastWizardControllerTest extends TestCase
         $list         = ListModel::factory()->forUser($this->user)->create();
         $listSource   = $this->createListSource($otherPodcast->id, 'podcast', $list->id);
 
-        $this->delete(route('podcasts.list_sources.detach', [$podcast, $listSource]))
+        $this->delete(route('digest-podcasts.list_sources.detach', [$podcast, $listSource]))
             ->assertForbidden();
     }
 

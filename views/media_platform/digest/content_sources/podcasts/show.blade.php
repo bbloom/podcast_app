@@ -3,13 +3,13 @@
     {{-- Breadcrumb + heading --}}
     <div class="mb-8">
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <a href="{{ route('podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
+            <a href="{{ route('digest-podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
             <span>›</span>
             <span class="text-gray-700">{{ $podcast->title }}</span>
         </div>
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-bold text-gray-800">{{ $podcast->title }}</h1>
-            <a href="{{ route('podcasts.edit', $podcast) }}"
+            <a href="{{ route('digest-podcasts.edit', $podcast) }}"
                class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
                 Edit
             </a>
@@ -88,14 +88,14 @@
         'listSources'        => $listSources,
         'tracking'           => $tracking,
         'availableLists'     => $availableLists,
-        'attachRoute'        => 'podcasts.list_sources.attach',
-        'updateRoute'        => 'podcasts.list_sources.update',
-        'detachConfirmRoute' => 'podcasts.list_sources.detach.confirm',
+        'attachRoute'        => 'digest-podcasts.list_sources.attach',
+        'updateRoute'        => 'digest-podcasts.list_sources.update',
+        'detachConfirmRoute' => 'digest-podcasts.list_sources.detach.confirm',
         'sourceParam'        => $podcast,
     ])
 
     <div class="mt-6 text-sm">
-        <a href="{{ route('podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
+        <a href="{{ route('digest-podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
     </div>
 
 </x-layouts.app>

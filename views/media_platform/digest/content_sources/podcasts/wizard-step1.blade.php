@@ -30,7 +30,7 @@
     </div>
 
     {{-- Form --}}
-    <form method="POST" action="{{ route('podcasts.create.step1.submit') }}">
+    <form method="POST" action="{{ route('digest-podcasts.create.step1.submit') }}">
         @csrf
 
         <div class="mb-6">

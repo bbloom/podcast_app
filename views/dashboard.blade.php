@@ -27,7 +27,7 @@
                         <div class="mt-2 space-y-2">
                             <div class="flex items-center gap-2">
                                 <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('podcast_studio.dashboard') }}"
+                                <a href="{{ route('podcasts.dashboard') }}"
                                    class="text-blue-600 hover:underline hover:text-gray-900">Dashboard</a>
                             </div>
                         </div>
@@ -68,7 +68,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-purple-400 font-bold">›</span>
-                                <a href="{{ route('podcasts.index') }}"
+                                <a href="{{ route('digest-podcasts.index') }}"
                                    class="text-blue-600 hover:underline hover:text-gray-900">Podcasts</a>
                             </div>
                             <div class="flex items-center gap-2">

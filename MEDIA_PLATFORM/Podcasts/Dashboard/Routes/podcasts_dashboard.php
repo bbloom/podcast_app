@@ -9,6 +9,6 @@
 use Illuminate\Support\Facades\Route;
 use MediaPlatform\Podcasts\Dashboard\Controllers\PodcastsDashboardController;
 
-Route::get('/podcast-studio', [PodcastsDashboardController::class, 'show'])
+Route::get('/podcasts', [PodcastsDashboardController::class, 'show'])
     ->middleware(['auth'])
     ->name('podcasts.dashboard');

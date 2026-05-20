@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('podcasts.create.step3.submit') }}"
+    <form method="POST" action="{{ route('digest-podcasts.create.step3.submit') }}"
           x-data="{
               listStates: {
                   @foreach ($lists as $list)
@@ -106,7 +106,7 @@
         </div>
 
         <div class="flex justify-between items-center">
-            <a href="{{ route('podcasts.create.step2') }}"
+            <a href="{{ route('digest-podcasts.create.step2') }}"
                class="text-sm text-gray-500 hover:text-gray-700 font-semibold py-3 transition">
                 ← Back
             </a>

@@ -7,7 +7,7 @@ use MediaPlatform\Podcasts\Publishing\PostProduction\Dashboard\DashboardControll
 // Post-Production — Dashboard
 // =============================================================================
 
-Route::get('/podcast-studio/post-production', [DashboardController::class, 'show'])
+Route::get('/podcasts/post-production', [DashboardController::class, 'show'])
     ->middleware(['auth'])
     ->name('post_production.dashboard')
 ;

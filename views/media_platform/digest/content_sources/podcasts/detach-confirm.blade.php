@@ -2,9 +2,9 @@
 
     <div class="mb-8">
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <a href="{{ route('podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
+            <a href="{{ route('digest-podcasts.index') }}" class="hover:text-purple-700 transition">← My Podcasts</a>
             <span>›</span>
-            <a href="{{ route('podcasts.show', $source) }}" class="hover:text-purple-700 transition">{{ $source->title }}</a>
+            <a href="{{ route('digest-podcasts.show', $source) }}" class="hover:text-purple-700 transition">{{ $source->title }}</a>
             <span>›</span>
             <span class="text-gray-700">Detach from list</span>
         </div>
@@ -57,7 +57,7 @@
 
     {{-- Actions --}}
     <div class="flex items-center justify-between">
-        <a href="{{ route('podcasts.show', $source) }}"
+        <a href="{{ route('digest-podcasts.show', $source) }}"
            class="text-sm text-purple-700 hover:underline flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -66,7 +66,7 @@
         </a>
 
         <form method="POST"
-              action="{{ route('podcasts.list_sources.detach', [$source, $listSource]) }}">
+              action="{{ route('digest-podcasts.list_sources.detach', [$source, $listSource]) }}">
             @csrf
             @method('DELETE')
             <button

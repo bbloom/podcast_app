@@ -77,10 +77,10 @@
     </div>
 
     {{-- Actions --}}
-    <form method="POST" action="{{ route('podcasts.create.step2.submit') }}">
+    <form method="POST" action="{{ route('digest-podcasts.create.step2.submit') }}">
         @csrf
         <div class="flex justify-between items-center">
-            <a href="{{ route('podcasts.create.step1') }}"
+            <a href="{{ route('digest-podcasts.create.step1') }}"
                class="text-sm text-purple-700 hover:underline flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
