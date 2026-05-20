@@ -40,12 +40,28 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/HealthChecks/Routes/health_che
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/DatabaseBackup/Routes/routes.php';
 
 
+// Podcast Shows
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Shows/Routes/podcast_shows.php';
-require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/Routes/podcast_episodes.php';
+
+// Podcast Links
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Links/Routes/podcast_links.php';
+
+// Podcast Guests
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/podcast_guests.php';
 
+// Podcast Episodes Planning
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CreateEpisodeWizard/Routes/create_episode_wizard.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/EditThemeField/Routes/edit_theme_field.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/EditScriptField/Routes/edit_script_field.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/FinalizeScriptWizard/Routes/finalize_script_wizard.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning_guests.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning_links.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/PrepareForPublishingWizard/Routes/prepare_for_publishing_wizard.php';
 
+// Podcast Episodes Published
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/Routes/podcast_episodes.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/dashboard.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/upload_recording.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/auphonic_processing.php';
@@ -56,6 +72,8 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/R
 require dirname(__DIR__) . '/MEDIA_PLATFORM/API/v1/Routes/web.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/deploy_hooks.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/FooterLinks/Routes/footer_links.php';
+
+
 
 
 
