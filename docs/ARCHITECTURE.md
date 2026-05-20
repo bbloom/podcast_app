@@ -14,7 +14,7 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 ## Database Tables
 
 - `youtube_channels` — stores channel ID, name, last_fetched_at
-- `podcasts` — stores podcast RSS URL, name, last_fetched_at
+- `podcasts` — stores podcast RSS URL, name, last_fetched_at (Digest feature — separate from Podcasts production module)
 - `text_based_rss_feeds` — stores feed URL, name, last_fetched_at
 - `lists` — user-defined groupings of content sources
 - `list_sources` — polymorphic pivot joining lists to any source type
@@ -22,15 +22,19 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `output_destinations` — where digests are delivered (e.g. SFTP)
 - `published_digests` — persisted digest payloads for static site output type; one record per digest run per list; served via the API to static site generators
 - `language_models` — available AI models for summarisation
-- `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Phase 3 Finalize Script Wizard)
+- `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Finalize Script Wizard)
+- `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing
 - `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table
 - `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
 - `podcast_guests` — guest profiles for interview show episodes
+- `podcast_guest_episode_planning` — pivot table joining guests to planning episodes
 - `podcast_guest_episode` — pivot table joining guests to published episodes
+- `podcast_link_episode_planning` — pivot table joining links to planning episodes
 - `podcast_link_episode` — pivot table joining links to published episodes
 - `api_controls` — single-row on/off switch for the public API
 - `api_clients` — authorised front-end domains and their hashed bearer tokens
 - `deploy_hooks` — polymorphic table of static site deploy hook URLs; belongs to any triggerable model (PodcastShow, ListModel)
+- `videos` — videos being prepared for publication to YouTube; scoped by `user_id`
 
 ## Polymorphic Relationships
 
@@ -96,22 +100,82 @@ Deploy hooks (`DeployHook`) are polymorphic via `triggerable_type` / `triggerabl
 - Managed via the Admin UI at Dashboard → API Management
 - See `MEDIA_PLATFORM/API/v1/README.md` for full detail
 
+## Videos
+
+- Lives at `MEDIA_PLATFORM/Videos/` — manages videos being prepared for publication to YouTube
+- Simple CRUD with a two-step creation wizard; no create/store in CRUD (wizard only)
+- `videos` table; scoped by `user_id`
+- `VideoStatus` enum: `not_published_to_youtube`, `published_to_youtube`
+- Session key for wizard state: `wizard.create_video.*`
+- Step 2 auto-populates fields (slug, youtube_title, youtube_description, youtube_chapters, youtube_url) from Step 1 inputs — no user-facing form
+- Routes named `videos.*`
+- Test namespace: `Tests\Feature\MEDIA_PLATFORM\Videos\`
+
 ## Podcasts
 
 - Lives at `MEDIA_PLATFORM/Podcasts/` — the central hub for podcast production across five shows
 - The Podcasts module has its own dedicated dashboard — the main app dashboard links to it as a single entry point
-- The production pipeline: Recording → Post-Production → Publishing, tracked via `PodcastEpisodeStatus` enum on `podcast_episodes_published.status`
+- **Two-world model**: Planning (`podcast_episodes_planning`) and Published (`podcast_episodes_published`) are entirely separate tables with a hard handoff between them
 - Published episodes are served via the API to Astro static site front-ends
+
+### Digest vs Podcasts Disambiguation
+
+The app has two separate podcast-related features that must not be confused:
+
+- **`MEDIA_PLATFORM/Digest/ContentSources/Podcasts/`** — ingests podcast RSS feeds as content sources for the Digest feature. Routes are prefixed `/digests/podcasts/` and named `digest-podcasts.*`. Entirely separate from episode production.
+- **`MEDIA_PLATFORM/Podcasts/`** — the full episode production module. Routes named `podcast_episodes.*`, `podcast_shows.*`, etc.
 
 ### Module Structure (`Podcasts/`)
 
 - `Dashboard/` — podcast dashboard controller and routes
 - `Enums/` — `PodcastEpisodeStatus` enum
-- `Shows/` — CRUD for podcast shows (Controllers, Models, Requests, Routes); shows have `intro_template` and `outro_template` columns
-- `Guests/` — CRUD for podcast guests, plus attach/detach to episodes
-- `Links/` — CRUD for podcast links, plus attach/detach to episodes; scoped by `user_id`
-- `Publishing/` — Published episode CRUD (Controllers, Models, Requests, Routes) and full Post-Production pipeline
+- `Shows/` — CRUD for podcast shows; includes `intro_template` and `outro_template` columns (used by Finalize Script Wizard)
+- `Guests/` — CRUD for podcast guests, plus attach/detach to both planning and published episodes
+- `Links/` — CRUD for podcast links, plus attach/detach to both planning and published episodes; scoped by `user_id`
+- `Planning/` — Planning module (see below)
+- `Publishing/` — Published episode CRUD and full Post-Production pipeline
 - `ArchivedEpisodes/` — `BobBloomShowArchive` for legacy archive data
+
+### Planning Module (`Podcasts/Planning/`)
+
+The Planning module manages the creative and assembly lifecycle of an episode before it is published.
+
+```
+Planning/
+├── CRUD/
+│   ├── Controllers/   — index, show, edit, update, destroy + guest/link attach/detach
+│   ├── Enums/         — PodcastEpisodePlanningStatus
+│   ├── Models/        — PodcastEpisodePlanning
+│   ├── Requests/      — PodcastEpisodePlanningRequest
+│   └── Routes/
+├── CreateEpisodeWizard/     — 4 steps; creates podcast_episodes_planning record
+├── EditThemeField/          — Alpine.js inline save + redirect save
+├── EditScriptField/         — Alpine.js inline save + redirect save
+├── FinalizeScriptWizard/    — 7 steps; locks script, sets status ready_to_record
+└── PrepareForPublishingWizard/
+    ├── Concerns/
+    │   └── DerivesPublishedEpisodeFields.php  ← all field population methods
+    └── Controllers/   — 3 steps; creates published record, migrates guests+links, hard-deletes planning record
+```
+
+**`PodcastEpisodePlanningStatus` enum cases:**
+- `new_episode_created` — set by Create Episode Wizard
+- `working_on_theme` — set manually
+- `writing_script` — set manually
+- `ready_to_finalize_the_script` — set manually; entry point for Finalize Script Wizard
+- `ready_to_record` — set by Finalize Script Wizard
+- `raw_audio_needs_editing` — set manually
+- `ready_for_publishing` — set manually; entry point for Prepare for Publishing Wizard
+
+Statuses can move backwards — the app does not enforce forward-only progression. Data is never cleared on a backwards status move.
+
+**Hard handoff (PrepareForPublishingWizard Step 3 store):**
+1. Runs all `DerivesPublishedEpisodeFields` population methods (adapted from the old Step3Controller — reads from the planning record instead of a Request)
+2. Creates `podcast_episodes_published` record
+3. Migrates guests from `podcast_guest_episode_planning` → `podcast_guest_episode`
+4. Migrates links from `podcast_link_episode_planning` → `podcast_link_episode`
+5. Hard-deletes the planning record — no soft deletes
+6. Redirects to the new published episode show page
 
 ### Post-Production (`Publishing/PostProduction/`)
 
@@ -135,19 +199,11 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 
 ### Status Enums
 
-- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Enums/`): tracks the production pipeline —
+- `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Enums/`): tracks the post-production pipeline —
   `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published` (episode recorded but intentionally not published, set manually)
-- `ready_to_upload_recording` retained for backward compatibility — marked for removal once the Phase 3 Publishing wizard refactor is complete
-
-### Phase 3 — Planning (upcoming)
-
-Phase 3 will add a Planning module at `MEDIA_PLATFORM/Podcasts/Planning/` with:
-- New `podcast_episodes_planning` table — creative and assembly workspace; records are hard-deleted on publishing (no soft deletes)
-- New `PodcastEpisodePlanningStatus` enum (separate from `PodcastEpisodeStatus`)
-- Wizards: Create Episode, Finalize Script (uses `intro_template`/`outro_template` from `podcast_shows`), Prepare for Publishing
-- Focused field editors for `theme` and `script`
-- Guest interaction feature
-- Publishing handoff: populates `podcast_episodes_published`, hard-deletes the planning record
+- `ready_to_upload_recording` retained for backward compatibility — marked for removal once the Post-Production entry point is refactored to `ready_for_publishing`
+- These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records
 
 ## Static Site Deploy Hooks
 
