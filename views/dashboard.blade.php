@@ -16,10 +16,10 @@
         {{-- ================================================================ --}}
         <div class="space-y-6">
 
-            {{-- Podcast Studio --}}
+            {{-- Podcasts --}}
             <div class="border border-purple-300 rounded-lg overflow-hidden">
                 <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-                    🎙 Podcast Studio
+                    🎙 Podcasts
                 </h2>
                 <div class="space-y-5 p-4">
 
