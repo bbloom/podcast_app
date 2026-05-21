@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
                 DeployHooksSeeder::class,
                 PublishedDigestsSeeder::class,
                 ListModelSeeder::class,
+                PodcastPlanningEpisodesSeeder::class,
         ]);
         }
 
