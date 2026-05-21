@@ -88,20 +88,24 @@
                                 <td class="px-6 py-3 text-base">
                                     @include('media_platform.podcasts.planning.crud._status_badge', ['status' => $episode->status])
                                 </td>
-                                <td class="px-6 py-3 font-bold text-base text-gray-500">
+                                <td class="px-6 py-3 font-bold text-base text-gray-500 whitespace-nowrap">
                                     {{ $episode->scheduled_date?->format('D, M j, Y') ?? '—' }}
                                 </td>
+                                
                                 <td class="px-6 py-3 text-right">
-                                    @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
-                                        <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
-                                           class="inline-block bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition mr-1">
-                                            Record
+                                    <div class="flex flex-col items-end gap-1.5">
+                                        <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
+                                        class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                                            Details
                                         </a>
-                                    @endif
-                                    <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
-                                       class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                                        Details
-                                    </a>
+
+                                        @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
+                                            <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
+                                            class="inline-block bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                                                Record
+                                            </a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
