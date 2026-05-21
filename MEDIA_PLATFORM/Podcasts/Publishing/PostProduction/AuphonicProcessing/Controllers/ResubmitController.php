@@ -34,7 +34,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Services\AuphonicService;
 
 class ResubmitController extends Controller

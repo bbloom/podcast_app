@@ -23,7 +23,7 @@ namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Cont
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 
 class PublishController extends Controller

@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use Tests\TestCase;
 
 class ManualUploadControllerTest extends TestCase

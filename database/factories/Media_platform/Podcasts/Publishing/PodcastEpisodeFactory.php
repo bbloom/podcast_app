@@ -3,7 +3,7 @@
 namespace Database\Factories\Media_platform\Podcasts\Publishing;
 
 use App\Models\User;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
@@ -27,7 +27,7 @@ class PodcastEpisodeFactory extends Factory
         return [
             'podcast_show_id' => PodcastShow::factory(),
             'user_id'         => User::factory(),
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
 
             'auphonic_production_uuid' => null,
 

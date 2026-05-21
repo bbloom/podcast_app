@@ -2,7 +2,7 @@
 
 namespace MediaPlatform\Podcasts\Planning\PrepareForPublishingWizard\Concerns;
 
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Support\Str;
@@ -113,7 +113,7 @@ trait DerivesPublishedEpisodeFields
      */
     public function get_status(): PodcastEpisodeStatus
     {
-        return PodcastEpisodeStatus::created;
+        return PodcastEpisodeStatus::ready_to_upload_recording;
     }
 
     // =========================================================================

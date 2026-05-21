@@ -7,7 +7,7 @@ use MediaPlatform\Podcasts\Publishing\Controllers\PodcastEpisodeUpdateController
 use MediaPlatform\Podcasts\Publishing\Requests\UpdatePodcastEpisodeRequest;
 
 use App\Models\User;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +34,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
             'podcast_show_id'          => $show->id,
             'title'                    => '#5 - My Test Episode',
             'slug'                     => 'bob-bloom-show-ep5-my-test-episode',
-            'status'                   => PodcastEpisodeStatus::created->value,
+            'status'                   => PodcastEpisodeStatus::ready_to_upload_recording->value,
             'scheduled_date'           => '2026-06-01',
             'draft'                    => null,
             'raw_input_audio_filename' => 'bobbloomshow5.wav',
@@ -79,7 +79,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         return PodcastEpisode::factory()->create(array_merge([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ], $overrides));
     }
 
@@ -148,7 +148,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'title'           => '#5 - Old Title',
             'slug'            => 'bob-bloom-show-ep5-old-title',
         ]);
@@ -188,7 +188,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'title'           => '#5 - My Episode',
             'slug'            => 'bob-bloom-show-ep5-my-episode',
         ]);
@@ -218,7 +218,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'title'           => '#5 - My Episode',
             'slug'            => 'bob-bloom-show-ep5-my-episode',
         ]);
@@ -253,7 +253,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'itunes_explicit' => true,
             'itunes_block'    => true,
             'rss_feed_enabled' => true,
@@ -284,7 +284,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'itunes_explicit' => false,
             'itunes_block'    => false,
             'rss_feed_enabled' => false,
@@ -324,7 +324,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $other->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ]);
 
         $this->actingAs($user)
@@ -342,7 +342,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode   = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $myShow->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ]);
 
         $this->actingAs($user)
@@ -377,7 +377,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ]);
 
         $payload = $this->updatePayload($show, [
@@ -404,7 +404,7 @@ class PodcastEpisodeUpdateControllerTest extends TestCase
         $episode = PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ]);
 
         $payload = $this->updatePayload($show, [

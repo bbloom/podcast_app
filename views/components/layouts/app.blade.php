@@ -77,15 +77,15 @@
                          x-transition
                          style="display: none;"
                          class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-lg z-50">
-                        <a href="{{ route('podcasts.dashboard') }}"                             class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Dashboard</a>
+                        <a href="{{ route('podcasts.dashboard') }}"                             class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Dashboard</a>                        
                         <div class="border-t border-gray-100 my-1"></div>
-                        <a href="{{ route('podcast_episodes_planning.index') }}"                class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Planning Episodes</a>
-                        <a href="{{ route('podcast_episodes_planning.wizard.create.step1') }}"  class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Create New Episode</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="{{ route('podcast_episodes.index') }}"                         class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Published Episodes</a>
                         <a href="{{ route('podcast_shows.index') }}"                            class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Shows</a>
+                        <div class="border-t border-gray-100 my-1"></div>
                         <a href="{{ route('podcast_guests.index') }}"                           class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Guests</a>
                         <a href="{{ route('podcast_links.index') }}"                            class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Links</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="{{ route('podcast_episodes_planning.index') }}"                class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Planning Episodes</a>
+                        <a href="{{ route('podcast_episodes.index') }}"                         class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Published Episodes</a>
                     </div>
                 </div>
 
@@ -104,7 +104,9 @@
                          style="display: none;"
                          class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
                         <a href="{{ route('dashboard') }}"   class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Dashboard</a>
+                        <div class="border-t border-gray-100 my-1"></div>
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">Profile</a>
+                        <div class="border-t border-gray-100 my-1"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full text-left block px-4 py-2 text-lg text-gray-700 hover:bg-gray-50">

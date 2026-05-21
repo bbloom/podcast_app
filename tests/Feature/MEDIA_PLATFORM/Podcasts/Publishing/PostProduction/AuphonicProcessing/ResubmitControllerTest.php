@@ -5,7 +5,7 @@ namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing\PostProduction\Auphon
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;

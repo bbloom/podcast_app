@@ -3,7 +3,7 @@
 namespace MediaPlatform\Podcasts\Publishing\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Publishing\Requests\PodcastEpisodeRequest;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;

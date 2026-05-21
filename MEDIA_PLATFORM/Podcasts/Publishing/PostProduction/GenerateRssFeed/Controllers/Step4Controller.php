@@ -21,7 +21,7 @@ namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Contr
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 
 class Step4Controller extends Controller

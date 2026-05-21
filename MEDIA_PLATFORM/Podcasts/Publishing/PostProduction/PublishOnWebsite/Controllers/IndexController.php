@@ -12,7 +12,7 @@
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 
 class IndexController extends Controller

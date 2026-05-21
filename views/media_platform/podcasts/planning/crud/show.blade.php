@@ -64,6 +64,14 @@
                 </a>
             @endif
 
+            {{-- View for Recording — only when status is ready_to_record --}}
+            @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
+                <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
+                class="px-4 py-2 text-sm bg-teal-600 text-white rounded hover:bg-teal-700 font-semibold">
+                    ✦ View for Recording
+                </a>
+            @endif
+
             {{-- Prepare for Publishing Wizard — only when status is correct --}}
             @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_for_publishing)
                 <a href="{{ route('podcast_episodes_planning.wizard.publish.step1', $episode) }}"

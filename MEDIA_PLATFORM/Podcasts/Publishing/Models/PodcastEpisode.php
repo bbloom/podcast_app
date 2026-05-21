@@ -4,7 +4,7 @@ namespace MediaPlatform\Podcasts\Publishing\Models;
 
 use App\Models\User;
 use Database\Factories\Media_platform\Podcasts\Publishing\PodcastEpisodeFactory;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Podcasts\Links\Models\PodcastLink;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;

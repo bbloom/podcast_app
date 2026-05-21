@@ -16,7 +16,7 @@ namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Co
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 
 class WebhookStatusController extends Controller
 {

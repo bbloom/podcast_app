@@ -25,7 +25,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 
 class WebhookController extends Controller
 {

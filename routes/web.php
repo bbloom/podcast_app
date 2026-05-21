@@ -59,6 +59,7 @@ require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/FinalizeScriptWizard/Route
 require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning_guests.php';
 require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning_links.php';
 require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/PrepareForPublishingWizard/Routes/prepare_for_publishing_wizard.php';
+require __DIR__.'/../MEDIA_PLATFORM/Podcasts/Planning/RecordingView/Routes/recording_view.php';
 
 // Podcast Episodes Published
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/Routes/podcast_episodes.php';

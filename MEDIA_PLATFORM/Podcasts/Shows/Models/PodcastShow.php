@@ -4,6 +4,7 @@ namespace MediaPlatform\Podcasts\Shows\Models;
 
 use App\Models\User;
 use Database\Factories\Media_platform\Podcasts\Shows\PodcastShowFactory;
+use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\StaticSiteDeployHooks\Models\DeployHook;
 use MediaPlatform\Tools\FooterLinks\Models\FooterLink;
@@ -106,7 +107,16 @@ class PodcastShow extends Model
     }
 
     /**
-     * The episodes that belong to this podcast show.
+     * The planning episodes that belong to this podcast show.
+     * Used by the dashboard to count in-progress planning episodes per show.
+     */
+    public function planningEpisodes(): HasMany
+    {
+        return $this->hasMany(PodcastEpisodePlanning::class, 'podcast_show_id');
+    }
+
+    /**
+     * The published episodes that belong to this podcast show.
      */
     public function episodes(): HasMany
     {

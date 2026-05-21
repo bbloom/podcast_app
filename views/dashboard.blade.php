@@ -28,7 +28,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-purple-400 font-bold">›</span>
                                 <a href="{{ route('podcasts.dashboard') }}"
-                                   class="text-blue-600 hover:underline hover:text-gray-900">Dashboard</a>
+                                   class="text-blue-600 hover:underline hover:text-gray-900">Main Dashboard</a>
                             </div>
                         </div>
                     </div>

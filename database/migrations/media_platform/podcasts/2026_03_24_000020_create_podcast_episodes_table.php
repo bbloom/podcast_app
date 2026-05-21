@@ -13,7 +13,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 
 return new class extends Migration
 {
@@ -41,10 +41,10 @@ return new class extends Migration
             // ------------------------------------------------------------------
             // Status
             //
-            // see: MEDIA_PLATFORM/PodcastStudio/Management/Enums/PodcastEpisodeStatus.php
+            // see: MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
             // ------------------------------------------------------------------
             $table->string('status')
-                  ->default(PodcastEpisodeStatus::created->value)
+                  ->default(PodcastEpisodeStatus::ready_to_upload_recording->value)
                   ->comment('The current status of this episode. Backed by the PodcastEpisodeStatus enum.');
 
             // ------------------------------------------------------------------

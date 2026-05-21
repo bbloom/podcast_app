@@ -3,7 +3,7 @@
 namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing;
 
 use App\Models\User;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +47,7 @@ class PodcastEpisodeControllerSortingTest extends TestCase
         return PodcastEpisode::factory()->create(array_merge([
             'user_id'         => $this->user->id,
             'podcast_show_id' => $this->showA->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ], $overrides));
     }
 
@@ -169,7 +169,7 @@ class PodcastEpisodeControllerSortingTest extends TestCase
     public function test_sort_by_status_ascending(): void
     {
         $epPub = $this->makeEpisode(['status' => PodcastEpisodeStatus::published, 'title' => 'Published Ep']);
-        $epCre = $this->makeEpisode(['status' => PodcastEpisodeStatus::created,   'title' => 'Created Ep']);
+        $epCre = $this->makeEpisode(['status' => PodcastEpisodeStatus::ready_to_upload_recording,   'title' => 'Created Ep']);
 
         $response = $this->actingAs($this->user)
             ->get(route('podcast_episodes.index', ['sort' => 'status', 'dir' => 'asc']));
@@ -270,7 +270,7 @@ class PodcastEpisodeControllerSortingTest extends TestCase
         PodcastEpisode::factory()->create([
             'user_id'         => $other->id,
             'podcast_show_id' => $otherShow->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
             'title'           => 'Not My Episode',
         ]);
 

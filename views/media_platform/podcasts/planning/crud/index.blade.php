@@ -93,6 +93,12 @@
                                    class="text-purple-700 hover:underline">View</a>
                                 <a href="{{ route('podcast_episodes_planning.edit', $episode) }}"
                                    class="text-purple-700 hover:underline">Edit</a>
+                                @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
+                                    <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
+                                    class="ml-3 text-teal-600 hover:underline text-sm font-medium">
+                                        Record
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

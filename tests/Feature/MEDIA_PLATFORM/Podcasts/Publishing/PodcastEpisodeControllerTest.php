@@ -3,7 +3,7 @@
 namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing;
 
 use App\Models\User;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,7 +28,7 @@ class PodcastEpisodeControllerTest extends TestCase
         return PodcastEpisode::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'status'          => PodcastEpisodeStatus::created,
+            'status'          => PodcastEpisodeStatus::ready_to_upload_recording,
         ]);
     }
 

@@ -25,7 +25,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Services\AuphonicService;
 use MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage\S3_work_in_progress_audio;
 

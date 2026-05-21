@@ -1,23 +1,21 @@
 <?php
 
 // =============================================================================
-// PodcastStudioDashboardController
+// PodcastsDashboardController
 //
 // The main entry point for the Podcast Studio. Surfaces the assembly line:
-// drafts in progress, drafts ready for production, episodes in production,
-// and quick actions to get into the work.
+// planning episodes in progress, episodes in post-production, and recently
+// published episodes — per show and in aggregate.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/Dashboard/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/Dashboard/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Dashboard\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\Podcast\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
+use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
-use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Enums\PodcastEpisodeDraftStatus;
-use MediaPlatform\PodcastStudio\PodcastEpisodeDrafts\Models\PodcastEpisodeDraft;
 
 class PodcastsDashboardController extends Controller
 {
@@ -31,56 +29,53 @@ class PodcastsDashboardController extends Controller
     ];
 
     /**
-     * Display the Podcast Studio dashboard.
+     * Display the Podcasts dashboard.
+     *
+     * Passes three collections to the view:
+     *   - $planningEpisodes    — all planning records for the user, with show eager-loaded
+     *   - $episodesInProduction — published records not yet at 'published' status
+     *   - $recentlyPublished   — the 5 most recently published episodes
+     *   - $shows               — the five active shows with planning + production counts
      */
     public function show()
     {
-        $userId = auth()->id();
+        $userId        = auth()->id();
         $orderedTitles = self::ACTIVE_SHOWS;
 
-        // ── Drafts in progress ──────────────────────────────────────────
-        $draftsInProgress = PodcastEpisodeDraft::forUser($userId)
-            ->where('status', PodcastEpisodeDraftStatus::working_on_draft)
+        // ── Planning episodes ────────────────────────────────────────────────
+        // All planning records for the user, regardless of status.
+        // Ordered by scheduled date ascending (nulls last), then title.
+        $planningEpisodes = PodcastEpisodePlanning::forUser($userId)
             ->with('show')
-            ->orderBy('date')
-            ->orderBy('title')
+            ->orderByRaw('scheduled_date IS NULL')
+            ->orderBy('scheduled_date', 'asc')
+            ->orderBy('title', 'asc')
             ->get();
 
-        // ── Drafts ready for production ─────────────────────────────────
-        $draftsReadyForProduction = PodcastEpisodeDraft::forUser($userId)
-            ->where('status', PodcastEpisodeDraftStatus::ready_to_create_production_episode)
-            ->with('show')
-            ->orderBy('date')
-            ->orderBy('title')
-            ->get();
-
-        // ── Episodes in production (not yet published) ──────────────────
-        $episodesInProduction = PodcastEpisode::where('user_id', $userId)
+        // ── Episodes in post-production ──────────────────────────────────────
+        // Published records that have not yet reached 'published' status.
+        $episodesInProduction = PodcastEpisode::forUser($userId)
             ->where('status', '!=', 'published')
             ->with('show')
-            ->orderBy('scheduled_date')
-            ->orderBy('title')
+            ->orderByScheduledDate()
+            ->orderBy('title', 'asc')
             ->get();
 
-        // ── Recently published ──────────────────────────────────────────
-        $recentlyPublished = PodcastEpisode::where('user_id', $userId)
+        // ── Recently published ───────────────────────────────────────────────
+        $recentlyPublished = PodcastEpisode::forUser($userId)
             ->where('status', 'published')
             ->with('show')
             ->orderByDesc('scheduled_date')
             ->limit(5)
             ->get();
 
-        // ── Shows (for the overview, in display order) ──────────────────
+        // ── Shows overview ───────────────────────────────────────────────────
+        // Counts planning and post-production episodes per show.
         $shows = PodcastShow::where('user_id', $userId)
             ->whereIn('title', $orderedTitles)
             ->withCount([
-                'drafts as drafts_in_progress_count' => function ($q) {
-                    $q->where('status', PodcastEpisodeDraftStatus::working_on_draft);
-                },
-                'drafts as drafts_ready_count' => function ($q) {
-                    $q->where('status', PodcastEpisodeDraftStatus::ready_to_create_production_episode);
-                },
-                'episodes as episodes_in_production_count' => function ($q) {
+                'planningEpisodes as planning_count',
+                'episodes as in_production_count' => function ($q) {
                     $q->where('status', '!=', 'published');
                 },
             ])
@@ -89,8 +84,7 @@ class PodcastsDashboardController extends Controller
             ->values();
 
         return view('media_platform.podcasts.dashboard.dashboard', compact(
-            'draftsInProgress',
-            'draftsReadyForProduction',
+            'planningEpisodes',
             'episodesInProduction',
             'recentlyPublished',
             'shows',

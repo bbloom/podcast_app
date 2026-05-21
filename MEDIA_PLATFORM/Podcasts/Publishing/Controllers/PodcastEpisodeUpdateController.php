@@ -3,7 +3,7 @@
 namespace MediaPlatform\Podcasts\Publishing\Controllers;
 
 use App\Http\Controllers\Controller;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use MediaPlatform\Podcasts\Publishing\Requests\UpdatePodcastEpisodeRequest;
@@ -228,7 +228,7 @@ class PodcastEpisodeUpdateController extends Controller
     // ┌────────────────────────────────────────────────────────────────────────┐
     // │  get_status()                                                          │
     // │                                                                        │
-    // │  In CREATE, always PodcastEpisodeStatus::created.                       │
+    // │  In CREATE, always PodcastEpisodeStatus::ready_to_upload_recording.                       │
     // │  In UPDATE, save the user's selection.                                  │
     // └────────────────────────────────────────────────────────────────────────┘
     public function get_status(UpdatePodcastEpisodeRequest $request): string

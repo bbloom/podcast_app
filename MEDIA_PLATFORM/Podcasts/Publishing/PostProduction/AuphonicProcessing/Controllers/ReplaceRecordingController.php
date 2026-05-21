@@ -21,7 +21,7 @@ namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Co
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Enums\PodcastEpisodeStatus;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 
 class ReplaceRecordingController extends Controller
 {
