@@ -24,7 +24,7 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `language_models` — available AI models for summarisation
 - `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Finalize Script Wizard)
 - `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing
-- `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table
+- `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table; pipeline entry status is `ready_to_upload_recording` (set by PrepareForPublishingWizard)
 - `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
 - `podcast_guests` — guest profiles for interview show episodes
 - `podcast_guest_episode_planning` — pivot table joining guests to planning episodes
@@ -199,10 +199,9 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 
 ### Status Enums
 
-- `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above
-- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Enums/`): tracks the post-production pipeline —
-  `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published` (episode recorded but intentionally not published, set manually)
-- `ready_to_upload_recording` retained for backward compatibility — marked for removal once the Post-Production entry point is refactored to `ready_for_publishing`
+- `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above. Includes `sortOrder(): int` for pipeline-ordered dashboard sorting and `manualStatuses()` for status-change dropdowns.
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`. The `created` case has been removed — episodes enter the pipeline at `ready_to_upload_recording`, set by PrepareForPublishingWizard Step 3. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue/Monitor buttons.
+- `ready_to_upload_recording` retained as the pipeline entry point — marked for removal once Post-Production entry point is refactored to `ready_for_publishing`
 - These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records
 
 ## Static Site Deploy Hooks
