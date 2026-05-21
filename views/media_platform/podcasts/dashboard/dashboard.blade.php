@@ -4,8 +4,8 @@
     {{-- ── Page header ─────────────────────────────────────────────────────── --}}
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Podcast Studio</h1>
-            <p class="mt-1 text-sm text-gray-500">Your assembly line at a glance</p>
+            <h1 class="text-2xl font-bold text-gray-800">Podcasts Main Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-500"></p>
         </div>
     </div>
 
@@ -28,11 +28,24 @@
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
     {{-- PLANNING                                                               --}}
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
-    <div class="border border-purple-300 rounded-lg overflow-hidden mb-10">
+    <div class="border-2 border-purple-300 rounded-lg overflow-hidden mb-10">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-            Planning
-            <span class="ml-1 text-sm font-normal text-gray-400">({{ $planningByShow->flatten()->count() }})</span>
+            Episodes in Planning
+            <span class="ml-1 text-sm font-normal text-gray-600">({{ $planningByShow->flatten()->count() }})</span>
         </h2>
+
+        <table class="w-full text-base">
+            <thead class="bg-gray-50 border-b border-purple-300">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide w-16">Ep#</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide w-64">Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Scheduled</th>
+                    <th class="px-6 py-3"></th>
+                </tr>
+            </thead>
+            <tr class="bg-gray-100 border-b border-purple-300"><td colspan="5" class="py-3">&nbsp;</td></tr>
+        </table>
 
         @if ($planningByShow->isEmpty())
             <div class="px-6 py-8 text-center text-sm text-gray-400">
@@ -41,49 +54,42 @@
             </div>
         @else
             <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Ep#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Scheduled</th>
-                        <th class="px-6 py-3"></th>
-                    </tr>
-                </thead>
+
                 <tbody>
                     @foreach ($planningByShow as $showId => $episodes)
+                        
                         {{-- Show header row --}}
-                        <tr class="bg-purple-50 border-t border-b border-purple-200">
+                        <tr class="bg-purple-200 border-t border-b border-purple-200">
                             <td colspan="5" class="px-6 py-2">
                                 <div class="flex items-center gap-3">
                                     @if ($episodes->first()->show->itunes_image)
                                         <img src="{{ $episodes->first()->show->itunes_image }}"
                                              alt="{{ $episodes->first()->show->title }}"
-                                             class="w-7 h-7 rounded object-cover border border-purple-200 flex-shrink-0">
+                                             class="w-16 h-16 rounded object-cover border border-purple-200 flex-shrink-0">
                                     @endif
-                                    <span class="text-xs font-bold text-purple-700 uppercase tracking-wider">
+                                    <span class="text-base font-bold text-purple-700 uppercase tracking-wider">
                                         {{ $episodes->first()->show->title }}
                                     </span>
-                                    <span class="text-xs text-gray-400">({{ $episodes->count() }})</span>
+                                    <span class="text-base text-gray-600">({{ $episodes->count() }})</span>
                                 </div>
                             </td>
                         </tr>
 
                         {{-- Episode rows for this show --}}
                         @foreach ($episodes as $episode)
-                            <tr class="bg-white border-b border-gray-100 hover:bg-gray-50">
-                                <td class="px-6 py-3 text-gray-500 tabular-nums">{{ $episode->episode_number ?? '—' }}</td>
+                            <tr class="bg-white border-b border-purple-300 hover:bg-gray-50">
+                                <td class="px-6 py-3 text-base text-gray-500 tabular-nums">{{ $episode->episode_number ?? '—' }}</td>
                                 <td class="px-6 py-3">
                                     <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
-                                       class="font-medium text-purple-700 hover:underline">
+                                       class="font-bold text-base text-purple-700 hover:underline">
                                         {{ $episode->title }}
                                     </a>
                                 </td>
-                                <td class="px-6 py-3">
+                                <td class="px-6 py-3 text-base">
                                     @include('media_platform.podcasts.planning.crud._status_badge', ['status' => $episode->status])
                                 </td>
-                                <td class="px-6 py-3 text-gray-500">
-                                    {{ $episode->scheduled_date?->format('M d, Y') ?? '—' }}
+                                <td class="px-6 py-3 font-bold text-base text-gray-500">
+                                    {{ $episode->scheduled_date?->format('D, M j, Y') ?? '—' }}
                                 </td>
                                 <td class="px-6 py-3 text-right">
                                     @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
@@ -99,6 +105,8 @@
                                 </td>
                             </tr>
                         @endforeach
+
+                        <tr class="bg-gray-100 border-b border-purple-300"><td colspan="5" class="py-4">&nbsp;</td></tr>
                     @endforeach
                 </tbody>
             </table>
@@ -106,11 +114,11 @@
     </div>
 
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
-    {{-- POST-PRODUCTION                                                        --}}
+    {{-- POST-PRODUCTION EPISODES                                               --}}
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
     <div class="border border-purple-300 rounded-lg overflow-hidden mb-10">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-            Post-Production — Needs Attention
+            Episodes that are in Post-Production — Needs Attention
             <span class="ml-1 text-sm font-normal text-gray-400">({{ $episodesInProduction->count() }})</span>
         </h2>
 
@@ -136,7 +144,7 @@
                                 @if ($episode->show->itunes_image)
                                     <img src="{{ $episode->show->itunes_image }}"
                                          alt="{{ $episode->show->title }}"
-                                         class="w-8 h-8 rounded object-cover border border-gray-200">
+                                         class="w-16 h-16 rounded object-cover border border-purple-200 flex-shrink-0">
                                 @endif
                             </td>
                             <td class="px-6 py-3">
@@ -175,11 +183,11 @@
     </div>
 
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
-    {{-- RECENTLY PUBLISHED                                                     --}}
+    {{-- RECENTLY PUBLISHED EPISODES                                            --}}
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
     <div class="border border-purple-300 rounded-lg overflow-hidden mb-10">
         <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-            Recently Published
+            Recently Published Episodes
             <span class="ml-1 text-sm font-normal text-gray-400">({{ $recentlyPublished->count() }})</span>
         </h2>
 
@@ -204,14 +212,14 @@
                                 @if ($episode->show->itunes_image)
                                     <img src="{{ $episode->show->itunes_image }}"
                                          alt="{{ $episode->show->title }}"
-                                         class="w-8 h-8 rounded object-cover border border-gray-200">
+                                         class="w-16 h-16 rounded object-cover border border-purple-200 flex-shrink-0">
                                 @endif
                             </td>
                             <td class="px-6 py-3 font-medium text-gray-800">{{ $episode->title }}</td>
                             <td class="px-6 py-3 text-gray-500">{{ $episode->scheduled_date?->format('M d, Y') ?? '—' }}</td>
                             <td class="px-6 py-3 text-right">
                                 <a href="{{ route('podcast_episodes.show', $episode) }}"
-                                   class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                                   class="inline-block bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
                                     Details
                                 </a>
                             </td>

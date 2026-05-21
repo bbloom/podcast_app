@@ -4,18 +4,29 @@
     <x-podcasts.planning.create_episode_wizard._step_dots :current="1" />
 
     <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-3">Create a New Episode</h1>
-        <p class="text-gray-600">
-            This wizard will create a new planning episode. You'll select a show,
-            give the episode a title and number, and optionally add a scheduled date
-            and initial theme notes.
+        <h1 class="text-3xl font-bold text-gray-800 mb-3">Create a New Planning Episode</h1>
+        <br>
+        <p class="text-2xl text-purple-700">
+            This wizard will create a new planning episode. 
         </p>
+        <br>
     </div>
 
-    <div class="border border-purple-300 rounded-lg p-6 mb-8 bg-purple-50 text-sm text-gray-700 space-y-2">
-        <p><span class="font-semibold text-purple-700">What gets created:</span> A planning record in the <code>podcast_episodes_planning</code> table.</p>
-        <p><span class="font-semibold text-purple-700">Status set to:</span> New Episode Created.</p>
-        <p><span class="font-semibold text-purple-700">What comes next:</span> Work on the theme, write the script, finalize it, and hand it off to publishing.</p>
+    
+
+    <div class="border-2 border-purple-300 rounded-lg p-6 mb-8 bg-purple-50 text-lg text-gray-700 space-y-2">
+        <p><span class="font-semibold text-purple-700">What gets created:</span> 
+        <br>A planning record in the <code>podcast_episodes_planning</code> table.</p>
+
+        <hr class="border-0 h-px bg-purple-400">
+
+        <p><span class="font-semibold text-purple-700">Status set to:</span>
+        <br> New Episode Created.</p>
+
+        <hr class="border-0 h-px bg-purple-400">
+
+        <p><span class="font-semibold text-purple-700">What comes next:</span>
+        <br> Work on the theme, write the script, finalize it, and hand it off to publishing.</p>
     </div>
 
     <div class="text-center">

@@ -14,11 +14,18 @@
 
         <div class="space-y-3 mb-8">
             @forelse ($shows as $show)
-                <label class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition">
+                <label class="flex items-center gap-4 p-4 border border-purple-300 rounded-lg cursor-pointer hover:border-purple-400 bg-white hover:bg-purple-50 transition">
                     <input type="radio" name="podcast_show_id" value="{{ $show->id }}"
                            class="accent-purple-700 w-4 h-4"
-                           {{ old('podcast_show_id') == $show->id ? 'checked' : '' }}>
-                    <span class="font-medium text-gray-800">{{ $show->title }}</span>
+                           {{ old('podcast_show_id') == $show->id ? 'checked' : '' }}
+                    >
+                    @if ($show->itunes_image)
+                        <img src="{{ $show->itunes_image }}"
+                                alt="{{ $show->title }}"
+                                class="w-24 h-24 rounded object-cover border border-gray-200">
+                    @else 
+                        <span class="font-medium text-gray-800">{{ $show->title }}</span>
+                    @endif
                 </label>
             @empty
                 <p class="text-gray-500 text-center py-6">No active shows found for your account.</p>

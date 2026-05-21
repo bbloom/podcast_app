@@ -71,7 +71,7 @@ enum PodcastEpisodePlanningStatus: string
     public function cssClass(): string
     {
         return match ($this) {
-            self::new_episode_created          => 'bg-gray-100 text-gray-700',
+            self::new_episode_created          => 'text-base bg-gray-100 text-gray-700',
             self::working_on_theme             => 'bg-blue-100 text-blue-700',
             self::writing_script               => 'bg-amber-100 text-amber-700',
             self::ready_to_finalize_the_script => 'bg-orange-100 text-orange-700',
