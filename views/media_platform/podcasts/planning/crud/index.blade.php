@@ -69,7 +69,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach ($episodes as $episode)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 hover:bg-white">
                             <td class="px-4 py-3 text-gray-500">
                                 {{ $episode->episode_number ?? '—' }}
                             </td>
@@ -90,14 +90,13 @@
                             </td>
                             <td class="px-4 py-3 space-x-3 whitespace-nowrap">
                                 <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
-                                   class="text-purple-700 hover:underline">View</a>
+                                class="text-purple-700 hover:underline">Details</a>
                                 <a href="{{ route('podcast_episodes_planning.edit', $episode) }}"
-                                   class="text-purple-700 hover:underline">Edit</a>
+                                class="text-purple-700 hover:underline">Edit</a>
+
                                 @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
                                     <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
-                                    class="ml-3 text-teal-600 hover:underline text-sm font-medium">
-                                        Record
-                                    </a>
+                                    class="text-teal-600 hover:underline">Record</a>
                                 @endif
                             </td>
                         </tr>

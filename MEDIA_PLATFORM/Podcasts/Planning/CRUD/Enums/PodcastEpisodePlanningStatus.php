@@ -112,4 +112,23 @@ enum PodcastEpisodePlanningStatus: string
             self::ready_for_publishing,
         ];
     }
+
+    // -------------------------------------------------------------------------
+    // Returns the ordinal position of this status in the planning pipeline.
+    // Used to sort episodes by workflow progression on the dashboard.
+    // Lower number = earlier in the pipeline.
+    // -------------------------------------------------------------------------
+
+    public function sortOrder(): int
+    {
+        return match ($this) {
+            self::new_episode_created          => 0,
+            self::working_on_theme             => 1,
+            self::writing_script               => 2,
+            self::ready_to_finalize_the_script => 3,
+            self::ready_to_record              => 4,
+            self::raw_audio_needs_editing      => 5,
+            self::ready_for_publishing         => 6,
+        };
+    }
 }
