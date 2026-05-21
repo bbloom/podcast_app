@@ -4,8 +4,8 @@
 // PodcastsDashboardController
 //
 // The main entry point for the Podcast Studio. Surfaces the assembly line:
-// planning episodes in progress, episodes in post-production, and recently
-// published episodes — per show and in aggregate.
+// planning episodes grouped by show then sorted by pipeline progression,
+// episodes in post-production needing attention, and recently published.
 //
 // Path: MEDIA_PLATFORM/Podcasts/Dashboard/Controllers/
 // =============================================================================
@@ -14,8 +14,8 @@ namespace MediaPlatform\Podcasts\Dashboard\Controllers;
 
 use App\Http\Controllers\Controller;
 use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
+use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 
 class PodcastsDashboardController extends Controller
 {
@@ -31,63 +31,69 @@ class PodcastsDashboardController extends Controller
     /**
      * Display the Podcasts dashboard.
      *
-     * Passes three collections to the view:
-     *   - $planningEpisodes    — all planning records for the user, with show eager-loaded
-     *   - $episodesInProduction — published records not yet at 'published' status
-     *   - $recentlyPublished   — the 5 most recently published episodes
-     *   - $shows               — the five active shows with planning + production counts
+     * Passes three variables to the view:
+     *
+     *   $planningByShow      — planning episodes grouped by show, each group
+     *                          sorted by status pipeline order (sortOrder()).
+     *                          Shows are ordered per ACTIVE_SHOWS.
+     *
+     *   $episodesInProduction — published records that need attention:
+     *                          excludes `published` and `not_published`.
+     *
+     *   $recentlyPublished   — the 5 most recently published episodes.
      */
     public function show()
     {
         $userId        = auth()->id();
         $orderedTitles = self::ACTIVE_SHOWS;
 
-        // ── Planning episodes ────────────────────────────────────────────────
-        // All planning records for the user, regardless of status.
-        // Ordered by scheduled date ascending (nulls last), then title.
-        $planningEpisodes = PodcastEpisodePlanning::forUser($userId)
-            ->with('show')
-            ->orderByRaw('scheduled_date IS NULL')
-            ->orderBy('scheduled_date', 'asc')
-            ->orderBy('title', 'asc')
-            ->get();
+        // ── Planning episodes — grouped by show, sorted by status order ──────
+        //
+        // 1. Fetch all planning records with their show.
+        // 2. Sort: first by the show's position in ACTIVE_SHOWS, then within
+        //    each show by the status's pipeline sortOrder().
+        // 3. Group by podcast_show_id so the view can render a show header row
+        //    for each show that has at least one planning episode.
 
-        // ── Episodes in post-production ──────────────────────────────────────
-        // Published records that have not yet reached 'published' status.
+        $planningByShow = PodcastEpisodePlanning::forUser($userId)
+            ->with('show')
+            ->get()
+            ->sortBy([
+                fn ($a, $b) => array_search($a->show->title, $orderedTitles)
+                           <=> array_search($b->show->title, $orderedTitles),
+                fn ($a, $b) => $a->status->sortOrder()
+                           <=> $b->status->sortOrder(),
+            ])
+            ->groupBy('podcast_show_id');
+
+        // ── Post-production episodes needing attention ───────────────────────
+        //
+        // Excludes `published` and `not_published` — those are terminal states
+        // that don't need user action. Everything else is in-flight.
+
         $episodesInProduction = PodcastEpisode::forUser($userId)
-            ->where('status', '!=', 'published')
+            ->whereNotIn('status', [
+                PodcastEpisodeStatus::published->value,
+                PodcastEpisodeStatus::not_published->value,
+            ])
             ->with('show')
             ->orderByScheduledDate()
             ->orderBy('title', 'asc')
             ->get();
 
         // ── Recently published ───────────────────────────────────────────────
+
         $recentlyPublished = PodcastEpisode::forUser($userId)
-            ->where('status', 'published')
+            ->where('status', PodcastEpisodeStatus::published->value)
             ->with('show')
             ->orderByDesc('scheduled_date')
             ->limit(5)
             ->get();
 
-        // ── Shows overview ───────────────────────────────────────────────────
-        // Counts planning and post-production episodes per show.
-        $shows = PodcastShow::where('user_id', $userId)
-            ->whereIn('title', $orderedTitles)
-            ->withCount([
-                'planningEpisodes as planning_count',
-                'episodes as in_production_count' => function ($q) {
-                    $q->where('status', '!=', 'published');
-                },
-            ])
-            ->get()
-            ->sortBy(fn ($show) => array_search($show->title, $orderedTitles))
-            ->values();
-
         return view('media_platform.podcasts.dashboard.dashboard', compact(
-            'planningEpisodes',
+            'planningByShow',
             'episodesInProduction',
             'recentlyPublished',
-            'shows',
         ));
     }
 }
