@@ -3,7 +3,7 @@
     {{-- Breadcrumb + heading --}}
     <div class="mb-8">
         <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <a href="{{ route('podcast_episodes.index') }}" class="hover:text-purple-700 transition">← Episodes</a>
+            <a href="{{ route('podcast_episodes.index') }}" class="hover:text-purple-700 transition">← Published Episodes</a>
             <span>›</span>
             <span class="text-gray-700">{{ $episode->title }}</span>
         </div>
@@ -25,7 +25,7 @@
     </div>
 
     @session('success')
-        <div class="bg-green-50 border border-green-300 rounded-lg px-4 py-3 mb-6 text-sm text-green-800">
+        <div class="text-xl mb-6 p-6 bg-green-100 border-2 border-green-800 text-green-800 rounded-full">    
             {{ $value }}
         </div>
     @endsession

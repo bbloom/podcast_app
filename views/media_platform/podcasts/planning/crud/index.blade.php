@@ -17,7 +17,9 @@
     </div>
 
     @session('success')
-        <div class="mb-4 p-3 bg-green-100 border border-green-300 text-green-800 rounded">{{ $value }}</div>
+        <br>
+        <div class="mb-4 p-3 bg-green-300 border border-green-700 text-green-800 rounded font-bold text-xl">Success: {{ $value }}</div>
+        <br>
     @endsession
 
     @session('error')
@@ -110,8 +112,22 @@
 
                                     @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
                                         <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
-                                        class="inline-block bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                                            Record
+                                        class="inline-block bg-green-100 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition hover:bg-green-700 hover:text-white">
+                                            ✦ View to Record
+                                        </a>
+                                    @endif
+
+                                    @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_finalize_the_script)
+                                        <a href="{{ route('podcast_episodes_planning.wizard.finalize.step1', $episode) }}"
+                                            class="inline-block bg-orange-100 text-orange-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition hover:bg-orange-700 hover:text-white">
+                                            ✦ Finalize Script
+                                        </a>
+                                    @endif
+
+                                    @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_for_publishing)
+                                        <a href="{{ route('podcast_episodes_planning.wizard.publish.step1', $episode) }}"
+                                            class="inline-block bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition hover:bg-purple-700 hover:text-white">
+                                            ✦ Prepare for Publishing
                                         </a>
                                     @endif
                                     

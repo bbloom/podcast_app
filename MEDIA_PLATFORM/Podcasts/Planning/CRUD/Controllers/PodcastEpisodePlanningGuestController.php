@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PodcastEpisodePlanningGuestController extends Controller
@@ -34,7 +35,7 @@ class PodcastEpisodePlanningGuestController extends Controller
     /**
      * Show all enabled guests not yet attached to this planning episode.
      */
-    public function attachIndex(PodcastEpisodePlanning $podcast_episode_planning): View|RedirectResponse
+    public function attachIndex(Request $request, PodcastEpisodePlanning $podcast_episode_planning): View|RedirectResponse
     {
         if ($redirect = $this->authorizeOwnership($podcast_episode_planning)) {
             return $redirect;
@@ -43,10 +44,14 @@ class PodcastEpisodePlanningGuestController extends Controller
         $attachedIds = $podcast_episode_planning->guests()
             ->pluck('podcast_guests.id');
 
+        $search = $request->input('search');
+
         $guests = PodcastGuest::where('enabled', true)
             ->whereNotIn('id', $attachedIds)
+            ->when($search, fn ($q) => $q->where('full_name', 'like', "%{$search}%"))
             ->orderBy('full_name')
-            ->paginate(config('admin.pagination_show'));
+            ->paginate(config('admin.pagination_show'))
+            ->withQueryString();    
 
         return view('media_platform.podcasts.planning.crud.attach_guest', [
             'episode' => $podcast_episode_planning,

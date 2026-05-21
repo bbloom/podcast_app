@@ -170,10 +170,13 @@ class PodcastEpisodePlanningController extends Controller
             return $redirect;
         }
 
+        $title = $podcast_episode_planning->title;
+
         $podcast_episode_planning->delete();
 
         return redirect()
             ->route('podcast_episodes_planning.index')
-            ->with('success', 'Planning episode deleted.');
+            ->with('success', "Planning episode '{$title}' was successfully deleted.")
+        ;
     }
 }

@@ -78,7 +78,7 @@
                         {{-- Episode rows for this show --}}
                         @foreach ($episodes as $episode)
                             <tr class="bg-white border-b border-purple-300 hover:bg-gray-50">
-                                <td class="px-6 py-3 text-base text-gray-500 tabular-nums">{{ $episode->episode_number ?? '—' }}</td>
+                                <td class="px-6 py-3 text-sm text-gray-500 tabular-nums">EP# {{ $episode->episode_number ?? '—' }}</td>
                                 <td class="px-6 py-3">
                                     <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
                                        class="font-bold text-base text-purple-700 hover:underline">
@@ -101,8 +101,22 @@
 
                                         @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_record)
                                             <a href="{{ route('podcast_episodes_planning.recording.show', $episode) }}"
-                                            class="inline-block bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                                                Record
+                                            class="inline-block bg-green-100 text-orange-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition  hover:bg-green-800 hover:text-white">
+                                                 ✦ View for Recording
+                                            </a>
+                                        @endif
+
+                                        @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_to_finalize_the_script)
+                                            <a href="{{ route('podcast_episodes_planning.wizard.finalize.step1', $episode) }}"
+                                            class="px-4 py-2 text-sm font-semibold bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-700 hover:text-white">
+                                                ✦ Finalize Script
+                                            </a>
+                                        @endif
+
+                                        @if ($episode->status === \MediaPlatform\Podcasts\Planning\CRUD\Enums\PodcastEpisodePlanningStatus::ready_for_publishing)
+                                            <a href="{{ route('podcast_episodes_planning.wizard.publish.step1', $episode) }}"
+                                            class="px-4 py-2 text-sm font-semibold bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-800  hover:text-white">
+                                                ✦ Prepare for Publishing
                                             </a>
                                         @endif
                                     </div>
@@ -157,8 +171,10 @@
                                     {{ $episode->title }}
                                 </a>
                             </td>
-                            <td class="px-6 py-3 text-gray-600 text-xs">
-                                {{ $episode->status->label() }}
+                            <td class="px-6 py-3 align-middle">
+                                <span class="inline-flex items-center px-4 py-1.5 text-sm font-semibold text-green-700 bg-green-50 border border-green-300 rounded-full shadow-sm">
+                                    {{ $episode->status->label() }}
+                                </span>
                             </td>
                             <td class="px-6 py-3 text-gray-500">
                                 {{ $episode->scheduled_date?->format('M d, Y') ?? '—' }}

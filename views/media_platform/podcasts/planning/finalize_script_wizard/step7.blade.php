@@ -3,8 +3,8 @@
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="7" />
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-2 text-center">Final Proof</h1>
-    <p class="text-center text-sm text-gray-500 mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Final Proof</h1>
+    <p class="text-center text-base text-gray-500 mb-6">
         Read through the complete assembled script one final time.
         When you confirm, the status will be set to <strong>Ready To Record</strong>.
     </p>
@@ -23,7 +23,7 @@
             @if ($episode->script)
                 <pre class="text-xs font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
             @else
-                <p class="text-gray-400 text-sm">No script.</p>
+                <p class="text-base text-gray-400">No script.</p>
             @endif
         </div>
     </div>
@@ -34,7 +34,7 @@
             <a href="{{ route('podcast_episodes_planning.wizard.finalize.step6') }}"
                class="text-sm text-gray-500 hover:underline">← Back</a>
             <button type="submit"
-                    class="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">
+                    class="px-6 py-3 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-700">
                 Script is ready — lock it for recording ✓
             </button>
         </div>

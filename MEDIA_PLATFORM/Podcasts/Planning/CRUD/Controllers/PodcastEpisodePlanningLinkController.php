@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use MediaPlatform\Podcasts\Links\Models\PodcastLink;
 use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PodcastEpisodePlanningLinkController extends Controller
@@ -34,7 +35,7 @@ class PodcastEpisodePlanningLinkController extends Controller
     /**
      * Show all enabled links owned by the user not yet attached to this episode.
      */
-    public function attachIndex(PodcastEpisodePlanning $podcast_episode_planning): View|RedirectResponse
+    public function attachIndex(Request $request, PodcastEpisodePlanning $podcast_episode_planning): View|RedirectResponse
     {
         if ($redirect = $this->authorizeOwnership($podcast_episode_planning)) {
             return $redirect;
@@ -43,11 +44,18 @@ class PodcastEpisodePlanningLinkController extends Controller
         $attachedIds = $podcast_episode_planning->links()
             ->pluck('podcast_links.id');
 
+        $search = $request->input('search');
+
         $links = PodcastLink::where('enabled', true)
             ->where('user_id', auth()->id())
             ->whereNotIn('id', $attachedIds)
+            ->when($search, fn ($q) => $q->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                ->orWhere('link', 'like', "%{$search}%");
+            }))
             ->orderBy('title')
-            ->paginate(config('admin.pagination_show'));
+            ->paginate(config('admin.pagination_show'))
+            ->withQueryString();
 
         return view('media_platform.podcasts.planning.crud.attach_link', [
             'episode' => $podcast_episode_planning,

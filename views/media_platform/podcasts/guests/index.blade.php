@@ -59,6 +59,11 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-0.5">
                             <span class="text-xs text-gray-400 font-mono flex-shrink-0">#{{ $guest->id }}</span>
+                            @if ($guest->image_thumbnail_url)
+                                <img src="{{ $guest->image_thumbnail_url }}"
+                                    alt="{{ $guest->full_name }}"
+                                    class="w-16 h-16 rounded object-cover border border-purple-200">
+                            @endif
                             <p class="text-sm font-semibold text-gray-800 truncate">{{ $guest->full_name }}</p>
                             @if (! $guest->enabled)
                                 <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium flex-shrink-0">Disabled</span>

@@ -1,7 +1,7 @@
 <x-layouts.app title="Podcast Episodes">
 
     <div class="flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-bold text-gray-800">Podcast Episodes</h1>
+        <h1 class="text-2xl font-bold text-gray-800">Published Podcast Episodes</h1>
         
     </div>
 

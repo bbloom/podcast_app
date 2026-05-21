@@ -5,11 +5,11 @@
 
     <div class="text-center mb-8">
         <div class="text-5xl mb-4">✓</div>
-        <h1 class="text-2xl font-bold text-purple-800 mb-2">New Planning Episode Created!</h1>
+        <h1 class="text-3xl font-bold text-purple-800 mb-2">New Planning Episode Created!</h1>
         <p class="p-4 m-6 text-2xl text-purple-700 bg-green-300 border-2 border-purple-700 rounded-lg">
             <strong>{{ $episode->formatted_title }}</strong>
             <br><br>
-            has been added to 
+            has been added to
             <br><br>
             <strong>{{ $episode->show->title }}</strong>.
         </p>
@@ -27,21 +27,31 @@
                 <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>
                 <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">Create another new episode</span>
             </a>
+            
             <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
                class="flex items-center px-5 py-4 hover:bg-purple-100 group">
                 <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>
-                <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">View this episode</span>
+                <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">Details for this episode</span>
             </a>
+
             <a href="{{ route('podcast_episodes_planning.theme.show', $episode) }}"
                class="flex items-center px-5 py-4 hover:bg-purple-100 group">
                 <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>
                 <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">Work on the theme</span>
             </a>
+
             <a href="{{ route('podcast_episodes_planning.script.show', $episode) }}"
                class="flex items-center px-5 py-4 hover:bg-purple-100 group">
                 <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>
                 <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">Work on the script</span>
             </a>
+
+            <a href="{{ route('podcast_episodes_planning.guests.attach.index', $episode) }}"
+               class="flex items-center px-5 py-4 hover:bg-purple-100 group">
+                <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>
+                <span class="text-lg text-gray-800 hover:text-purple-700 hover:underline">Add guests</span>
+            </a>
+
             <a href="{{ route('podcasts.dashboard') }}"
                class="flex items-center px-5 py-4 hover:bg-purple-100 group">
                 <span class="text-purple-400 font-bold mr-3 group-hover:text-purple-700">›</span>

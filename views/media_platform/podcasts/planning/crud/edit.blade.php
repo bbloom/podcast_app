@@ -1,7 +1,8 @@
-<x-layouts.app title="Edit Planning Episode">
+<x-layouts.app title="Edit — {{ $episode->formatted_title }}">
 <div class="max-w-3xl mx-auto px-4 py-8">
 
-    <p class="text-sm text-gray-500 mb-1">
+    {{-- Breadcrumb --}}
+    <p class="text-base text-gray-500 mb-4">
         <a href="{{ route('podcast_episodes_planning.index') }}" class="hover:underline text-purple-700">
             Planning Episodes
         </a>
@@ -12,7 +13,12 @@
         &rsaquo; Edit
     </p>
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">Edit Planning Episode</h1>
+    {{-- Header --}}
+    <div class="flex items-center gap-4 mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 border border-green-800 bg-green-300 rounded-lg p-5">
+            <span class="text-2xl">edit:</span> "{{ $episode->title }}"
+        </h1>
+    </div>
 
     <form method="POST" action="{{ route('podcast_episodes_planning.update', $episode) }}">
         @csrf
@@ -22,17 +28,23 @@
         <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider mb-3">Core</div>
         <div class="border border-purple-500 rounded-lg p-5 mb-6 space-y-4">
 
-            {{-- Show — read-only, not changeable after episode creation --}}
+            {{-- Show — read-only --}}
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Show</label>
-                <p class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
-                    {{ $episode->show->title ?? '—' }}
-                </p>
+                <label class="block text-base font-semibold text-gray-700 mb-1">Show</label>
+                 @if ($episode->show->itunes_image)
+                    <img src="{{ $episode->show->itunes_image }}"
+                            alt="{{ $episode->show->title }}"
+                            class="w-24 h-24 rounded object-cover border border-purple-200">
+                @else
+                    <span class="text-gray-800">{{ $episode->show->title ?? '—' }}</span>
+                @endif
             </div>
 
             {{-- Title --}}
             <div>
-                <label for="title" class="block text-sm font-semibold text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
+                <label for="title" class="block text-base font-semibold text-gray-700 mb-1">
+                    Title <span class="text-red-500">*</span>
+                </label>
                 <input type="text" id="title" name="title"
                        value="{{ old('title', $episode->title) }}"
                        class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none @error('title') border-red-400 @enderror">
@@ -42,14 +54,14 @@
             {{-- Episode number + Scheduled date --}}
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label for="episode_number" class="block text-sm font-semibold text-gray-700 mb-1">Episode #</label>
+                    <label for="episode_number" class="block text-base font-semibold text-gray-700 mb-1">Episode #</label>
                     <input type="number" id="episode_number" name="episode_number" min="1"
                            value="{{ old('episode_number', $episode->episode_number) }}"
                            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none @error('episode_number') border-red-400 @enderror">
                     @error('episode_number') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label for="scheduled_date" class="block text-sm font-semibold text-gray-700 mb-1">Scheduled Date</label>
+                    <label for="scheduled_date" class="block text-base font-semibold text-gray-700 mb-1">Scheduled Date</label>
                     <input type="date" id="scheduled_date" name="scheduled_date"
                            value="{{ old('scheduled_date', $episode->scheduled_date?->format('Y-m-d')) }}"
                            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none @error('scheduled_date') border-red-400 @enderror">
@@ -59,7 +71,7 @@
 
             {{-- Status --}}
             <div>
-                <label for="status" class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                <label for="status" class="block text-base font-semibold text-gray-700 mb-1">Status</label>
                 <select id="status" name="status"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none @error('status') border-red-400 @enderror">
                     @foreach ($manualStatuses as $s)
@@ -82,25 +94,37 @@
 
             {{-- Notes --}}
             <div>
-                <label for="notes" class="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
-                <textarea id="notes" name="notes" rows="4"
-                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('notes') border-red-400 @enderror">{{ old('notes', $episode->notes) }}</textarea>
+                <label for="notes" class="block text-base font-semibold text-gray-700 mb-1">Notes</label>
+                <textarea 
+                    id="notes" 
+                    name="notes" 
+                    rows="4"
+                    placeholder="There are no notes"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('notes') border-red-400 @enderror">{{ old('notes', $episode->notes) }}</textarea>
                 @error('notes') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             {{-- Theme --}}
             <div>
-                <label for="theme" class="block text-sm font-semibold text-gray-700 mb-1">Theme</label>
-                <textarea id="theme" name="theme" rows="4"
-                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('theme') border-red-400 @enderror">{{ old('theme', $episode->theme) }}</textarea>
+                <label for="theme" class="block text-base font-semibold text-gray-700 mb-1">Theme</label>
+                <textarea 
+                    id="theme" 
+                    name="theme" 
+                    rows="4"
+                    placeholder="There is no theme"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('theme') border-red-400 @enderror">{{ old('theme', $episode->theme) }}</textarea>
                 @error('theme') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             {{-- Script --}}
             <div>
-                <label for="script" class="block text-sm font-semibold text-gray-700 mb-1">Script</label>
-                <textarea id="script" name="script" rows="12"
-                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('script') border-red-400 @enderror">{{ old('script', $episode->script) }}</textarea>
+                <label for="script" class="block text-base font-semibold text-gray-700 mb-1">Script</label>
+                <textarea 
+                    id="script" 
+                    name="script" 
+                    rows="12"
+                    placeholder="There is no script"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('script') border-red-400 @enderror">{{ old('script', $episode->script) }}</textarea>
                 @error('script') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
@@ -110,20 +134,29 @@
         <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider mb-3">Website Content</div>
         <div class="border border-purple-500 rounded-lg p-5 mb-6 space-y-4">
 
-            {{-- Website excerpt --}}
+            {{-- Website Content --}}
             <div>
-                <label for="website_excerpt" class="block text-sm font-semibold text-gray-700 mb-1">Excerpt</label>
-                <textarea id="website_excerpt" name="website_excerpt" rows="3"
-                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('website_excerpt') border-red-400 @enderror">{{ old('website_excerpt', $episode->website_excerpt) }}</textarea>
-                @error('website_excerpt') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                <label for="website_content" class="block text-base font-semibold text-gray-700 mb-1">Website Content</label>
+                <textarea 
+                    id="website_content" 
+                    name="website_content" 
+                    rows="8"
+                    placeholder="There is no websitecontent"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('website_content') border-red-400 @enderror">{{ old('website_content', $episode->website_content) }}</textarea>
+                @error('website_content') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Website content --}}
+            {{-- Website Excerpt --}}
             <div>
-                <label for="website_content" class="block text-sm font-semibold text-gray-700 mb-1">Content</label>
-                <textarea id="website_content" name="website_content" rows="8"
-                          class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('website_content') border-red-400 @enderror">{{ old('website_content', $episode->website_content) }}</textarea>
-                @error('website_content') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                <label for="website_excerpt" class="block text-base font-semibold text-gray-700 mb-1">Website Excerpt</label>
+                <textarea 
+                    id="website_excerpt" 
+                    name="website_excerpt" 
+                    rows="3"
+                    placeholder="There is no website excerpt"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none resize @error('website_excerpt') border-red-400 @enderror"
+                >{{ old('website_excerpt', $episode->website_excerpt) }}</textarea>                
+                @error('website_excerpt') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
         </div>
@@ -131,11 +164,11 @@
         {{-- Submit --}}
         <div class="flex items-center gap-4">
             <button type="submit"
-                    class="px-6 py-2 bg-purple-700 text-white rounded hover:bg-purple-800 font-semibold">
+                    class="px-6 py-2.5 bg-purple-700 text-white rounded-lg font-semibold text-sm hover:bg-purple-800">
                 Save Changes
             </button>
             <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
-               class="text-gray-500 hover:underline text-sm">Cancel</a>
+               class="text-sm text-gray-500 hover:underline">Cancel</a>
         </div>
 
     </form>

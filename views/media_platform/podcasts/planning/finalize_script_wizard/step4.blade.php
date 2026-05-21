@@ -3,8 +3,8 @@
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="4" />
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-2 text-center">AI Proofing</h1>
-    <p class="text-center text-sm text-gray-500 mb-6">Review the script with AI tools before finalizing.</p>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">AI Proofing</h1>
+    <p class="text-center text-base text-gray-500 mb-6">Review the script with AI tools before finalizing.</p>
 
     {{-- Script read-only view with copy button --}}
     <div class="border border-purple-300 rounded-lg overflow-hidden mb-6">
@@ -21,24 +21,35 @@
             @if ($episode->script)
                 <pre class="text-xs font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
             @else
-                <p class="text-gray-400 text-sm">No script yet.</p>
+                <p class="text-base text-gray-400">No script yet.</p>
             @endif
         </div>
     </div>
 
     {{-- AI tool links --}}
     <div class="border border-gray-200 rounded-lg p-5 mb-6">
-        <p class="text-sm font-semibold text-gray-700 mb-3">AI Tools</p>
-        <div class="flex flex-wrap gap-3 text-sm">
-            <a href="/adhocprompt" class="px-3 py-1.5 border border-purple-400 text-purple-700 rounded hover:bg-purple-50">Ad Hoc Prompt (internal)</a>
-            <a href="https://gemini.google.com" target="_blank" rel="noopener" class="px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">Gemini ↗</a>
-            <a href="https://chatgpt.com" target="_blank" rel="noopener" class="px-3 py-1.5 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">ChatGPT ↗</a>
+        <p class="text-base font-semibold text-gray-700 mb-3">AI Tools</p>
+        <div class="flex flex-wrap gap-3">
+            <a href="/adhocprompt"
+               class="px-4 py-2 text-sm font-semibold border border-purple-400 text-purple-700 rounded hover:bg-purple-50">
+                Ad Hoc Prompt (internal)
+            </a>
+            <a href="https://gemini.google.com" target="_blank" rel="noopener"
+               class="px-4 py-2 text-sm font-semibold border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                Gemini ↗
+            </a>
+            <a href="https://chatgpt.com" target="_blank" rel="noopener"
+               class="px-4 py-2 text-sm font-semibold border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                ChatGPT ↗
+            </a>
         </div>
     </div>
 
     {{-- Suggested prompts --}}
     <div class="border border-gray-200 rounded-lg p-5 mb-8 space-y-5">
-        <p class="text-sm font-semibold text-gray-700">Suggested Prompts <span class="text-gray-400 font-normal text-xs">(copy and paste into your AI tool)</span></p>
+        <p class="text-base font-semibold text-gray-700">
+            Suggested Prompts <span class="text-gray-400 font-normal text-xs">(copy and paste into your AI tool)</span>
+        </p>
 
         @foreach ([
             ['Spelling & Grammar',              'Please check the following podcast script for spelling and grammar errors. List each error with the suggested correction.'],
@@ -46,16 +57,18 @@
             ['Sentence Length & Readability',   'Please review the following podcast script for sentences that are too long or complex to read aloud comfortably. Suggest shorter, more natural alternatives where needed.'],
             ['Full Polish',                     'Please review the following podcast script for overall quality. This script will be read aloud. Check for: spelling and grammar errors, conversational flow and natural spoken language, sentence length and readability when read aloud, clarity of ideas, and natural pacing. Provide specific, actionable suggestions for improvement.'],
         ] as [$label, $prompt])
-        <div x-data="{ copied: false }">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">{{ $label }}</span>
-                <button @click="navigator.clipboard.writeText('{{ addslashes($prompt) }}').then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
-                        class="text-xs text-purple-700 hover:underline">
-                    <span x-show="!copied">Copy</span><span x-show="copied">Copied!</span>
-                </button>
+            <div x-data="{ copied: false }">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-base font-semibold text-gray-700">{{ $label }}</p>
+                    <button
+                        @click="navigator.clipboard.writeText('{{ addslashes($prompt) }}').then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
+                        class="text-xs px-2 py-1 border border-gray-300 text-gray-500 rounded hover:bg-gray-50">
+                        <span x-show="!copied">Copy</span>
+                        <span x-show="copied">Copied!</span>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 italic">{{ $prompt }}</p>
             </div>
-            <p class="text-xs text-gray-600 italic">{{ $prompt }}</p>
-        </div>
         @endforeach
     </div>
 
@@ -63,7 +76,7 @@
         <a href="{{ route('podcast_episodes_planning.wizard.finalize.step3') }}"
            class="text-sm text-gray-500 hover:underline">← Back</a>
         <a href="{{ route('podcast_episodes_planning.wizard.finalize.step5') }}"
-           class="px-6 py-2 bg-purple-700 text-white rounded hover:bg-purple-800 font-semibold">
+           class="px-6 py-2 bg-purple-700 text-white rounded font-semibold text-sm hover:bg-purple-800">
             Continue →
         </a>
     </div>

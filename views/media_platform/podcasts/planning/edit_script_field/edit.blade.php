@@ -1,15 +1,26 @@
 <x-layouts.app title="Edit Script — {{ $episode->formatted_title }}">
 <div class="max-w-4xl mx-auto px-4 py-8">
 
-    <p class="text-sm text-gray-500 mb-1">
+    {{-- Breadcrumb --}}
+    <p class="text-base text-gray-500 mb-4">
         <a href="{{ route('podcast_episodes_planning.index') }}" class="hover:underline text-purple-700">Planning Episodes</a>
         &rsaquo;
         <a href="{{ route('podcast_episodes_planning.show', $episode) }}" class="hover:underline text-purple-700">{{ $episode->formatted_title }}</a>
         &rsaquo; Edit Script
     </p>
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-1">Edit Script</h1>
-    <p class="text-sm text-gray-500 mb-6">{{ $episode->show->title ?? '' }}</p>
+    {{-- Header --}}
+    <div class="flex items-center gap-4 mb-6">
+        @if ($episode->show->itunes_image)
+            <img src="{{ $episode->show->itunes_image }}"
+                 alt="{{ $episode->show->title }}"
+                 class="w-16 h-16 rounded object-cover border border-purple-200 flex-shrink-0">
+        @endif
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Edit Script</h1>
+            <p class="text-base text-gray-500 mt-1">{{ $episode->formatted_title }}</p>
+        </div>
+    </div>
 
     <div x-data="{
         script: @js($episode->script ?? ''),
@@ -50,12 +61,12 @@
             <textarea
                 x-model="script"
                 rows="30"
-                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none resize-y"
+                class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none resize-y"
                 placeholder="Write the episode script here..."></textarea>
         </div>
 
-        <div x-show="saved" x-transition class="mb-3 text-sm text-green-700 font-medium">✓ Script saved.</div>
-        <div x-show="saveError" x-transition class="mb-3 text-sm text-red-600" x-text="saveError"></div>
+        <div x-show="saved" x-transition class="mb-3 text-base text-green-700 font-medium">✓ Script saved.</div>
+        <div x-show="saveError" x-transition class="mb-3 text-base text-red-600" x-text="saveError"></div>
 
         <div class="flex items-center gap-4">
 
@@ -63,7 +74,7 @@
             <button
                 @click.prevent="saveAndContinue()"
                 :disabled="saving"
-                class="px-5 py-2 bg-purple-700 text-white rounded hover:bg-purple-800 font-semibold text-sm disabled:opacity-50">
+                class="px-5 py-2 bg-purple-700 text-white rounded font-semibold text-sm hover:bg-purple-800 disabled:opacity-50">
                 <span x-show="!saving">Save and Continue</span>
                 <span x-show="saving">Saving…</span>
             </button>
@@ -74,7 +85,7 @@
                 @method('PATCH')
                 <input type="hidden" name="script" x-model="script">
                 <button type="submit"
-                        class="px-5 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 font-semibold text-sm">
+                        class="px-5 py-2 border border-gray-400 text-gray-700 rounded font-semibold text-sm hover:bg-gray-50">
                     Save and Exit
                 </button>
             </form>
