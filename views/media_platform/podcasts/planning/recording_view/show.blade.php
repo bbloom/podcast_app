@@ -10,26 +10,31 @@
     </p>
 
     {{-- Header --}}
+    <br>
     <div class="flex items-center gap-4 mb-8">
         @if ($episode->show->itunes_image)
             <img src="{{ $episode->show->itunes_image }}"
                  alt="{{ $episode->show->title }}"
                  class="w-16 h-16 rounded object-cover border border-purple-200 flex-shrink-0">
-        @endif
-        <div>
+        @else 
             <p class="text-base font-medium text-purple-600 mb-1">{{ $episode->show->title ?? '—' }}</p>
+        @endif
+
+        <br>
+        <div>
             <h1 class="text-3xl font-bold text-gray-900">{{ $episode->formatted_title }}</h1>
             @if ($episode->scheduled_date)
-                <p class="mt-1 text-base text-gray-400">{{ $episode->scheduled_date->format('F j, Y') }}</p>
+                <p class="mt-1 text-base text-gray-700">{{ $episode->scheduled_date->format('F j, Y') }}</p>
             @endif
         </div>
     </div>
 
     {{-- ── Script ──────────────────────────────────────────────────────────── --}}
     <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Script</div>
-    <div class="border border-purple-500 rounded-lg px-6 py-6 mb-10">
+
+    <div class="border border-purple-500 rounded-lg px-6 py-6 mb-10 bg-white">
         @if ($episode->script)
-            <div class="markdown-content text-gray-800 leading-relaxed text-base">
+            <div class="markdown-content text-black leading-relaxed text-lg">
                 {!! Str::markdown($episode->script) !!}
             </div>
         @else

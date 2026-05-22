@@ -25,9 +25,8 @@ class Step3Controller extends Controller
         return view('media_platform.podcasts.planning.finalize_script_wizard.step3', compact('episode'));
     }
 
-    /**
-     * Save the (possibly updated) title and advance to Step 4.
-     */
+   
+
     public function store(Request $request): RedirectResponse
     {
         $episode = $this->getEpisodeFromSession();
@@ -36,7 +35,17 @@ class Step3Controller extends Controller
         }
 
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+                // The episode number prefix is added automatically on publishing.
+                // Episode number manually entered into this title must be removed.
+                // The single character class \D means "not a digit". 
+                'regex:/^\D/u',
+            ],
+        ], [
+            'title.regex' => 'The title must not start with a number. Do not include the episode number — it is added automatically on publishing. If your title genuinely begins with a number, spell it out as a word (e.g. "Ten Things I Learned").',
         ]);
 
         $episode->update(['title' => $validated['title']]);

@@ -67,6 +67,56 @@ class Step3ControllerTest extends TestCase
             ->assertSessionHasErrors(['title']);
     }
 
+    /**
+     * Titles that start with a digit must be rejected.
+     * The episode number is added automatically on publishing — it must not
+     * appear in the stored title.
+     *
+     * @dataProvider titlesStartingWithDigit
+     */
+    public function test_store_rejects_title_starting_with_a_digit(string $title): void
+    {
+        $user = User::factory()->create();
+        $this->makeEpisodeWithSession($user);
+
+        $this->actingAs($user)
+            ->post(route('podcast_episodes_planning.wizard.finalize.step3.store'), [
+                'title' => $title,
+            ])
+            ->assertSessionHasErrors(['title']);
+    }
+
+    public static function titlesStartingWithDigit(): array
+    {
+        return [
+            'bare number'              => ['12'],
+            'number dash title'        => ['12 - My Episode'],
+            'number em-dash title'     => ['12 — My Episode'],
+            'hash number em-dash'      => ['#12 — My Episode'],
+            'hash number dash'         => ['#12 - My Episode'],
+            'number colon title'       => ['12: My Episode'],
+            'number with no separator' => ['12My Episode'],
+            'single digit'             => ['1 Episode'],
+        ];
+    }
+
+    public function test_store_accepts_title_starting_with_a_word(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->makeEpisodeWithSession($user);
+
+        $this->actingAs($user)
+            ->post(route('podcast_episodes_planning.wizard.finalize.step3.store'), [
+                'title' => 'Ten Things I Learned',
+            ])
+            ->assertRedirect(route('podcast_episodes_planning.wizard.finalize.step4'));
+
+        $this->assertDatabaseHas('podcast_episodes_planning', [
+            'id'    => $episode->id,
+            'title' => 'Ten Things I Learned',
+        ]);
+    }
+
     public function test_store_redirects_without_session(): void
     {
         $this->actingAs(User::factory()->create())

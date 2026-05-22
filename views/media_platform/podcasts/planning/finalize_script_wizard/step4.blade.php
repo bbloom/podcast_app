@@ -3,10 +3,26 @@
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="4" />
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">AI Proofing</h1>
-    <p class="text-center text-base text-gray-500 mb-6">Review the script with AI tools before finalizing.</p>
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Finalize the Script Wizard</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Step 4: Proof Script with AI</h1>
+        <p class="text-center text-base text-gray-500 mb-6">Review the script with AI tools before finalizing.</p>
 
+        <div class="mt-4 flex flex-col items-center justify-center gap-3 text-3xl font-bold text-purple-700 bg-sky-100 border-2 border-sky-700 rounded-lg px-6 py-4 mb-8 mt-4 shadow-sm">
+            @if ($episode->show->itunes_image)
+                <img src="{{ $episode->show->itunes_image }}"
+                    alt="{{ $episode->show->title }}"
+                    class="w-24 h-24 rounded object-cover border border-purple-200">
+            @else
+               {{ $episode->show->title ?? '' }} 
+            @endif 
+            episode #{{ $episode->episode_number }}
+            <span class="mt-4">{{ $episode->title }}</span>
+        </div>
+
+    
     {{-- Script read-only view with copy button --}}
+    <br>
     <div class="border border-purple-300 rounded-lg overflow-hidden mb-6">
         <div class="bg-purple-50 border-b border-purple-300 px-4 py-2 flex items-center justify-between">
             <span class="text-sm font-semibold text-purple-700 uppercase tracking-wider">Script</span>
@@ -17,9 +33,9 @@
                 <span x-show="copied">Copied!</span>
             </button>
         </div>
-        <div class="px-4 py-4 max-h-64 overflow-y-auto">
+        <div class="px-4 py-4 max-h-64 overflow-y-auto bg-white text-left">
             @if ($episode->script)
-                <pre class="text-xs font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
+                <pre class="text-base font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
             @else
                 <p class="text-base text-gray-400">No script yet.</p>
             @endif
@@ -27,12 +43,14 @@
     </div>
 
     {{-- AI tool links --}}
-    <div class="border border-gray-200 rounded-lg p-5 mb-6">
+    <div class="border border-sky-300 rounded-lg bg-sky-100 p-5 mb-6">
         <p class="text-base font-semibold text-gray-700 mb-3">AI Tools</p>
         <div class="flex flex-wrap gap-3">
             <a href="/adhocprompt"
-               class="px-4 py-2 text-sm font-semibold border border-purple-400 text-purple-700 rounded hover:bg-purple-50">
-                Ad Hoc Prompt (internal)
+               class="px-4 py-2 text-sm font-semibold border border-purple-400 text-purple-700 rounded hover:bg-purple-50"
+               target="_blank"
+            >
+                Ad Hoc Prompt (internal) ↗
             </a>
             <a href="https://gemini.google.com" target="_blank" rel="noopener"
                class="px-4 py-2 text-sm font-semibold border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
@@ -42,13 +60,19 @@
                class="px-4 py-2 text-sm font-semibold border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
                 ChatGPT ↗
             </a>
+            <a href="https://claude.ai" target="_blank" rel="noopener"
+               class="px-4 py-2 text-sm font-semibold border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+                Claude AI ↗
+            </a>
         </div>
     </div>
 
     {{-- Suggested prompts --}}
-    <div class="border border-gray-200 rounded-lg p-5 mb-8 space-y-5">
+    <div class="border border-purple-300 rounded-lg p-5 mb-8 space-y-5 bg-white">
         <p class="text-base font-semibold text-gray-700">
-            Suggested Prompts <span class="text-gray-400 font-normal text-xs">(copy and paste into your AI tool)</span>
+            Suggested Prompts 
+            <br>
+            <span class="text-gray-600 font-normal text-xs">(copy and paste into your AI tool)</span>
         </p>
 
         @foreach ([
@@ -76,7 +100,7 @@
         <a href="{{ route('podcast_episodes_planning.wizard.finalize.step3') }}"
            class="text-sm text-gray-500 hover:underline">← Back</a>
         <a href="{{ route('podcast_episodes_planning.wizard.finalize.step5') }}"
-           class="px-6 py-2 bg-purple-700 text-white rounded font-semibold text-sm hover:bg-purple-800">
+           class="px-6 py-2 bg-green-700 text-white rounded font-semibold text-sm hover:bg-green-800">
             Continue →
         </a>
     </div>

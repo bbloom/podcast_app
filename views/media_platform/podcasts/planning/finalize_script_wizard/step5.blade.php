@@ -3,11 +3,26 @@
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="5" />
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Prepend the Intro</h1>
-    <p class="text-center text-base text-gray-500 mb-6">
-        The intro template has been resolved with your episode details.
-        Edit if needed, then prepend — or skip if you've already added it manually.
-    </p>
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Finalize the Script Wizard</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Step 5: Prepend the Intro</h1>
+        <p class="text-center text-base text-gray-500 mb-6">
+            The intro template has been resolved with your episode details.
+            <br>
+            Edit if needed, then prepend — or skip if you've already added it manually.
+        </p>
+
+        <div class="mt-4 flex flex-col items-center justify-center gap-3 text-3xl font-bold text-purple-700 bg-sky-100 border-2 border-sky-700 rounded-lg px-6 py-4 mb-8 mt-4 shadow-sm">
+            @if ($episode->show->itunes_image)
+                <img src="{{ $episode->show->itunes_image }}"
+                    alt="{{ $episode->show->title }}"
+                    class="w-24 h-24 rounded object-cover border border-purple-200">
+            @else
+               {{ $episode->show->title ?? '' }} 
+            @endif 
+            episode #{{ $episode->episode_number }}
+            <span class="mt-4">{{ $episode->title }}</span>
+        </div>
 
     @session('info')
         <div class="mb-4 p-3 bg-blue-100 border border-blue-300 text-blue-800 rounded text-base">{{ $value }}</div>

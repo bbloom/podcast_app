@@ -3,11 +3,27 @@
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="7" />
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Final Proof</h1>
-    <p class="text-center text-base text-gray-500 mb-6">
-        Read through the complete assembled script one final time.
-        When you confirm, the status will be set to <strong>Ready To Record</strong>.
-    </p>
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Finalize the Script Wizard</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Step 7: Final Proof</h1>
+        <p class="text-center text-base text-gray-500 mb-6">
+            Read through the complete assembled script one final time.
+            <br>
+            When you confirm, the status will be set to <strong>Ready To Record</strong>.
+        </p>
+
+        <div class="mt-4 flex flex-col items-center justify-center gap-3 text-3xl font-bold text-purple-700 bg-sky-100 border-2 border-sky-700 rounded-lg px-6 py-4 mb-8 mt-4 shadow-sm">
+            @if ($episode->show->itunes_image)
+                <img src="{{ $episode->show->itunes_image }}"
+                    alt="{{ $episode->show->title }}"
+                    class="w-24 h-24 rounded object-cover border border-purple-200">
+            @else
+               {{ $episode->show->title ?? '' }} 
+            @endif 
+            episode #{{ $episode->episode_number }}
+            <span class="mt-4">{{ $episode->title }}</span>
+        </div>
+
 
     <div class="border border-purple-300 rounded-lg overflow-hidden mb-6">
         <div class="bg-purple-50 border-b border-purple-300 px-4 py-2 flex items-center justify-between">
@@ -19,7 +35,7 @@
                 <span x-show="copied">Copied!</span>
             </button>
         </div>
-        <div class="px-4 py-4 max-h-[60vh] overflow-y-auto">
+        <div class="px-4 py-4 max-h-[60vh] overflow-y-auto bg-white">
             @if ($episode->script)
                 <pre class="text-xs font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
             @else
