@@ -8,7 +8,7 @@ RSS feed generation, and website publishing.
 
 ## Current State
 
-**Phases 1, 2, 3, and the post-Phase-3 UI pass are complete and pushed.**
+**Phases 1, 2, 3, post-Phase-3 UI pass, and Planning UI pass are complete and pushed.**
 
 - Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
@@ -24,8 +24,23 @@ RSS feed generation, and website publishing.
   - `PodcastStudio/` legacy files deleted
   - RecordingView built (`MEDIA_PLATFORM/Podcasts/Planning/RecordingView/`)
   - UI pass: "Open"/"View" → "Details" across Planning views; table contrast updated
+- Planning UI pass (complete):
+  - All Planning views restyled — show image in headers, `text-base` body text, `flex-col` stacked buttons, breadcrumbs with spacing
+  - `show.blade.php` — restructured: Episode Details, Status (badge only), Notes, Theme, Script (collapsible), Guests, Links, Episode Management (actions + status quick-change + edit/delete), Podcasts Dashboard button. "New Episode" button removed.
+  - `edit.blade.php` — sectioned: Core, Creative Content, Website Content
+  - `delete_confirm.blade.php` — show image, hard-delete warning
+  - `attach_guest.blade.php` — search added, Attach button
+  - `attach_link.blade.php` — search added, Attach button
+  - `edit_theme_field/edit.blade.php` — Alpine.js inline save, show image in header
+  - `edit_script_field/edit.blade.php` — Alpine.js inline save, show image in header, larger textarea (30 rows)
+  - `recording_view/show.blade.php` — show image in header
+  - All wizard views restyled — `text-3xl` headings, `text-base` body, no show image in wizard steps (agreed)
+  - `create_episode_wizard/step4.blade.php` — "Add guests" option added
+  - `finalize_script_wizard/step3.blade.php` — amber instruction block, regex validation rejects titles starting with a digit
+  - `finalize_script_wizard/step4.blade.php` — inline script editing via Alpine.js fetch (in progress — context window ended mid-rewrite; see Outstanding)
+  - `prepare_for_publishing_wizard/step1.blade.php` — amber "point of no return" section added before the wizard steps list
 
-**1379 tests passing.**
+**Test suite passing** (count TBC after latest changes — run `php artisan test` to confirm).
 
 The GitHub `podcast_app` repository is connected to this project via the GitHub Connector
 and is re-synced. All source code is accessible via project knowledge search.
@@ -142,6 +157,20 @@ Note: `podcast_episode_drafts` has been dropped (migration run).
 
 ---
 
+## Seeders
+
+### `PodcastPlanningEpisodesSeeder`
+- Located at `database/seeders/PodcastPlanningEpisodesSeeder.php`
+- Seeds 30 planning episodes — 6 per active show, cycling through all 7 planning statuses
+- Scheduled dates spread across days, weeks, and months into the future
+- Seeds 6 `PodcastGuest` and 6 `PodcastLink` records via factory
+- Attaches guests and links to episodes that are far enough along in the pipeline
+- Resets PostgreSQL sequences for `podcast_guests` and `podcast_links` before factory calls (avoids `UniqueConstraintViolationException` when prior seeders insert with explicit IDs)
+- Registered in `DatabaseSeeder` after `Podcast_linksSeeder`
+- Run standalone: `php artisan db:seed --class=PodcastPlanningEpisodesSeeder`
+
+---
+
 ## Planning Module — What Was Built in Phase 3
 
 ### `PodcastEpisodePlanningStatus` enum cases
@@ -176,16 +205,27 @@ each status to its episode-specific pipeline route — used by the dashboard Con
 
 ### Wizards
 - **Create Episode Wizard** (4 steps) — session key: `wizard.create_episode_planning.podcast_show_id`
+  - Step 4 "what's next" page includes: Create another, Details, Work on theme, Work on script, **Add guests**, Podcasts Dashboard
 - **Finalize Script Wizard** (7 steps) — session key: `wizard.finalize_script.episode_id`
+  - Step 3: Confirm title — validates title does not start with a digit (`regex:/^\D/u`). Episode number prefix is added automatically on publishing. Clear amber instruction block explains the rule. Custom error message instructs the user to spell out numbers as words.
+  - Step 4: AI Proofing — inline script editing via Alpine.js fetch (same endpoint as `EditScriptField`). Suggested prompts. Copy script button. In progress — see Outstanding.
   - Step 5/6 resolve `{{episode_number}}`, `{{title}}`, `{{sponsors}}` placeholders
   - `{{sponsors}}` = enabled, non-former `PhpServerlessProjectSponsor` records, one per line
   - Auto-skips Step 5/6 if the show has no intro/outro template
 - **PrepareForPublishingWizard** (3 steps) — session key: `wizard.prepare_for_publishing.episode_id`
+  - Step 1: amber "point of no return" section clearly states this is the transition from Planning to Post-Production, lists all assumptions (recording done, WAV ready, script final, etc.), and warns the planning record will be permanently deleted
   - Step 2: review/edit key inputs; shows derived value previews
   - Step 3: scary confirmation page; lists everything that will happen
   - Store: runs `DerivesPublishedEpisodeFields` trait, creates `podcast_episodes_published` record,
     migrates guests + links from planning pivots to published pivots, hard-deletes planning record,
     sets initial status to `ready_to_upload_recording`
+
+### Attach Guest / Attach Link
+- Both controllers accept a `search` query parameter
+- Guest search: searches `full_name`
+- Link search: searches `title` OR `link` URL
+- Pagination uses `->withQueryString()` so the search term persists across pages
+- Method signature includes `Request $request` as the first parameter
 
 ### RecordingView
 - Path: `MEDIA_PLATFORM/Podcasts/Planning/RecordingView/`
@@ -199,11 +239,15 @@ each status to its episode-specific pipeline route — used by the dashboard Con
 - **EditThemeField** — `save()` returns JSON (Alpine.js fetch, stays on page), `saveAndExit()` redirects
 - **EditScriptField** — same pattern as EditThemeField
 
+### Status Quick-Change (show page)
+- The quick-change form on the episode show page sends hidden inputs for `title`, `episode_number`,
+  and `scheduled_date` alongside `status` — required because `PodcastEpisodePlanningRequest`
+  validates `title` as required. Without the hidden inputs, validation fails silently.
+
 ### CRUD
 - index, show, edit, update, destroy — no create/store (wizard only)
-- show page has: status quick-change, action buttons (Edit Theme, Edit Script, Finalize Script wizard entry,
-  View for Recording (when ready_to_record), Prepare for Publishing wizard entry), guests with attach/detach,
-  links with attach/detach
+- show page has: Episode Details, Status badge, Notes, Theme, Script (collapsible), Guests (attach/detach), Links (attach/detach), Episode Management (action buttons + status quick-change + edit/delete), Podcasts Dashboard button
+- "New Episode" button removed from show page
 
 ### Route Names (key ones)
 ```
@@ -273,6 +317,14 @@ Used in `private const ACTIVE_SHOWS` in wizard Step2 controllers and the dashboa
 - Button labels: "Details" for show/read views — never "Open" or "View"
 - Table rows: `bg-gray-50` resting state, `hover:bg-white`
 - External links: inline SVG arrow-up-right icon, `target="_blank" rel="noopener noreferrer"`
+- Show image (`$show->itunes_image`): displayed as `w-16 h-16 rounded object-cover border border-purple-200` in page headers alongside the `<h1>`, and in table cells (no show title text when image is present, fallback to title text if no image)
+- Body text: `text-base` throughout — exception: buttons (`text-sm` or `text-xs`), help/sub text (`text-xs`)
+- Stacked action buttons in table rows: `flex flex-col items-end gap-1.5`
+- Date cells: `whitespace-nowrap` to prevent year wrapping
+- Breadcrumb: `mb-4` below the breadcrumb line, before the `<h1>`
+- Page headings: `text-3xl font-bold`
+- Wizard steps: no show image (agreed — wizards are focused flows)
+- Sortable column headers: `↕` (inactive, `text-purple-700`) / `↑` or `↓` (active, `text-purple-700`) with `text-base` size
 
 ### Conventions
 - Step by step. One thing at a time. Run `php artisan test` after every change.
@@ -295,8 +347,9 @@ Used in `private const ACTIVE_SHOWS` in wizard Step2 controllers and the dashboa
 
 1. **`ready_to_upload_recording`** on `PodcastEpisodeStatus` — marked for removal once the Publishing wizard refactor is complete and entry point changes to `ready_for_publishing`.
 2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will eventually change to `ready_for_publishing` (set by PrepareForPublishingWizard). This refactor is deferred.
-3. **UI review in progress** — screen-by-screen review started. Main podcast dashboard complete. Remaining screens: Planning index, episode show page, edit page, field editors, wizard steps, recording view, attach guest/link pages, Post-Production views, Publishing views.
-4. **Guest Interaction feature** — attaching/detaching guests from planning episodes via the CRUD show page is built. The broader Guest Interaction feature (inline guest creation inside wizards) is out of scope for now.
+3. **FinalizeScriptWizard Step 4 — inline script editing** — the rewrite was started but the context window ended before the artifact was complete. Step 4 needs to be rewritten with: an editable `<textarea x-model="script">`, Alpine.js `save()` fetch to `podcast_episodes_planning.script.save`, Copy Script button (copies from `x-model`), Save button with saving state, and the suggested prompts section below. The pattern is identical to `edit_script_field/edit.blade.php`.
+4. **UI review** — Planning views complete. Remaining: Post-Production views, Publishing views.
+5. **Guest Interaction feature** — attaching/detaching guests from planning episodes via the CRUD show page is built. The broader Guest Interaction feature (inline guest creation inside wizards) is out of scope for now.
 
 ---
 
