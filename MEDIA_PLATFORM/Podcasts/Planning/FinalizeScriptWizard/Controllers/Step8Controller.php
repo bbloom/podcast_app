@@ -9,13 +9,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class Step6Controller extends Controller
+class Step8Controller extends Controller
 {
     /**
-     * Render the intro-prepend step.
-     * Resolves the show's intro_template with live placeholder values.
-     * The show is guaranteed to have an intro_template at this point
-     * (Step 5 enforces creation before allowing progression).
+     * Render the outro-append step.
+     * Resolves the show's outro_template with live placeholder values.
+     * The show is guaranteed to have an outro_template at this point
+     * (Step 7 enforces creation before allowing progression).
      */
     public function show(): View|RedirectResponse
     {
@@ -27,17 +27,17 @@ class Step6Controller extends Controller
 
         $episode->load('show');
 
-        $resolvedIntro = $this->resolveTemplate($episode->show->intro_template, $episode);
+        $resolvedOutro = $this->resolveTemplate($episode->show->outro_template, $episode);
 
-        return view('media_platform.podcasts.planning.finalize_script_wizard.step6', [
+        return view('media_platform.podcasts.planning.finalize_script_wizard.step8', [
             'episode'       => $episode,
-            'resolvedIntro' => $resolvedIntro,
+            'resolvedOutro' => $resolvedOutro,
         ]);
     }
 
     /**
-     * Prepend the intro text to the script, or skip without modifying it.
-     * Accepts _action = 'prepend' | 'skip'.
+     * Append the outro text to the script, or skip without modifying it.
+     * Accepts _action = 'append' | 'skip'.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -46,12 +46,12 @@ class Step6Controller extends Controller
             return redirect()->route('podcast_episodes_planning.index');
         }
 
-        if ($request->input('_action') === 'prepend') {
-            $introText = $request->input('intro_text', '');
-            $episode->update(['script' => $introText . "\n\n" . ($episode->script ?? '')]);
+        if ($request->input('_action') === 'append') {
+            $outroText = $request->input('outro_text', '');
+            $episode->update(['script' => ($episode->script ?? '') . "\n\n" . $outroText]);
         }
 
-        return redirect()->route('podcast_episodes_planning.wizard.finalize.step7');
+        return redirect()->route('podcast_episodes_planning.wizard.finalize.step9');
     }
 
     private function resolveTemplate(string $template, PodcastEpisodePlanning $episode): string

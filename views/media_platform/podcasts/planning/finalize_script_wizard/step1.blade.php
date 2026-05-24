@@ -11,8 +11,8 @@
                     alt="{{ $episode->show->title }}"
                     class="w-24 h-24 rounded object-cover border border-purple-200">
             @else
-               {{ $episode->show->title ?? '' }} 
-            @endif 
+               {{ $episode->show->title ?? '' }}
+            @endif
             {{ $episode->title }}
         </div>
     </div>
@@ -24,9 +24,11 @@
             <li>Confirm the episode number</li>
             <li>Confirm the episode title</li>
             <li>Proof the script with AI tools</li>
-            <li>Prepend the show intro</li>
-            <li>Append the show outro</li>
-            <li>Final review — script locked for recording</li>
+            <li>Review / update the show intro template</li>
+            <li>Prepend the show intro to the script</li>
+            <li>Review / update the show outro template</li>
+            <li>Append the show outro to the script</li>
+            <li>Final confirmation — status set to Ready to Record</li>
         </ol>
         <p class="mt-6 font-bold text-purple-700">At the end of this wizard, the status will be set to "Ready To Record."</p>
     </div>

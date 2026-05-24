@@ -4,7 +4,6 @@ namespace MediaPlatform\Podcasts\Planning\FinalizeScriptWizard\Controllers;
 
 use App\Http\Controllers\Controller;
 use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
-use MediaPlatform\Tools\PhpServerlessProjectSponsors\Models\PhpServerlessProjectSponsor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,9 +11,13 @@ use Illuminate\View\View;
 class Step5Controller extends Controller
 {
     /**
-     * Render the intro-prepend step.
-     * Resolves the show's intro_template with live placeholder values.
-     * Auto-skips to Step 6 if no intro_template is set on the show.
+     * Render the intro template review step.
+     *
+     * If the show has an intro template, the user can review and optionally
+     * save permanent changes to the template, or continue without saving.
+     *
+     * If the show has no intro template, the user is prompted to create one
+     * inline — the wizard does not proceed until a template is saved.
      */
     public function show(): View|RedirectResponse
     {
@@ -26,61 +29,42 @@ class Step5Controller extends Controller
 
         $episode->load('show');
 
-        // Auto-skip if the show has no intro template.
-        if (! $episode->show?->intro_template) {
-            return redirect()
-                ->route('podcast_episodes_planning.wizard.finalize.step6')
-                ->with('info', 'This show has no intro template. Skipping to the outro step.');
-        }
-
-        $resolvedIntro = $this->resolveTemplate($episode->show->intro_template, $episode);
+        $hasIntro = filled($episode->show?->intro_template);
 
         return view('media_platform.podcasts.planning.finalize_script_wizard.step5', [
             'episode'       => $episode,
-            'resolvedIntro' => $resolvedIntro,
+            'hasIntro'      => $hasIntro,
+            'introTemplate' => $episode->show->intro_template ?? '',
         ]);
     }
 
     /**
-     * Prepend the intro text to the script, or skip without modifying it.
-     * Accepts _action = 'prepend' | 'skip'.
+     * Handle the intro template review.
+     *
+     * _action = 'save'     — validate and permanently update the show's intro_template,
+     *                        then redirect to step 6.
+     * _action = 'continue' — no changes, redirect to step 6.
      */
     public function store(Request $request): RedirectResponse
     {
         $episode = $this->getEpisodeFromSession();
         if (! $episode) {
-            return redirect()->route('podcast_episodes_planning.index');
+            return redirect()->route('podcast_episodes_planning.index')
+                ->with('error', 'Session expired.');
         }
 
-        if ($request->input('_action') === 'prepend') {
-            $introText = $request->input('intro_text', '');
-            $episode->update(['script' => $introText . "\n\n" . ($episode->script ?? '')]);
+        if ($request->input('_action') === 'save') {
+            $request->validate([
+                'intro_template' => ['required', 'string'],
+            ], [
+                'intro_template.required' => 'The intro template cannot be empty.',
+            ]);
+
+            $episode->load('show');
+            $episode->show->update(['intro_template' => $request->input('intro_template')]);
         }
 
         return redirect()->route('podcast_episodes_planning.wizard.finalize.step6');
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Resolve {{episode_number}}, {{title}}, and {{sponsors}} placeholders.
-     * Sponsor names are listed one per line.
-     */
-    private function resolveTemplate(string $template, PodcastEpisodePlanning $episode): string
-    {
-        $sponsorNames = PhpServerlessProjectSponsor::where('enabled', true)
-            ->where('former_sponsor', false)
-            ->orderBy('full_name')
-            ->pluck('full_name')
-            ->implode("\n");
-
-        return str_replace(
-            ['{{episode_number}}', '{{title}}', '{{sponsors}}'],
-            [$episode->episode_number ?? '', $episode->title, $sponsorNames],
-            $template
-        );
     }
 
     private function getEpisodeFromSession(): ?PodcastEpisodePlanning

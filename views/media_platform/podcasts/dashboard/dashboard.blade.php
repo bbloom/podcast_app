@@ -1,7 +1,9 @@
 <x-layouts.app title="Podcast Studio">
 <div class="max-w-7xl mx-auto px-4 py-8">
 
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
     {{-- ── Page header ─────────────────────────────────────────────────────── --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Podcasts Main Dashboard</h1>
@@ -9,7 +11,9 @@
         </div>
     </div>
 
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
     {{-- ── Quick Actions ────────────────────────────────────────────────────── --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
     <div class="flex flex-wrap gap-3 mb-10">
         <a href="{{ route('podcast_episodes_planning.wizard.create.step1') }}"
            class="bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
@@ -24,6 +28,26 @@
             Post-Production
         </a>
     </div>
+
+    {{-- ═════════════════════════════════════════════════════════════════════════════ --}}
+    {{-- Warning that there is a temporary sciprt version from AI that is not finished --}}
+    {{-- ═════════════════════════════════════════════════════════════════════════════ --}}
+
+    @if ($hasPendingScratch)
+        <div class="mb-6 flex items-start gap-3 p-4 bg-amber-50 border border-amber-300 rounded-lg text-base text-amber-800">
+            <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            <div>
+                <strong>AI scratch pad content is pending.</strong>
+                One or more planning episodes have unsaved AI scratch content from the Finalize Script Wizard.
+                The scratch pad is cleared automatically when you complete the wizard (Step 9).
+                <br>
+                <span class="text-sm text-amber-700">Check the episode's Finalize Script Wizard — Step 4.</span>
+            </div>
+        </div>
+    @endif
 
     {{-- ══════════════════════════════════════════════════════════════════════ --}}
     {{-- PLANNING                                                               --}}

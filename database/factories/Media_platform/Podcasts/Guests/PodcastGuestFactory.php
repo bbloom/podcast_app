@@ -4,10 +4,12 @@ namespace Database\Factories\Media_platform\Podcasts\Guests;
 
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Http;
 
 class PodcastGuestFactory extends Factory
 {
     protected $model = PodcastGuest::class;
+
 
     /**
      * Define the model's default state.
@@ -15,6 +17,7 @@ class PodcastGuestFactory extends Factory
     public function definition(): array
     {
         $fullName = fake()->unique()->name();
+        $pictures = $this->fetchRandomUserPictures();
 
         return [
             'full_name'             => $fullName,
@@ -30,6 +33,24 @@ class PodcastGuestFactory extends Factory
         ];
     }
 
+     /**
+     * Fetch a random user's picture URLs from randomuser.me.
+     * Returns ['full' => string|null, 'thumbnail' => string|null].
+     */
+    private function fetchRandomUserPictures(): array
+    {
+        $picture = rescue(
+            fn () => Http::get('https://randomuser.me/api/')->json('results.0.picture'),
+            null,
+            false, // Don't report to the exception handler
+        );
+
+        return [
+            'full'      => $picture['large']     ?? null,
+            'thumbnail' => $picture['thumbnail'] ?? null,
+        ];
+    }
+    
     /**
      * Mark this guest as disabled.
      */

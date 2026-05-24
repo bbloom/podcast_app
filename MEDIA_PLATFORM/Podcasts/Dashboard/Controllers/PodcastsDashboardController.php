@@ -19,7 +19,6 @@ use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 
 class PodcastsDashboardController extends Controller
 {
-    // The five active shows, in display order.
     private const ACTIVE_SHOWS = [
         'The Bob Bloom Show',
         'The Bob Bloom Interviews',
@@ -31,7 +30,7 @@ class PodcastsDashboardController extends Controller
     /**
      * Display the Podcasts dashboard.
      *
-     * Passes three variables to the view:
+     * Passes four variables to the view:
      *
      *   $planningByShow      — planning episodes grouped by show, each group
      *                          sorted by status pipeline order (sortOrder()).
@@ -41,20 +40,17 @@ class PodcastsDashboardController extends Controller
      *                          excludes `published` and `not_published`.
      *
      *   $recentlyPublished   — the 5 most recently published episodes.
+     *
+     *   $hasPendingScratch   — true if any planning episode for this user has
+     *                          a non-null script_scratch (AI proofing in progress
+     *                          or not yet cleared). Triggers an advisory notice.
      */
     public function show()
     {
         $userId        = auth()->id();
         $orderedTitles = self::ACTIVE_SHOWS;
 
-        // ── Planning episodes — grouped by show, sorted by status order ──────
-        //
-        // 1. Fetch all planning records with their show.
-        // 2. Sort: first by the show's position in ACTIVE_SHOWS, then within
-        //    each show by the status's pipeline sortOrder().
-        // 3. Group by podcast_show_id so the view can render a show header row
-        //    for each show that has at least one planning episode.
-
+        // ── Planning episodes ────────────────────────────────────────────────
         $planningByShow = PodcastEpisodePlanning::forUser($userId)
             ->with('show')
             ->get()
@@ -67,10 +63,6 @@ class PodcastsDashboardController extends Controller
             ->groupBy('podcast_show_id');
 
         // ── Post-production episodes needing attention ───────────────────────
-        //
-        // Excludes `published` and `not_published` — those are terminal states
-        // that don't need user action. Everything else is in-flight.
-
         $episodesInProduction = PodcastEpisode::forUser($userId)
             ->whereNotIn('status', [
                 PodcastEpisodeStatus::published->value,
@@ -82,7 +74,6 @@ class PodcastsDashboardController extends Controller
             ->get();
 
         // ── Recently published ───────────────────────────────────────────────
-
         $recentlyPublished = PodcastEpisode::forUser($userId)
             ->where('status', PodcastEpisodeStatus::published->value)
             ->with('show')
@@ -90,10 +81,19 @@ class PodcastsDashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // ── AI scratch pad advisory ──────────────────────────────────────────
+        // True if any planning episode has an unsaved/uncleared script_scratch.
+        // Cleared automatically by Step 9 of the Finalize Script Wizard.
+        $hasPendingScratch = PodcastEpisodePlanning::forUser($userId)
+            ->whereNotNull('script_scratch')
+            ->where('script_scratch', '!=', '')
+            ->exists();
+
         return view('media_platform.podcasts.dashboard.dashboard', compact(
             'planningByShow',
             'episodesInProduction',
             'recentlyPublished',
+            'hasPendingScratch',
         ));
     }
 }

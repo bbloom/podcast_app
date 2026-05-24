@@ -67,41 +67,37 @@ class Step3ControllerTest extends TestCase
             ->assertSessionHasErrors(['title']);
     }
 
-    /**
-     * Titles that start with a digit must be rejected.
-     * The episode number is added automatically on publishing — it must not
-     * appear in the stored title.
-     *
-     * @dataProvider titlesStartingWithDigit
-     */
-    public function test_store_rejects_title_starting_with_a_digit(string $title): void
+    public function test_store_rejects_titles_starting_with_a_digit_or_hash_digit(): void
     {
+        // The episode number prefix is added automatically on publishing.
+        // Titles must not start with a digit or #digit — all permutations are tested here.
         $user = User::factory()->create();
-        $this->makeEpisodeWithSession($user);
 
-        $this->actingAs($user)
-            ->post(route('podcast_episodes_planning.wizard.finalize.step3.store'), [
-                'title' => $title,
-            ])
-            ->assertSessionHasErrors(['title']);
-    }
-
-    public static function titlesStartingWithDigit(): array
-    {
-        return [
-            'bare number'              => ['12'],
-            'number dash title'        => ['12 - My Episode'],
-            'number em-dash title'     => ['12 — My Episode'],
-            'hash number em-dash'      => ['#12 — My Episode'],
-            'hash number dash'         => ['#12 - My Episode'],
-            'number colon title'       => ['12: My Episode'],
-            'number with no separator' => ['12My Episode'],
-            'single digit'             => ['1 Episode'],
+        $cases = [
+            'bare number'              => '12',
+            'number dash title'        => '12 - My Episode',
+            'number em-dash title'     => '12 — My Episode',
+            'hash number em-dash'      => '#12 — My Episode',
+            'hash number dash'         => '#12 - My Episode',
+            'number colon title'       => '12: My Episode',
+            'number with no separator' => '12My Episode',
+            'single digit'             => '1 Episode',
         ];
+
+        foreach ($cases as $description => $title) {
+            $this->makeEpisodeWithSession($user);
+
+            $this->actingAs($user)
+                ->post(route('podcast_episodes_planning.wizard.finalize.step3.store'), [
+                    'title' => $title,
+                ])
+                ->assertSessionHasErrors(['title'], "Expected validation error for: {$description}");
+        }
     }
 
     public function test_store_accepts_title_starting_with_a_word(): void
     {
+        // Titles that spell out numbers as words must pass — e.g. "Ten Things I Learned".
         $user    = User::factory()->create();
         $episode = $this->makeEpisodeWithSession($user);
 

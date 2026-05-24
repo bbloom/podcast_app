@@ -19,14 +19,8 @@ class PodcastEpisodePlanning extends Model
 {
     use HasFactory;
 
-    // -------------------------------------------------------------------------
-    // Table — always explicit per conventions.
-    // -------------------------------------------------------------------------
     protected $table = 'podcast_episodes_planning';
 
-    // -------------------------------------------------------------------------
-    // Mass-assignable columns.
-    // -------------------------------------------------------------------------
     protected $fillable = [
         'podcast_show_id',
         'user_id',
@@ -41,23 +35,18 @@ class PodcastEpisodePlanning extends Model
         'notes',
         'theme',
         'script',
+        'script_scratch',      // Ephemeral AI scratch pad (Step 4, Finalize Script Wizard)
 
-        // Website content (carried over to publishing on handoff)
+        // Website content
         'website_content',
         'website_excerpt',
     ];
 
-    // -------------------------------------------------------------------------
-    // Type casts.
-    // -------------------------------------------------------------------------
     protected $casts = [
         'status'         => PodcastEpisodePlanningStatus::class,
         'scheduled_date' => 'date',
     ];
 
-    // -------------------------------------------------------------------------
-    // Factory resolution — non-standard factory path.
-    // -------------------------------------------------------------------------
     protected static function newFactory(): PodcastEpisodePlanningFactory
     {
         return PodcastEpisodePlanningFactory::new();
@@ -67,9 +56,16 @@ class PodcastEpisodePlanning extends Model
     // Relationships
     // =========================================================================
 
-    /**
-     * The guests attached to this planning episode.
-     */
+    public function show(): BelongsTo
+    {
+        return $this->belongsTo(PodcastShow::class, 'podcast_show_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function guests(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -80,10 +76,6 @@ class PodcastEpisodePlanning extends Model
         );
     }
 
-    /**
-     * The links attached to this planning episode.
-     * Migrated to podcast_link_episode on publishing.
-     */
     public function links(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -94,28 +86,13 @@ class PodcastEpisodePlanning extends Model
         );
     }
 
-    /**
-     * The podcast show this planning episode belongs to.
-     */
-    public function show(): BelongsTo
-    {
-        return $this->belongsTo(PodcastShow::class, 'podcast_show_id');
-    }
-
-    /**
-     * The user who owns this planning episode.
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     // =========================================================================
     // Scopes
     // =========================================================================
 
     /**
      * Filter planning episodes belonging to the given user.
+     * Table-qualified to avoid ambiguity in joins.
      */
     public function scopeForUser(Builder $query, int $userId): Builder
     {

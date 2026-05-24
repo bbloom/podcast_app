@@ -39,13 +39,14 @@ class Step3Controller extends Controller
                 'required',
                 'string',
                 'max:255',
-                // The episode number prefix is added automatically on publishing.
-                // Episode number manually entered into this title must be removed.
-                // The single character class \D means "not a digit". 
-                'regex:/^\D/u',
+                // (?!\d|#\d) is a negative lookahead — rejects any title 
+                // that starts with a digit, or starts with # immediately 
+                // followed by a digit. A title like #ThrowbackThursday would still 
+                // pass since #T doesn't match #\d
+                'regex:/^(?!\d|#\d)/u',
             ],
         ], [
-            'title.regex' => 'The title must not start with a number. Do not include the episode number — it is added automatically on publishing. If your title genuinely begins with a number, spell it out as a word (e.g. "Ten Things I Learned").',
+           'title.regex' => 'Do not include the episode number in the title. Enter the title only — for example "My Great Episode", not "#12 — My Great Episode". The episode number prefix is added automatically when the episode is published.',
         ]);
 
         $episode->update(['title' => $validated['title']]);

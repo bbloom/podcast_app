@@ -8,20 +8,20 @@ use MediaPlatform\Podcasts\Planning\CRUD\Models\PodcastEpisodePlanning;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
 use Tests\TestCase;
 
-class Step6ControllerTest extends TestCase
+class Step8ControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeEpisodeWithSession(User $user, ?string $introTemplate = 'Hello {{title}}'): PodcastEpisodePlanning
+    private function makeEpisodeWithSession(User $user, ?string $outroTemplate = 'Goodbye {{title}}'): PodcastEpisodePlanning
     {
         $show = PodcastShow::factory()->create([
             'user_id'        => $user->id,
-            'intro_template' => $introTemplate,
+            'outro_template' => $outroTemplate,
         ]);
         $episode = PodcastEpisodePlanning::factory()->create([
             'user_id'         => $user->id,
             'podcast_show_id' => $show->id,
-            'script'          => 'Original script.',
+            'script'          => 'Body script.',
         ]);
         session(['wizard.finalize_script.episode_id' => $episode->id]);
         return $episode;
@@ -37,62 +37,62 @@ class Step6ControllerTest extends TestCase
         $this->makeEpisodeWithSession($user);
 
         $this->actingAs($user)
-            ->get(route('podcast_episodes_planning.wizard.finalize.step6'))
+            ->get(route('podcast_episodes_planning.wizard.finalize.step8'))
             ->assertOk();
     }
 
     public function test_show_redirects_without_session(): void
     {
         $this->actingAs(User::factory()->create())
-            ->get(route('podcast_episodes_planning.wizard.finalize.step6'))
+            ->get(route('podcast_episodes_planning.wizard.finalize.step8'))
             ->assertRedirect(route('podcast_episodes_planning.index'));
     }
 
     public function test_show_redirects_unauthenticated_users(): void
     {
-        $this->get(route('podcast_episodes_planning.wizard.finalize.step6'))
+        $this->get(route('podcast_episodes_planning.wizard.finalize.step8'))
             ->assertRedirect(route('login'));
     }
 
     // -------------------------------------------------------------------------
-    // store — prepend
+    // store — append
     // -------------------------------------------------------------------------
 
-    public function test_store_prepend_prepends_intro_to_script_and_redirects_to_step7(): void
+    public function test_store_append_appends_outro_to_script_and_redirects_to_step9(): void
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisodeWithSession($user);
 
         $this->actingAs($user)
-            ->post(route('podcast_episodes_planning.wizard.finalize.step6.store'), [
-                '_action'    => 'prepend',
-                'intro_text' => 'INTRO TEXT',
+            ->post(route('podcast_episodes_planning.wizard.finalize.step8.store'), [
+                '_action'    => 'append',
+                'outro_text' => 'OUTRO TEXT',
             ])
-            ->assertRedirect(route('podcast_episodes_planning.wizard.finalize.step7'));
+            ->assertRedirect(route('podcast_episodes_planning.wizard.finalize.step9'));
 
         $episode->refresh();
-        $this->assertStringStartsWith('INTRO TEXT', $episode->script);
-        $this->assertStringContainsString('Original script.', $episode->script);
+        $this->assertStringEndsWith('OUTRO TEXT', $episode->script);
+        $this->assertStringContainsString('Body script.', $episode->script);
     }
 
     // -------------------------------------------------------------------------
     // store — skip
     // -------------------------------------------------------------------------
 
-    public function test_store_skip_does_not_modify_script_and_redirects_to_step7(): void
+    public function test_store_skip_does_not_modify_script_and_redirects_to_step9(): void
     {
         $user    = User::factory()->create();
         $episode = $this->makeEpisodeWithSession($user);
 
         $this->actingAs($user)
-            ->post(route('podcast_episodes_planning.wizard.finalize.step6.store'), [
+            ->post(route('podcast_episodes_planning.wizard.finalize.step8.store'), [
                 '_action'    => 'skip',
-                'intro_text' => 'INTRO TEXT',
+                'outro_text' => 'OUTRO TEXT',
             ])
-            ->assertRedirect(route('podcast_episodes_planning.wizard.finalize.step7'));
+            ->assertRedirect(route('podcast_episodes_planning.wizard.finalize.step9'));
 
         $episode->refresh();
-        $this->assertEquals('Original script.', $episode->script);
+        $this->assertEquals('Body script.', $episode->script);
     }
 
     // -------------------------------------------------------------------------
@@ -102,16 +102,16 @@ class Step6ControllerTest extends TestCase
     public function test_store_redirects_without_session(): void
     {
         $this->actingAs(User::factory()->create())
-            ->post(route('podcast_episodes_planning.wizard.finalize.step6.store'), [
-                '_action' => 'prepend', 'intro_text' => 'x',
+            ->post(route('podcast_episodes_planning.wizard.finalize.step8.store'), [
+                '_action' => 'append', 'outro_text' => 'x',
             ])
             ->assertRedirect(route('podcast_episodes_planning.index'));
     }
 
     public function test_store_redirects_unauthenticated_users(): void
     {
-        $this->post(route('podcast_episodes_planning.wizard.finalize.step6.store'), [
-            '_action' => 'prepend', 'intro_text' => 'x',
+        $this->post(route('podcast_episodes_planning.wizard.finalize.step8.store'), [
+            '_action' => 'append', 'outro_text' => 'x',
         ])->assertRedirect(route('login'));
     }
 }

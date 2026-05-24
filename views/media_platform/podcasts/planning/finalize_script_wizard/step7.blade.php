@@ -1,59 +1,90 @@
-<x-layouts.app title="Finalize Script — Final Proof">
-<div class="max-w-3xl mx-auto px-4 py-10" x-data="{ copied: false }">
+<x-layouts.app title="Finalize Script — Outro Template">
+<div class="max-w-3xl mx-auto px-4 py-10">
 
     <x-podcasts.planning.finalize_script_wizard._step_dots :current="7" />
 
     <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">Finalize the Script Wizard</h1>
-        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">Step 7: Final Proof</h1>
-        <p class="text-center text-base text-gray-500 mb-6">
-            Read through the complete assembled script one final time.
-            <br>
-            When you confirm, the status will be set to <strong>Ready To Record</strong>.
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            Step 7: {{ $hasOutro ? 'Review Outro Template' : 'Create Outro Template' }}
+        </h1>
+        <p class="text-base text-gray-500 mb-6">
+            @if ($hasOutro)
+                This is the raw outro template for <strong>{{ $episode->show->title }}</strong> — with placeholders, not yet resolved.
+                <br>Most of the time you will continue without changes. Occasionally you may want to update the template permanently.
+            @else
+                <strong>{{ $episode->show->title }}</strong> does not have an outro template yet.
+                <br>Please create one below before continuing.
+            @endif
         </p>
 
-        <div class="mt-4 flex flex-col items-center justify-center gap-3 text-3xl font-bold text-purple-700 bg-sky-100 border-2 border-sky-700 rounded-lg px-6 py-4 mb-8 mt-4 shadow-sm">
+        <div class="mt-4 flex flex-col items-center justify-center gap-3 text-3xl font-bold text-purple-700 bg-sky-100 border-2 border-sky-700 rounded-lg px-6 py-4 mb-8 shadow-sm">
             @if ($episode->show->itunes_image)
                 <img src="{{ $episode->show->itunes_image }}"
-                    alt="{{ $episode->show->title }}"
-                    class="w-24 h-24 rounded object-cover border border-purple-200">
+                     alt="{{ $episode->show->title }}"
+                     class="w-24 h-24 rounded object-cover border border-purple-200">
             @else
-               {{ $episode->show->title ?? '' }} 
-            @endif 
+                {{ $episode->show->title ?? '' }}
+            @endif
             episode #{{ $episode->episode_number }}
             <span class="mt-4">{{ $episode->title }}</span>
         </div>
-
-
-    <div class="border border-purple-300 rounded-lg overflow-hidden mb-6">
-        <div class="bg-purple-50 border-b border-purple-300 px-4 py-2 flex items-center justify-between">
-            <span class="text-sm font-semibold text-purple-700 uppercase tracking-wider">Complete Script</span>
-            <button
-                @click="navigator.clipboard.writeText(@js($episode->script ?? '')).then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
-                class="text-xs px-3 py-1 border border-purple-400 text-purple-700 rounded hover:bg-purple-100">
-                <span x-show="!copied">Copy Script</span>
-                <span x-show="copied">Copied!</span>
-            </button>
-        </div>
-        <div class="px-4 py-4 max-h-[60vh] overflow-y-auto bg-white">
-            @if ($episode->script)
-                <pre class="text-xs font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">{{ $episode->script }}</pre>
-            @else
-                <p class="text-base text-gray-400">No script.</p>
-            @endif
-        </div>
     </div>
+
+    @if (! $hasOutro)
+        <div class="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg text-base text-amber-800">
+            <strong>No outro template found.</strong> The outro template is required for this show.
+            Please write one below and save it to continue.
+        </div>
+    @else
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-300 rounded-lg text-base text-blue-800">
+            Any changes you save here will be permanently stored on the show record
+            and will apply to all future episodes.
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 rounded text-base">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
 
     <form method="POST" action="{{ route('podcast_episodes_planning.wizard.finalize.step7.store') }}">
         @csrf
-        <div class="flex items-center justify-between">
+
+        <div class="mb-2">
+            <label for="outro_template" class="block text-base font-semibold text-gray-700 mb-1">
+                Outro Template <span class="font-normal text-gray-500">(raw — placeholders not yet resolved)</span>
+            </label>
+            <textarea id="outro_template" name="outro_template" rows="12"
+                      class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none resize-y @error('outro_template') border-red-400 @enderror">{{ old('outro_template', $outroTemplate) }}</textarea>
+            <p class="mt-1 ml-1 text-xs text-gray-500">
+                Available placeholders: <code>&#123;&#123;episode_number&#125;&#125;</code>,
+                <code>&#123;&#123;title&#125;&#125;</code>,
+                <code>&#123;&#123;sponsors&#125;&#125;</code>
+            </p>
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
             <a href="{{ route('podcast_episodes_planning.wizard.finalize.step6') }}"
                class="text-sm text-gray-500 hover:underline">← Back</a>
-            <button type="submit"
-                    class="px-6 py-3 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-700">
-                Script is ready — lock it for recording ✓
-            </button>
+
+            <div class="flex gap-3">
+                @if ($hasOutro)
+                    <button type="submit" name="_action" value="continue"
+                            class="px-5 py-2 border border-gray-400 text-gray-700 rounded font-semibold text-sm hover:bg-gray-50">
+                        Continue Without Saving →
+                    </button>
+                @endif
+                <button type="submit" name="_action" value="save"
+                        class="px-5 py-2 bg-purple-700 text-white rounded font-semibold text-sm hover:bg-purple-800">
+                    {{ $hasOutro ? 'Save Changes to Show →' : 'Save Outro Template →' }}
+                </button>
+            </div>
         </div>
+
     </form>
 
 </div>
