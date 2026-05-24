@@ -8,7 +8,7 @@ RSS feed generation, and website publishing.
 
 ## Current State
 
-**Phases 1, 2, 3, post-Phase-3 UI pass, and Planning UI pass are complete and pushed.**
+**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, and FinalizeScriptWizard refactor are complete and pushed.**
 
 - Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
@@ -37,10 +37,19 @@ RSS feed generation, and website publishing.
   - All wizard views restyled — `text-3xl` headings, `text-base` body, no show image in wizard steps (agreed)
   - `create_episode_wizard/step4.blade.php` — "Add guests" option added
   - `finalize_script_wizard/step3.blade.php` — amber instruction block, regex validation rejects titles starting with a digit
-  - `finalize_script_wizard/step4.blade.php` — inline script editing via Alpine.js fetch (in progress — context window ended mid-rewrite; see Outstanding)
   - `prepare_for_publishing_wizard/step1.blade.php` — amber "point of no return" section added before the wizard steps list
+- FinalizeScriptWizard refactor (complete):
+  - Wizard expanded from 7 steps to **9 steps** — see wizard section below for full step map
+  - Step 4 rebuilt: dual-textarea AI proofing (main script + ephemeral scratch pad, both persisted)
+  - Steps 5 and 7 added: inline intro/outro template review and creation — updates `podcast_show` record
+  - Old Steps 5/6 (prepend/append) renumbered to Steps 6/8
+  - Old Step 7 (final confirmation) renumbered to Step 9; now also clears `script_scratch`
+  - `script_scratch` column added to `podcast_episodes_planning` — see Database Tables
+  - `PodcastsDashboardController` passes `$hasPendingScratch` to dashboard view
+  - Dashboard view shows amber advisory when any planning episode has `script_scratch` populated
+  - Step dots component updated to 9 dots
 
-**Test suite passing** (count TBC after latest changes — run `php artisan test` to confirm).
+**Test suite passing.**
 
 The GitHub `podcast_app` repository is connected to this project via the GitHub Connector
 and is re-synced. All source code is accessible via project knowledge search.
@@ -89,7 +98,7 @@ MEDIA_PLATFORM/
     │   ├── EditScriptField/
     │   │   └── Controllers/
     │   ├── FinalizeScriptWizard/
-    │   │   └── Controllers/ (Step1–7)
+    │   │   └── Controllers/ (Step1–9)
     │   ├── RecordingView/
     │   │   ├── Controllers/
     │   │   │   └── RecordingViewController.php
@@ -144,8 +153,12 @@ MEDIA_PLATFORM/
 ## Database Tables (current)
 
 - `podcast_episodes_planning` — planning/creative workspace. Hard-deleted on publishing.
+  - `script_scratch` — nullable text. Ephemeral AI scratch pad for FinalizeScriptWizard Step 4.
+    Persisted to survive power outages/session timeouts. Cleared by Step 9 store on wizard
+    completion. Non-null value triggers a dashboard advisory notice.
 - `podcast_episodes_published` — live published episodes. API serves from this table.
-- `podcast_shows` — has `intro_template` and `outro_template` columns
+- `podcast_shows` — has `intro_template` and `outro_template` columns (mandatory per show;
+  FinalizeScriptWizard Steps 5 and 7 enforce creation if missing)
 - `podcast_links` — has `user_id` column
 - `podcast_guests`
 - `podcast_guest_episode_planning` — pivot: guests ↔ planning episodes
@@ -171,7 +184,7 @@ Note: `podcast_episode_drafts` has been dropped (migration run).
 
 ---
 
-## Planning Module — What Was Built in Phase 3
+## Planning Module — What Was Built
 
 ### `PodcastEpisodePlanningStatus` enum cases
 ```
@@ -179,7 +192,7 @@ new_episode_created          → set by Create Episode Wizard
 working_on_theme             → set manually
 writing_script               → set manually
 ready_to_finalize_the_script → set manually (entry point: Finalize Script Wizard)
-ready_to_record              → set by Finalize Script Wizard
+ready_to_record              → set by Finalize Script Wizard (Step 9)
 raw_audio_needs_editing      → set manually
 ready_for_publishing         → set manually (entry point: PrepareForPublishing Wizard)
 ```
@@ -204,16 +217,27 @@ Note: `created` case has been removed. `postProductionShowRoute(): string` on th
 each status to its episode-specific pipeline route — used by the dashboard Continue/Monitor buttons.
 
 ### Wizards
+
 - **Create Episode Wizard** (4 steps) — session key: `wizard.create_episode_planning.podcast_show_id`
-  - Step 4 "what's next" page includes: Create another, Details, Work on theme, Work on script, **Add guests**, Podcasts Dashboard
-- **Finalize Script Wizard** (7 steps) — session key: `wizard.finalize_script.episode_id`
-  - Step 3: Confirm title — validates title does not start with a digit (`regex:/^\D/u`). Episode number prefix is added automatically on publishing. Clear amber instruction block explains the rule. Custom error message instructs the user to spell out numbers as words.
-  - Step 4: dual-textarea AI proofing — main script (saves to DB) + scratch pad (saves to script_scratch)
-  - Step 5: intro template review/create — updates podcast_show.intro_template; mandatory, no skip when absent
-  - Step 6: prepend resolved intro to script (was Step 5)
-  - Step 7: outro template review/create — updates podcast_show.outro_template; mandatory, no skip when absent
-  - Step 8: append resolved outro to script (was Step 6)
-  - Step 9: final confirmation — clears script_scratch, sets ready_to_record (was Step 7)
+  - Step 4 "what's next" page includes: Create another, Details, Work on theme, Work on script, Add guests, Podcasts Dashboard
+
+- **Finalize Script Wizard** (9 steps) — session key: `wizard.finalize_script.episode_id`
+
+  | Step | Purpose | Notes |
+  |---|---|---|
+  | 1 | Introduction | Lists all 9 steps |
+  | 2 | Confirm episode number | |
+  | 3 | Confirm title | Regex rejects titles starting with a digit. Amber instruction block. |
+  | 4 | AI Proofing | Dual textareas: main script (saves to `script`) + scratch pad (saves to `script_scratch`). Both Alpine.js fetch to separate endpoints. Scratch is labelled clearly as temporary. Suggested prompts panel. |
+  | 5 | Intro template review/create | Renders raw template with placeholders. Two states: has template (review + optional permanent save) / no template (must create before continuing). Updates `podcast_show.intro_template`. |
+  | 6 | Prepend intro | Resolved intro (placeholders replaced). Edit + prepend, or skip. Redirects to Step 7. |
+  | 7 | Outro template review/create | Mirror of Step 5 for `podcast_show.outro_template`. |
+  | 8 | Append outro | Mirror of Step 6. Redirects to Step 9. |
+  | 9 | Final confirmation | Read-only complete script + copy button. Confirm sets `ready_to_record`, clears `script_scratch`, forgets session. |
+
+  - `{{sponsors}}` = enabled, non-former `PhpServerlessProjectSponsor` records, one per line
+  - Intro/outro templates are **mandatory** — Steps 5 and 7 enforce this; no skip path when template is absent
+
 - **PrepareForPublishingWizard** (3 steps) — session key: `wizard.prepare_for_publishing.episode_id`
   - Step 1: amber "point of no return" section clearly states this is the transition from Planning to Post-Production, lists all assumptions (recording done, WAV ready, script final, etc.), and warns the planning record will be permanently deleted
   - Step 2: review/edit key inputs; shows derived value previews
@@ -260,7 +284,13 @@ podcast_episodes_planning.update
 podcast_episodes_planning.delete.confirm
 podcast_episodes_planning.destroy
 podcast_episodes_planning.wizard.create.step1–4
-podcast_episodes_planning.wizard.finalize.step1–7
+podcast_episodes_planning.wizard.finalize.step1–9
+podcast_episodes_planning.wizard.finalize.step4.save_scratch   ← PATCH, JSON
+podcast_episodes_planning.wizard.finalize.step5.store
+podcast_episodes_planning.wizard.finalize.step6.store
+podcast_episodes_planning.wizard.finalize.step7.store
+podcast_episodes_planning.wizard.finalize.step8.store
+podcast_episodes_planning.wizard.finalize.step9.store
 podcast_episodes_planning.wizard.publish.step1–3
 podcast_episodes_planning.theme.show / .save / .save_exit
 podcast_episodes_planning.script.show / .save / .save_exit
@@ -275,7 +305,7 @@ podcast_episodes_planning.recording.show
 
 Step dot partials live in `views/components/` (Laravel component resolution):
 - `views/components/podcasts/planning/create_episode_wizard/_step_dots.blade.php`
-- `views/components/podcasts/planning/finalize_script_wizard/_step_dots.blade.php`
+- `views/components/podcasts/planning/finalize_script_wizard/_step_dots.blade.php` ← 9 dots
 - `views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blade.php`
 
 ---
@@ -294,10 +324,30 @@ Used by both Step2Controller (previews) and Step3Controller (actual creation).
 `get_status()` returns `PodcastEpisodeStatus::ready_to_upload_recording` — the pipeline entry point.
 
 ### Podcasts Dashboard
+- `$hasPendingScratch` — true if any planning episode for the user has a non-null `script_scratch`.
+  Cleared by FinalizeScriptWizard Step 9 store. Triggers an amber advisory in the planning section.
 - Planning section: episodes grouped by show (ACTIVE_SHOWS order), sorted within each show by `sortOrder()`
 - Post-production section: excludes `published` and `not_published`; each row has a Continue button
   (or Monitor for `processing_at_auphonic`) linking directly to the episode's pipeline page via `postProductionShowRoute()`
 - Recently Published: last 5 published episodes
+
+### Post-Production Pipeline
+The post-production pipeline is a sequence of six independent feature areas, each with its own
+index → show → action flow. There is currently **no automatic pipeline continuity** between steps —
+completing one step drops the user back at an index page. Navigation between pipeline steps requires
+returning to the Podcasts Dashboard and clicking Continue, or navigating manually.
+
+This is the primary known friction point in post-production and is the **next development focus**.
+
+Pipeline stages and their statuses:
+
+| Stage | Entry status | Exit status |
+|---|---|---|
+| UploadRecording | `ready_to_upload_recording` | `ready_for_auphonic` |
+| AuphonicProcessing | `ready_for_auphonic` | `ready_to_upload_production_file` |
+| UploadProductionAudio | `ready_to_upload_production_file` | `ready_to_generate_rss_feed` |
+| GenerateRssFeed | `ready_to_generate_rss_feed` | `ready_to_publish` |
+| PublishOnWebsite | `ready_to_publish` | `published` |
 
 ### Digest vs Podcasts naming disambiguation
 - `MEDIA_PLATFORM/Digest/` has its own podcast content source feature (RSS feed ingestion for digest processing)
@@ -349,8 +399,8 @@ Used in `private const ACTIVE_SHOWS` in wizard Step2 controllers and the dashboa
 
 1. **`ready_to_upload_recording`** on `PodcastEpisodeStatus` — marked for removal once the Publishing wizard refactor is complete and entry point changes to `ready_for_publishing`.
 2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will eventually change to `ready_for_publishing` (set by PrepareForPublishingWizard). This refactor is deferred.
-3. **FinalizeScriptWizard Step 4 — inline script editing** — the rewrite was started but the context window ended before the artifact was complete. Step 4 needs to be rewritten with: an editable `<textarea x-model="script">`, Alpine.js `save()` fetch to `podcast_episodes_planning.script.save`, Copy Script button (copies from `x-model`), Save button with saving state, and the suggested prompts section below. The pattern is identical to `edit_script_field/edit.blade.php`.
-4. **UI review** — Planning views complete. Remaining: Post-Production views, Publishing views.
+3. **Post-Production pipeline flow** — ⬅ **NEXT FOCUS.** No automatic continuity between pipeline steps. Completing Upload Recording drops the user at the index; they must navigate to the dashboard and click Continue to proceed. This is the primary friction point in post-production. Solution to be designed and built.
+4. **UI review** — Planning views complete. Post-Production views and Publishing views not yet reviewed for consistency with Planning UI conventions.
 5. **Guest Interaction feature** — attaching/detaching guests from planning episodes via the CRUD show page is built. The broader Guest Interaction feature (inline guest creation inside wizards) is out of scope for now.
 
 ---

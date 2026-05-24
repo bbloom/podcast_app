@@ -23,7 +23,7 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `published_digests` — persisted digest payloads for static site output type; one record per digest run per list; served via the API to static site generators
 - `language_models` — available AI models for summarisation
 - `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Finalize Script Wizard)
-- `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing
+- `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing. Includes `script_scratch` (nullable text) — ephemeral AI scratch pad for FinalizeScriptWizard Step 4; persisted to survive crashes; cleared on wizard completion.
 - `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table; pipeline entry status is `ready_to_upload_recording` (set by PrepareForPublishingWizard)
 - `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
 - `podcast_guests` — guest profiles for interview show episodes
@@ -151,7 +151,7 @@ Planning/
 ├── CreateEpisodeWizard/     — 4 steps; creates podcast_episodes_planning record
 ├── EditThemeField/          — Alpine.js inline save + redirect save
 ├── EditScriptField/         — Alpine.js inline save + redirect save
-├── FinalizeScriptWizard/    — 7 steps; locks script, sets status ready_to_record
+├── FinalizeScriptWizard/    — 9 steps; locks script, sets status ready_to_record
 └── PrepareForPublishingWizard/
     ├── Concerns/
     │   └── DerivesPublishedEpisodeFields.php  ← all field population methods
@@ -187,6 +187,7 @@ Statuses can move backwards — the app does not enforce forward-only progressio
 - `RegenerateRssFeed` — show-level maintenance flow, rebuilds entire RSS feed from all eligible episodes; operates independently of any episode's pipeline status
 - `CloudStorage/` — S3 and R2 bucket/endpoint resolution classes
 - `Dashboard/` — Post-Production pipeline dashboard
+- Known issue: There is currently no automatic continuity between post-production pipeline steps. Completing one step (e.g. Upload Recording) returns the user to that step's index page; they must navigate to the Podcasts Dashboard and click Continue to reach the next step. This is the primary friction point in post-production and is the next development focus.
 
 ### Five Active Shows
 
