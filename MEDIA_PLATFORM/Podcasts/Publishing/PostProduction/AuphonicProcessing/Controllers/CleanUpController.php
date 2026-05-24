@@ -196,16 +196,17 @@ class CleanUpController extends Controller
             'status'                   => PodcastEpisodeStatus::ready_to_upload_production_file,
         ]);
 
-        // ── Redirect with appropriate flash message ───────────────────────────
-        if (empty($warnings)) {
+
+        // ── Redirect ─────────────────────────────────────────────────────────────────────
+        
+        // Partial success — pipeline advanced but some clean-up steps failed.
+        if ($warnings) {
             return redirect()
-                ->route('post_production.auphonic_processing.index')
-                ->with('success', 'Clean-up complete. "' . $podcastEpisode->title . '" is ready for the next step.');
+                ->route('post_production.auphonic_processing.done', $podcastEpisode)
+                ->with('warning', implode(' ', $warnings))
+            ;
         }
 
-        // Partial success — pipeline advanced but some clean-up steps failed.
-        return redirect()
-            ->route('post_production.auphonic_processing.index')
-            ->with('success', 'Episode status has been advanced, but some clean-up steps had warnings: ' . implode(' ', $warnings));
+        return redirect()->route('post_production.auphonic_processing.done', $podcastEpisode);    
     }
 }

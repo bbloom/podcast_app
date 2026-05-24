@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use MediaPlatform\Podcasts\Publishing\PostProduction\UploadRecording\Controllers\UploadRecordingController;
+use MediaPlatform\Podcasts\Publishing\PostProduction\UploadRecording\Controllers\DoneController;
 
 // -----------------------------------------------------------------------------
 // Post-Production — Upload Recording to S3
@@ -31,4 +32,11 @@ Route::post('/post-production/upload-recording/{episode}/presign', [UploadRecord
 Route::post('/post-production/upload-recording/{episode}/complete', [UploadRecordingController::class, 'complete'])
     ->middleware(['auth'])
     ->name('post_production.upload_recording.complete')
+;
+
+// Done — "what next?" page shown after a successful recording upload.
+// All upload work is complete; status is ready_for_auphonic.
+Route::get('/post-production/upload-recording/{episode}/done', DoneController::class)
+    ->middleware(['auth'])
+    ->name('post_production.upload_recording.done')
 ;

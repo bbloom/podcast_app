@@ -19,7 +19,7 @@ use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controll
 use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers\WebhookStatusController;
 use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers\CleanUpController;
 use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers\ReplaceRecordingController;
-
+use MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers\DoneController;
 
 
 // -----------------------------------------------------------------------------
@@ -100,4 +100,11 @@ Route::get('/post-production/auphonic/{podcastEpisode}/cleanup',[CleanUpControll
 Route::post('/post-production/auphonic/{podcastEpisode}/cleanup',[CleanUpController::class, 'destroy'])
     ->middleware(['auth'])
     ->name('post_production.auphonic_processing.cleanup_destroy')
+;
+
+// Done — "what next?" page shown after clean-up completes.
+// All Auphonic work is done; status is ready_to_upload_production_file.
+Route::get('/post-production/auphonic/{podcastEpisode}/done', DoneController::class)
+    ->middleware(['auth'])
+    ->name('post_production.auphonic_processing.done')
 ;

@@ -16,6 +16,8 @@ use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step3Controller;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step4Controller;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step5Controller;
+use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\DoneController;
+
 
 // Index — list episodes ready for RSS feed generation.
 Route::get('/post-production/generate-rss-feed', IndexController::class)
@@ -61,3 +63,12 @@ Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step4/failed', 
 Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step5', [Step5Controller::class, 'store'])
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step5');
+
+
+    
+// Done — "what next?" page shown after the RSS feed is promoted to live.
+// All RSS work is done; status is ready_to_publish.
+Route::get('/post-production/generate-rss-feed/{podcastEpisode}/done', DoneController::class)
+    ->middleware(['auth'])
+    ->name('post_production.generate_rss_feed.done')
+; 

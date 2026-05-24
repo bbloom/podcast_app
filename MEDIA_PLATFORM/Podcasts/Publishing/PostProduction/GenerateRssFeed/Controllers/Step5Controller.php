@@ -199,12 +199,11 @@ class Step5Controller extends Controller
 
         if ($r2Warning) {
             return redirect()
-                ->route('post_production.generate_rss_feed.index')
-                ->with('success', $successMessage . ' Warning: ' . $r2Warning);
+                ->route('post_production.generate_rss_feed.done', $podcastEpisode)
+                ->with('warning', $r2Warning)
+            ;
         }
 
-        return redirect()
-            ->route('post_production.generate_rss_feed.index')
-            ->with('success', $successMessage);
+        return redirect()->route('post_production.generate_rss_feed.done', $podcastEpisode);
     }
 }

@@ -1,4 +1,4 @@
-# Podcast App — Context Handoff
+# Podcast App — Conventions & Current State
 
 ## What This Project Is
 
@@ -8,42 +8,19 @@ RSS feed generation, and website publishing.
 
 ## Current State
 
-**Phases 1, 2, 3, post-Phase-3 UI pass, and Planning UI pass are complete and pushed.**
+**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, and Post-Production flow fix are complete and pushed.**
 
 - Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
 - Phase 3: Planning module — all wizards, field editors, CRUD, attach/detach, PrepareForPublishingWizard
-- Post-Phase-3:
-  - Podcasts Dashboard rewritten — planning grouped by show + status pipeline order, post-production with smart Continue/Monitor buttons
-  - `PodcastEpisodeStatus` moved to `MEDIA_PLATFORM/Podcasts/Publishing/Enums/`
-  - `PodcastEpisodeStatus::created` removed — pipeline now enters at `ready_to_upload_recording`
-  - `PodcastEpisodePlanningStatus::sortOrder(): int` added — pipeline-ordered dashboard sorting
-  - `PodcastEpisodeStatus::postProductionShowRoute(): string` added — maps status to episode-specific pipeline route
-  - `PodcastShow::planningEpisodes()` relationship added
-  - `podcast_episode_drafts` table dropped (migration)
-  - `PodcastStudio/` legacy files deleted
-  - RecordingView built (`MEDIA_PLATFORM/Podcasts/Planning/RecordingView/`)
-  - UI pass: "Open"/"View" → "Details" across Planning views; table contrast updated
-- Planning UI pass (complete):
-  - All Planning views restyled — show image in headers, `text-base` body text, `flex-col` stacked buttons, breadcrumbs with spacing
-  - `show.blade.php` — restructured: Episode Details, Status (badge only), Notes, Theme, Script (collapsible), Guests, Links, Episode Management (actions + status quick-change + edit/delete), Podcasts Dashboard button. "New Episode" button removed.
-  - `edit.blade.php` — sectioned: Core, Creative Content, Website Content
-  - `delete_confirm.blade.php` — show image, hard-delete warning
-  - `attach_guest.blade.php` — search added, Attach button
-  - `attach_link.blade.php` — search added, Attach button
-  - `edit_theme_field/edit.blade.php` — Alpine.js inline save, show image in header
-  - `edit_script_field/edit.blade.php` — Alpine.js inline save, show image in header, larger textarea (30 rows)
-  - `recording_view/show.blade.php` — show image in header
-  - All wizard views restyled — `text-3xl` headings, `text-base` body, no show image in wizard steps (agreed)
-  - `create_episode_wizard/step4.blade.php` — "Add guests" option added
-  - `finalize_script_wizard/step3.blade.php` — amber instruction block, regex validation rejects titles starting with a digit
-  - `finalize_script_wizard/step4.blade.php` — inline script editing via Alpine.js fetch (in progress — context window ended mid-rewrite; see Outstanding)
-  - `prepare_for_publishing_wizard/step1.blade.php` — amber "point of no return" section added before the wizard steps list
+- Post-Phase-3: Dashboard rewritten, status enums moved, RecordingView built, UI pass
+- Planning UI pass: All Planning views restyled — show image in headers, `text-base` body, stacked buttons, breadcrumbs
+- FinalizeScriptWizard refactor: Expanded from 7 to 9 steps — dual-textarea AI proofing, inline intro/outro template create/edit, `script_scratch` column added, dashboard advisory
+- Post-Production flow fix: Four "Done" pages added — completing a pipeline stage now lands on a "Stage Complete — what next?" page with a direct "Continue to [Next Stage] →" button. No re-selection of episode needed.
 
-**Test suite passing** (count TBC after latest changes — run `php artisan test` to confirm).
+**Test suite: 1420 passing, 3294 assertions.**
 
-The GitHub `podcast_app` repository is connected to this project via the GitHub Connector
-and is re-synced. All source code is accessible via project knowledge search.
+**Next feature:** RSS Pipeline Reorder — see `RSS_PIPELINE_REORDER_PLAN.md`.
 
 ---
 
@@ -53,19 +30,12 @@ and is re-synced. All source code is accessible via project knowledge search.
 MEDIA_PLATFORM/
 └── Podcasts/
     ├── ArchivedEpisodes/
-    │   └── BobBloomShowArchive.php
     ├── Dashboard/
     │   └── Controllers/
     ├── Guests/
-    │   ├── Controllers/
-    │   ├── Models/
-    │   ├── Requests/
-    │   └── Routes/
+    │   ├── Controllers/ / Models/ / Requests/ / Routes/
     ├── Links/
-    │   ├── Controllers/
-    │   ├── Models/
-    │   ├── Requests/
-    │   └── Routes/
+    │   ├── Controllers/ / Models/ / Requests/ / Routes/
     ├── Planning/
     │   ├── CRUD/
     │   │   ├── Controllers/
@@ -79,50 +49,32 @@ MEDIA_PLATFORM/
     │   │   ├── Requests/
     │   │   │   └── PodcastEpisodePlanningRequest.php
     │   │   └── Routes/
-    │   │       ├── podcast_episodes_planning.php
-    │   │       ├── podcast_episodes_planning_guests.php
-    │   │       └── podcast_episodes_planning_links.php
-    │   ├── CreateEpisodeWizard/
-    │   │   └── Controllers/ (Step1–4)
-    │   ├── EditThemeField/
-    │   │   └── Controllers/
-    │   ├── EditScriptField/
-    │   │   └── Controllers/
-    │   ├── FinalizeScriptWizard/
-    │   │   └── Controllers/ (Step1–7)
-    │   ├── RecordingView/
-    │   │   ├── Controllers/
-    │   │   │   └── RecordingViewController.php
-    │   │   └── Routes/
-    │   │       └── recording_view.php
+    │   ├── CreateEpisodeWizard/      Controllers/ (Step1–4)
+    │   ├── EditThemeField/           Controllers/
+    │   ├── EditScriptField/          Controllers/
+    │   ├── FinalizeScriptWizard/     Controllers/ (Step1–9)
+    │   ├── RecordingView/            Controllers/ + Routes/
     │   └── PrepareForPublishingWizard/
     │       ├── Concerns/
-    │       │   └── DerivesPublishedEpisodeFields.php  ← all population methods
+    │       │   └── DerivesPublishedEpisodeFields.php
     │       └── Controllers/ (Step1–3)
     ├── Publishing/
-    │   ├── Controllers/
-    │   ├── Enums/
-    │   │   └── PodcastEpisodeStatus.php   ← moved here from Podcasts/Enums/
-    │   ├── Models/
-    │   │   └── PodcastEpisode.php         ← table: podcast_episodes_published
-    │   ├── Requests/
-    │   ├── Routes/
+    │   ├── Controllers/ / Enums/ / Models/ / Requests/ / Routes/
+    │   │   └── PodcastEpisodeStatus.php   ← in Enums/
+    │   │   └── PodcastEpisode.php         ← in Models/, table: podcast_episodes_published
     │   └── PostProduction/
-    │       ├── AuphonicProcessing/
+    │       ├── AuphonicProcessing/    Controllers/ (incl. DoneController)
     │       ├── CloudStorage/
     │       ├── Dashboard/
-    │       ├── GenerateRssFeed/
+    │       ├── GenerateRssFeed/       Controllers/ (incl. DoneController)
     │       ├── PublishOnWebsite/
     │       ├── RegenerateRssFeed/
-    │       ├── UploadProductionAudio/
-    │       ├── UploadRecording/
+    │       ├── UploadProductionAudio/ Controllers/ (incl. DoneController)
+    │       ├── UploadRecording/       Controllers/ (incl. DoneController)
     │       └── Routes/
     └── Shows/
-        ├── Controllers/
-        ├── Models/
-        │   └── PodcastShow.php
-        ├── Requests/
-        └── Routes/
+        ├── Controllers/ / Models/ / Requests/ / Routes/
+        └── PodcastShow.php   ← in Models/
 ```
 
 ---
@@ -144,49 +96,33 @@ MEDIA_PLATFORM/
 ## Database Tables (current)
 
 - `podcast_episodes_planning` — planning/creative workspace. Hard-deleted on publishing.
+  - `script_scratch` — nullable text. Ephemeral AI scratch pad (FinalizeScriptWizard Step 4). Cleared by Step 9. Non-null triggers dashboard advisory.
 - `podcast_episodes_published` — live published episodes. API serves from this table.
-- `podcast_shows` — has `intro_template` and `outro_template` columns
-- `podcast_links` — has `user_id` column
+- `podcast_shows` — has `intro_template` and `outro_template` (mandatory; wizard enforces creation)
+- `podcast_links` — has `user_id`
 - `podcast_guests`
 - `podcast_guest_episode_planning` — pivot: guests ↔ planning episodes
 - `podcast_guest_episode` — pivot: guests ↔ published episodes
 - `podcast_link_episode_planning` — pivot: links ↔ planning episodes
 - `podcast_link_episode` — pivot: links ↔ published episodes
 
-Note: `podcast_episode_drafts` has been dropped (migration run).
-
 ---
 
-## Seeders
+## Status Enums
 
-### `PodcastPlanningEpisodesSeeder`
-- Located at `database/seeders/PodcastPlanningEpisodesSeeder.php`
-- Seeds 30 planning episodes — 6 per active show, cycling through all 7 planning statuses
-- Scheduled dates spread across days, weeks, and months into the future
-- Seeds 6 `PodcastGuest` and 6 `PodcastLink` records via factory
-- Attaches guests and links to episodes that are far enough along in the pipeline
-- Resets PostgreSQL sequences for `podcast_guests` and `podcast_links` before factory calls (avoids `UniqueConstraintViolationException` when prior seeders insert with explicit IDs)
-- Registered in `DatabaseSeeder` after `Podcast_linksSeeder`
-- Run standalone: `php artisan db:seed --class=PodcastPlanningEpisodesSeeder`
-
----
-
-## Planning Module — What Was Built in Phase 3
-
-### `PodcastEpisodePlanningStatus` enum cases
+### `PodcastEpisodePlanningStatus`
 ```
 new_episode_created          → set by Create Episode Wizard
 working_on_theme             → set manually
 writing_script               → set manually
-ready_to_finalize_the_script → set manually (entry point: Finalize Script Wizard)
-ready_to_record              → set by Finalize Script Wizard
+ready_to_finalize_the_script → set manually — entry point: FinalizeScriptWizard
+ready_to_record              → set by FinalizeScriptWizard Step 9
 raw_audio_needs_editing      → set manually
-ready_for_publishing         → set manually (entry point: PrepareForPublishing Wizard)
+ready_for_publishing         → set manually — entry point: PrepareForPublishingWizard
 ```
+`sortOrder(): int` — pipeline-ordered dashboard sorting.
 
-Pipeline order is codified in `sortOrder(): int` on the enum — used for dashboard sorting.
-
-### `PodcastEpisodeStatus` enum cases
+### `PodcastEpisodeStatus`
 ```
 ready_to_upload_recording       → pipeline entry point (set by PrepareForPublishingWizard Step 3)
 ready_for_auphonic
@@ -199,159 +135,133 @@ ready_to_publish
 published
 not_published                   → set manually
 ```
+`postProductionShowRoute(): string` — maps each status to its pipeline route for dashboard Continue buttons.
 
-Note: `created` case has been removed. `postProductionShowRoute(): string` on the enum maps
-each status to its episode-specific pipeline route — used by the dashboard Continue/Monitor buttons.
+**Note:** Two new intermediate statuses will be added as part of the RSS Pipeline Reorder feature. See `RSS_PIPELINE_REORDER_PLAN.md`.
 
-### Wizards
-- **Create Episode Wizard** (4 steps) — session key: `wizard.create_episode_planning.podcast_show_id`
-  - Step 4 "what's next" page includes: Create another, Details, Work on theme, Work on script, **Add guests**, Podcasts Dashboard
-- **Finalize Script Wizard** (7 steps) — session key: `wizard.finalize_script.episode_id`
-  - Step 3: Confirm title — validates title does not start with a digit (`regex:/^\D/u`). Episode number prefix is added automatically on publishing. Clear amber instruction block explains the rule. Custom error message instructs the user to spell out numbers as words.
-  - Step 4: dual-textarea AI proofing — main script (saves to DB) + scratch pad (saves to script_scratch)
-  - Step 5: intro template review/create — updates podcast_show.intro_template; mandatory, no skip when absent
-  - Step 6: prepend resolved intro to script (was Step 5)
-  - Step 7: outro template review/create — updates podcast_show.outro_template; mandatory, no skip when absent
-  - Step 8: append resolved outro to script (was Step 6)
-  - Step 9: final confirmation — clears script_scratch, sets ready_to_record (was Step 7)
-- **PrepareForPublishingWizard** (3 steps) — session key: `wizard.prepare_for_publishing.episode_id`
-  - Step 1: amber "point of no return" section clearly states this is the transition from Planning to Post-Production, lists all assumptions (recording done, WAV ready, script final, etc.), and warns the planning record will be permanently deleted
-  - Step 2: review/edit key inputs; shows derived value previews
-  - Step 3: scary confirmation page; lists everything that will happen
-  - Store: runs `DerivesPublishedEpisodeFields` trait, creates `podcast_episodes_published` record,
-    migrates guests + links from planning pivots to published pivots, hard-deletes planning record,
-    sets initial status to `ready_to_upload_recording`
+---
 
-### Attach Guest / Attach Link
-- Both controllers accept a `search` query parameter
-- Guest search: searches `full_name`
-- Link search: searches `title` OR `link` URL
-- Pagination uses `->withQueryString()` so the search term persists across pages
-- Method signature includes `Request $request` as the first parameter
+## Post-Production Pipeline — Current State
 
-### RecordingView
-- Path: `MEDIA_PLATFORM/Podcasts/Planning/RecordingView/`
-- Route: `podcast_episodes_planning.recording.show`
-- Status gate: `ready_to_record` only
-- Displays: full assembled script (Markdown rendered), guest profiles with images and website links,
-  episode links (all opening in new tab with external link icon)
-- Entry points: dashboard planning table, episode show page, planning index
+| Stage | Entry status | Exit status | Done route |
+|---|---|---|---|
+| UploadRecording | `ready_to_upload_recording` | `ready_for_auphonic` | `post_production.upload_recording.done` |
+| AuphonicProcessing | `ready_for_auphonic` | `ready_to_upload_production_file` | `post_production.auphonic_processing.done` |
+| UploadProductionAudio | `ready_to_upload_production_file` | `ready_to_generate_rss_feed` | `post_production.upload_production_audio.done` |
+| GenerateRssFeed | `ready_to_generate_rss_feed` | `ready_to_publish` | `post_production.generate_rss_feed.done` |
+| PublishOnWebsite | `ready_to_publish` | `published` | (trigger builds flow) |
 
-### Field Editors
-- **EditThemeField** — `save()` returns JSON (Alpine.js fetch, stays on page), `saveAndExit()` redirects
-- **EditScriptField** — same pattern as EditThemeField
+---
 
-### Status Quick-Change (show page)
-- The quick-change form on the episode show page sends hidden inputs for `title`, `episode_number`,
-  and `scheduled_date` alongside `status` — required because `PodcastEpisodePlanningRequest`
-  validates `title` as required. Without the hidden inputs, validation fails silently.
+## Wizards
 
-### CRUD
-- index, show, edit, update, destroy — no create/store (wizard only)
-- show page has: Episode Details, Status badge, Notes, Theme, Script (collapsible), Guests (attach/detach), Links (attach/detach), Episode Management (action buttons + status quick-change + edit/delete), Podcasts Dashboard button
-- "New Episode" button removed from show page
+### FinalizeScriptWizard (9 steps) — `wizard.finalize_script.episode_id`
 
-### Route Names (key ones)
+| Step | Purpose |
+|---|---|
+| 1 | Introduction |
+| 2 | Confirm episode number |
+| 3 | Confirm title — regex rejects digit-leading titles |
+| 4 | AI Proofing — dual textarea: `script` + `script_scratch`, both Alpine.js PATCH |
+| 5 | Intro template review/create — updates `podcast_show.intro_template` |
+| 6 | Prepend resolved intro to script |
+| 7 | Outro template review/create — updates `podcast_show.outro_template` |
+| 8 | Append resolved outro to script |
+| 9 | Confirm — sets `ready_to_record`, clears `script_scratch` |
+
+### PrepareForPublishingWizard (3 steps) — `wizard.prepare_for_publishing.episode_id`
+- Step 3 store: runs `DerivesPublishedEpisodeFields`, creates published record, migrates guests + links, hard-deletes planning record, sets `ready_to_upload_recording`
+
+### CreateEpisodeWizard (4 steps) — `wizard.create_episode_planning.podcast_show_id`
+- Step 4: "what's next" — Create another / Details / Work on theme / Work on script / Add guests / Dashboard
+
+---
+
+## Key Route Names
+
 ```
-podcast_episodes_planning.index
-podcast_episodes_planning.show
-podcast_episodes_planning.edit
-podcast_episodes_planning.update
-podcast_episodes_planning.delete.confirm
-podcast_episodes_planning.destroy
+# Planning
+podcast_episodes_planning.index / .show / .edit / .update / .delete.confirm / .destroy
 podcast_episodes_planning.wizard.create.step1–4
-podcast_episodes_planning.wizard.finalize.step1–7
+podcast_episodes_planning.wizard.finalize.step1–9
+podcast_episodes_planning.wizard.finalize.step4.save_scratch   ← PATCH, JSON
+podcast_episodes_planning.wizard.finalize.step5.store – step9.store
 podcast_episodes_planning.wizard.publish.step1–3
 podcast_episodes_planning.theme.show / .save / .save_exit
 podcast_episodes_planning.script.show / .save / .save_exit
 podcast_episodes_planning.guests.attach.index / .attach / .detach
 podcast_episodes_planning.links.attach.index / .attach / .detach
 podcast_episodes_planning.recording.show
+
+# Post-Production Done Pages
+post_production.upload_recording.done
+post_production.auphonic_processing.done
+post_production.upload_production_audio.done
+post_production.generate_rss_feed.done
 ```
 
 ---
 
-## Blade Component Paths
+## UI Conventions
 
-Step dot partials live in `views/components/` (Laravel component resolution):
-- `views/components/podcasts/planning/create_episode_wizard/_step_dots.blade.php`
-- `views/components/podcasts/planning/finalize_script_wizard/_step_dots.blade.php`
-- `views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blade.php`
-
----
-
-## Important Context
-
-### Two-world model
-- **Planning** (`podcast_episodes_planning`) — creative/assembly workspace, freely mutable, hard-deleted on publishing
-- **Published** (`podcast_episodes_published`) — permanent, touched as little as possible, API serves from here
-- The hard handoff is the PrepareForPublishingWizard Step 3 store method
-
-### DerivesPublishedEpisodeFields trait
-Lives at `MEDIA_PLATFORM/Podcasts/Planning/PrepareForPublishingWizard/Concerns/DerivesPublishedEpisodeFields.php`.
-All population methods read from `PodcastEpisodePlanning` model. Public methods per conventions (testable directly).
-Used by both Step2Controller (previews) and Step3Controller (actual creation).
-`get_status()` returns `PodcastEpisodeStatus::ready_to_upload_recording` — the pipeline entry point.
-
-### Podcasts Dashboard
-- Planning section: episodes grouped by show (ACTIVE_SHOWS order), sorted within each show by `sortOrder()`
-- Post-production section: excludes `published` and `not_published`; each row has a Continue button
-  (or Monitor for `processing_at_auphonic`) linking directly to the episode's pipeline page via `postProductionShowRoute()`
-- Recently Published: last 5 published episodes
-
-### Digest vs Podcasts naming disambiguation
-- `MEDIA_PLATFORM/Digest/` has its own podcast content source feature (RSS feed ingestion for digest processing)
-- Its routes are prefixed `/digests/podcasts/` and named `digest-podcasts.*`
-- Completely separate from `MEDIA_PLATFORM/Podcasts/` (episode production)
-- The nav has two separate dropdowns: "Digest" and "Podcasts"
-
-### Five active shows
-```
-'The Bob Bloom Show'
-'The Bob Bloom Interviews'
-'PHP Serverless News'
-'PHP Serverless Profiles'
-'PHP Serverless Project Updates'
-```
-Used in `private const ACTIVE_SHOWS` in wizard Step2 controllers and the dashboard controller.
-
-### UI conventions established
-- Button labels: "Details" for show/read views — never "Open" or "View"
-- Table rows: `bg-gray-50` resting state, `hover:bg-white`
-- External links: inline SVG arrow-up-right icon, `target="_blank" rel="noopener noreferrer"`
-- Show image (`$show->itunes_image`): displayed as `w-16 h-16 rounded object-cover border border-purple-200` in page headers alongside the `<h1>`, and in table cells (no show title text when image is present, fallback to title text if no image)
-- Body text: `text-base` throughout — exception: buttons (`text-sm` or `text-xs`), help/sub text (`text-xs`)
+- Button labels: "Details" for show/read — never "Open" or "View"
+- Table rows: `bg-gray-50` resting, `hover:bg-white`
+- External links: inline SVG arrow-up-right, `target="_blank" rel="noopener noreferrer"`
+- Show image: `w-16 h-16 rounded object-cover border border-purple-200` in page headers; in table cells replace title text when image present
+- Body text: `text-base` — exception: buttons (`text-sm`/`text-xs`), help text (`text-xs`)
 - Stacked action buttons in table rows: `flex flex-col items-end gap-1.5`
-- Date cells: `whitespace-nowrap` to prevent year wrapping
-- Breadcrumb: `mb-4` below the breadcrumb line, before the `<h1>`
+- Date cells: `whitespace-nowrap`
+- Breadcrumb: `mb-4` below breadcrumb line, before `<h1>`
 - Page headings: `text-3xl font-bold`
-- Wizard steps: no show image (agreed — wizards are focused flows)
-- Sortable column headers: `↕` (inactive, `text-purple-700`) / `↑` or `↓` (active, `text-purple-700`) with `text-base` size
+- Wizard steps: no show image
+- Post-production done pages: purple/green layout, show image, episode identity, primary Continue button, secondary dashboard link
+- Sortable column headers: `↕` inactive / `↑` `↓` active — `text-purple-700`, `text-base`
 
-### Conventions
-- Step by step. One thing at a time. Run `php artisan test` after every change.
-- `docker compose restart` before running tests after PHP file changes (opcache)
+---
+
+## Coding Conventions
+
+- `docker compose restart && php artisan test --stop-on-defect 2>&1 | tee test_output.txt`
+- Failures only (no stack traces): `php artisan test 2>&1 | grep -E "FAILED|Tests:" | cat | tee failures.txt`
 - Namespaces: `MediaPlatform\` maps to `MEDIA_PLATFORM/`
 - Factories: `Database\Factories\Media_platform\...`
 - Views: `media_platform.podcasts...` dot notation
-- Routes: individually declared, no `Route::resource()`, auth middleware per route
-- All migrations registered explicitly in `AppServiceProvider::loadMigrationsFrom()`
-- Migrations for podcasts: `database/migrations/media_platform/podcasts/`
+- Routes: individually declared, auth middleware per route, no `Route::resource()`
+- Migrations: explicitly registered in `AppServiceProvider::loadMigrationsFrom()`; path `database/migrations/media_platform/podcasts/`
 - No soft deletes on planning records
-- Enums live at `MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/` (planning) and `MEDIA_PLATFORM/Podcasts/Publishing/Enums/` (published)
-- Ownership checks: redirect with error message (not `abort_if`) — see `PodcastLinkController::authorizeOwnership()` pattern
+- Ownership checks: `return redirect()->route(...)->with('error', '...')` — not `abort_if()`
 - Alpine.js inline save: `save()` returns JSON, `saveAndExit()` returns redirect — both testable
-- `docker compose restart && php artisan test --stop-on-defect 2>&1 | tee test_output.txt`
+- Slim controllers — logic in Service classes
+- Named Eloquent scopes on models — no duplicated query logic across controllers
+
+---
+
+## Blade Components
+
+```
+views/components/podcasts/planning/create_episode_wizard/_step_dots.blade.php
+views/components/podcasts/planning/finalize_script_wizard/_step_dots.blade.php  ← 9 dots
+views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blade.php
+```
+
+---
+
+## Podcasts Dashboard
+
+- `$hasPendingScratch` — amber advisory when any planning episode has non-null `script_scratch`
+- Planning section: episodes grouped by show (ACTIVE_SHOWS order), sorted by `sortOrder()`
+- Post-production: Continue/Monitor buttons via `postProductionShowRoute()`; excludes `published` and `not_published`
+- Recently Published: last 5
 
 ---
 
 ## Outstanding / Deferred Items
 
-1. **`ready_to_upload_recording`** on `PodcastEpisodeStatus` — marked for removal once the Publishing wizard refactor is complete and entry point changes to `ready_for_publishing`.
-2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will eventually change to `ready_for_publishing` (set by PrepareForPublishingWizard). This refactor is deferred.
-3. **FinalizeScriptWizard Step 4 — inline script editing** — the rewrite was started but the context window ended before the artifact was complete. Step 4 needs to be rewritten with: an editable `<textarea x-model="script">`, Alpine.js `save()` fetch to `podcast_episodes_planning.script.save`, Copy Script button (copies from `x-model`), Save button with saving state, and the suggested prompts section below. The pattern is identical to `edit_script_field/edit.blade.php`.
-4. **UI review** — Planning views complete. Remaining: Post-Production views, Publishing views.
-5. **Guest Interaction feature** — attaching/detaching guests from planning episodes via the CRUD show page is built. The broader Guest Interaction feature (inline guest creation inside wizards) is out of scope for now.
+1. **`ready_to_upload_recording`** — marked for removal once entry point changes to `ready_for_publishing`. Deferred.
+2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will change to `ready_for_publishing`. Deferred.
+3. **RSS Pipeline Reorder** — ⬅ **NEXT FEATURE.** Full plan in `RSS_PIPELINE_REORDER_PLAN.md`.
+4. **UI review** — Post-Production and Publishing views not yet reviewed for consistency with Planning UI conventions.
+5. **Guest Interaction feature** — inline guest creation inside wizards. Out of scope for now.
 
 ---
 
@@ -361,15 +271,15 @@ Used in `private const ACTIVE_SHOWS` in wizard Step2 controllers and the dashboa
 # Full suite
 docker compose restart && php artisan test 2>&1 | tee test_output.txt
 
-# Stop on first failure or error
+# Stop on first failure
 docker compose restart && php artisan test --stop-on-defect 2>&1 | tee test_output.txt
+
+# Failures only — no stack traces
+docker compose restart && php artisan test 2>&1 | grep -E "FAILED|Tests:" | cat | tee failures.txt
 
 # Planning tests only
 php artisan test tests/Feature/MEDIA_PLATFORM/Podcasts/Planning/
 
 # Publishing tests only
 php artisan test tests/Feature/MEDIA_PLATFORM/Podcasts/Publishing/
-
-# Single test class
-php artisan test tests/Feature/MEDIA_PLATFORM/Podcasts/Planning/RecordingView/RecordingViewControllerTest.php
 ```

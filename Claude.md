@@ -24,8 +24,9 @@
 - Planning records live in `podcast_episodes_planning`; hard-deleted on publishing
 - Published episodes are stored in `podcast_episodes_published`; the API serves from this table
 - Planning statuses use `PodcastEpisodePlanningStatus` enum at `MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`
-- Production statuses use `PodcastEpisodeStatus` enum at `MEDIA_PLATFORM/Podcasts/Enums/`
-- Pipeline: `created` → `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`
+- Production statuses use `PodcastEpisodeStatus` enum at `MEDIA_PLATFORM/Podcasts/Publishing/Enums/`
+- Post-production pipeline: `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`
+- Each post-production stage completion redirects to a `DoneController` page — not back to an index. The done page carries the episode forward to the next stage automatically.
 - Controllers listing podcast shows use `private const ACTIVE_SHOWS` for consistent filtering and ordering
 - Migrations live at `database/migrations/media_platform/podcasts/`
 - One table per migration file
@@ -35,8 +36,10 @@
 
 ## Project Documentation
 Before making any changes, read these files for context:
-- docs/ARCHITECTURE.md
-- docs/CONVENTIONS.md
+- `docs/ARCHITECTURE.md`
+- `docs/CONVENTIONS.md`
+- `MEDIA_PLATFORM/Podcasts/HANDOFF.md`
+- `MEDIA_PLATFORM/Podcasts/RSS_PIPELINE_REORDER_PLAN.md` — if working on the RSS pipeline reorder feature
 
 ## Interaction
 

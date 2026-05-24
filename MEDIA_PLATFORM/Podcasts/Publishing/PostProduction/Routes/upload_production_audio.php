@@ -18,6 +18,8 @@ use MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Contr
 use MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers\ManualUploadController;
 use MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers\UploadToStorageController;
 use MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers\CleanUpController;
+use MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers\DoneController;
+
 
 // ---------------------------------------------------------------------------
 // Index — list episodes ready to upload production audio
@@ -65,3 +67,12 @@ Route::get('/post-production/upload-production-audio/{podcastEpisode}/clean-up',
 Route::post('/post-production/upload-production-audio/{podcastEpisode}/clean-up', [CleanUpController::class, 'destroy'])
     ->middleware('auth')
     ->name('post_production.upload_production_audio.cleanup');
+
+
+
+// Done — "what next?" page shown after production audio clean-up completes.
+// All upload work is done; status is ready_to_generate_rss_feed.
+Route::get('/post-production/upload-production-audio/{podcastEpisode}/done', DoneController::class)
+    ->middleware(['auth'])
+    ->name('post_production.upload_production_audio.done')
+;    

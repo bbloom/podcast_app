@@ -14,25 +14,15 @@ class CleanUpControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    // -------------------------------------------------------------------------
-    // The Auphonic production UUID stored on the episode.
-    // -------------------------------------------------------------------------
-    private const PRODUCTION_UUID = 'TestAuphonicUUID1234567890';
+    private const PRODUCTION_UUID = 'abc-123-uuid';
 
     // -------------------------------------------------------------------------
-    // Helper
+    // Helpers
     // -------------------------------------------------------------------------
 
-    /**
-     * Create a user, show, and episode in the given status with a known slug
-     * and Auphonic production UUID.
-     */
     private function makeEpisode(PodcastEpisodeStatus $status, ?User $user = null): PodcastEpisode
     {
         $user = $user ?? User::factory()->create();
-
-        // Use a known slug so S3_work_in_progress_audio::getFolderPath()
-        // can resolve it without throwing a RuntimeException.
         $show = PodcastShow::factory()->create([
             'user_id' => $user->id,
             'slug'    => 'bob-bloom-show',
@@ -42,25 +32,29 @@ class CleanUpControllerTest extends TestCase
             'user_id'                  => $user->id,
             'podcast_show_id'          => $show->id,
             'status'                   => $status,
-            'raw_input_audio_filename' => 'episode-001.wav',
             'auphonic_production_uuid' => self::PRODUCTION_UUID,
+            'raw_input_audio_filename' => 'episode-001.wav',
         ]);
     }
 
     /**
-     * Mock AuphonicService with a successful download, S3 delete, and
-     * Auphonic production delete — the full happy path.
+     * Fake all three AuphonicService external calls so happy-path tests
+     * do not attempt real HTTP or S3 requests.
      */
     private function fakeExternalServices(): void
     {
         $this->mock(AuphonicService::class, function ($mock) {
-            $mock->shouldReceive('downloadMp3')->once()->andReturn(storage_path('app/podcasts/episode-001.mp3'));
-            $mock->shouldReceive('deleteS3Recording')->once()->andReturn(null);
-            $mock->shouldReceive('deleteProduction')->once()->andReturn(
-                new \Illuminate\Http\Client\Response(
+            $mock->shouldReceive('downloadMp3')
+                ->once()
+                ->andReturn(storage_path('app/podcasts/episode-001.mp3'));
+            $mock->shouldReceive('deleteS3Recording')
+                ->once()
+                ->andReturn(null);
+            $mock->shouldReceive('deleteProduction')
+                ->once()
+                ->andReturn(new \Illuminate\Http\Client\Response(
                     new \GuzzleHttp\Psr7\Response(200)
-                )
-            );
+                ));
         });
     }
 
@@ -69,7 +63,7 @@ class CleanUpControllerTest extends TestCase
     // ╚════════════════════════════════════════════════════════════════════════╝
 
     /**
-     * Confirm page returns 200 for the correct owner in auphonic_complete status.
+     * Confirm page returns 200 for the episode owner.
      */
     public function test_confirm_returns_200_for_correct_owner(): void
     {
@@ -180,9 +174,9 @@ class CleanUpControllerTest extends TestCase
     }
 
     /**
-     * Destroy redirects to the index with a success flash.
+     * Destroy redirects to the done page on success.
      */
-    public function test_destroy_redirects_to_index_with_success_flash(): void
+    public function test_destroy_redirects_to_done_page(): void
     {
         $this->fakeExternalServices();
 
@@ -191,8 +185,7 @@ class CleanUpControllerTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('post_production.auphonic_processing.cleanup_destroy', $episode))
-            ->assertRedirect(route('post_production.auphonic_processing.index'))
-            ->assertSessionHas('success');
+            ->assertRedirect(route('post_production.auphonic_processing.done', $episode));
     }
 
     /**
@@ -234,7 +227,6 @@ class CleanUpControllerTest extends TestCase
             $mock->shouldReceive('downloadMp3')->once()->andThrow(
                 new \RuntimeException('Both Auphonic download endpoints failed.')
             );
-            // deleteS3Recording and deleteProduction must NOT be called.
             $mock->shouldNotReceive('deleteS3Recording');
             $mock->shouldNotReceive('deleteProduction');
         });
@@ -329,5 +321,16 @@ class CleanUpControllerTest extends TestCase
             'id'     => $episode->id,
             'status' => PodcastEpisodeStatus::ready_to_upload_production_file->value,
         ]);
+    }
+
+    /**
+     * Destroy redirects unauthenticated users to the login page.
+     */
+    public function test_destroy_redirects_unauthenticated_users(): void
+    {
+        $episode = $this->makeEpisode(PodcastEpisodeStatus::auphonic_complete);
+
+        $this->post(route('post_production.auphonic_processing.cleanup_destroy', $episode))
+            ->assertRedirect(route('login'));
     }
 }

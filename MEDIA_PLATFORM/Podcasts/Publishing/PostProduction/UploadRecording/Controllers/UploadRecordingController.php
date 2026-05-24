@@ -180,7 +180,6 @@ class UploadRecordingController extends Controller
         // Clear the session key — this upload flow is complete.
         session()->forget(self::SESSION_KEY);
 
-        return redirect()->route('post_production.dashboard')
-            ->with('success', 'Recording uploaded successfully. The episode is now ready for Auphonic.');
+        return redirect()->route('post_production.upload_recording.done', $episode);
     }
 }

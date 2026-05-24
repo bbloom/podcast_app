@@ -128,12 +128,11 @@ class CleanUpController extends Controller
         // ── Redirect with appropriate flash message ───────────────────────────
         if ($warning) {
             return redirect()
-                ->route('post_production.upload_production_audio.index')
-                ->with('success', 'Clean-up complete with a warning: ' . $warning);
+                ->route('post_production.upload_production_audio.done', $podcastEpisode)
+                ->with('warning', $warning)
+            ;
         }
 
-        return redirect()
-            ->route('post_production.upload_production_audio.index')
-            ->with('success', 'Clean-up complete. "' . $podcastEpisode->title . '" is ready for RSS feed generation.');
+        return redirect()->route('post_production.upload_production_audio.done', $podcastEpisode);    
     }
 }

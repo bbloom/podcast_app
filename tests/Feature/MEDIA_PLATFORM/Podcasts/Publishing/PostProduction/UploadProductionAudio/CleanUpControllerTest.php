@@ -12,6 +12,13 @@ class CleanUpControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  CONFIRM (GET)                                                         ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    /**
+     * Unauthenticated users are redirected to the login page.
+     */
     public function test_guest_cannot_view_confirm_page(): void
     {
         $episode = PodcastEpisode::factory()->create([
@@ -22,6 +29,9 @@ class CleanUpControllerTest extends TestCase
              ->assertRedirect(route('login'));
     }
 
+    /**
+     * Owner can view the confirm page and sees the expected filename.
+     */
     public function test_owner_can_view_confirm_page(): void
     {
         $user    = User::factory()->create();
@@ -36,6 +46,9 @@ class CleanUpControllerTest extends TestCase
              ->assertViewHas('expectedFilename', 'my-episode.mp3');
     }
 
+    /**
+     * Non-owner is redirected with an error.
+     */
     public function test_non_owner_is_redirected_with_error_on_confirm(): void
     {
         $user    = User::factory()->create();
@@ -50,6 +63,9 @@ class CleanUpControllerTest extends TestCase
              ->assertSessionHas('error');
     }
 
+    /**
+     * Wrong status is redirected with an error.
+     */
     public function test_wrong_status_is_redirected_with_error_on_confirm(): void
     {
         $user    = User::factory()->create();
@@ -63,7 +79,14 @@ class CleanUpControllerTest extends TestCase
              ->assertSessionHas('error');
     }
 
-    public function test_destroy_deletes_file_and_redirects_with_success(): void
+    // ╔════════════════════════════════════════════════════════════════════════╗
+    // ║  DESTROY (POST)                                                        ║
+    // ╚════════════════════════════════════════════════════════════════════════╝
+
+    /**
+     * Destroy deletes the local file and redirects to the done page.
+     */
+    public function test_destroy_deletes_file_and_redirects_to_done_page(): void
     {
         $user    = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($user)->create([
@@ -71,7 +94,6 @@ class CleanUpControllerTest extends TestCase
             'raw_input_audio_filename' => 'my-episode.wav',
         ]);
 
-        // Create the file on disk so the controller can delete it.
         $dir = storage_path('app/podcasts');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -80,12 +102,15 @@ class CleanUpControllerTest extends TestCase
 
         $this->actingAs($user)
              ->post(route('post_production.upload_production_audio.cleanup', $episode))
-             ->assertRedirect(route('post_production.upload_production_audio.index'))
-             ->assertSessionHas('success');
+             ->assertRedirect(route('post_production.upload_production_audio.done', $episode));
 
         $this->assertFileDoesNotExist($dir . '/my-episode.mp3');
     }
 
+    /**
+     * Destroy still redirects to the done page even if the file is not found.
+     * Missing file is a soft failure — the pipeline must not be blocked.
+     */
     public function test_destroy_succeeds_even_if_file_not_found(): void
     {
         $user    = User::factory()->create();
@@ -94,7 +119,6 @@ class CleanUpControllerTest extends TestCase
             'raw_input_audio_filename' => 'my-episode.wav',
         ]);
 
-        // Ensure the file does not exist.
         $filePath = storage_path('app/podcasts/my-episode.mp3');
         if (file_exists($filePath)) {
             unlink($filePath);
@@ -102,10 +126,12 @@ class CleanUpControllerTest extends TestCase
 
         $this->actingAs($user)
              ->post(route('post_production.upload_production_audio.cleanup', $episode))
-             ->assertRedirect(route('post_production.upload_production_audio.index'))
-             ->assertSessionHas('success');
+             ->assertRedirect(route('post_production.upload_production_audio.done', $episode));
     }
 
+    /**
+     * Non-owner is redirected with an error.
+     */
     public function test_non_owner_cannot_destroy(): void
     {
         $user    = User::factory()->create();
@@ -120,6 +146,9 @@ class CleanUpControllerTest extends TestCase
              ->assertSessionHas('error');
     }
 
+    /**
+     * Wrong status is redirected with an error.
+     */
     public function test_wrong_status_is_redirected_with_error_on_destroy(): void
     {
         $user    = User::factory()->create();
@@ -131,5 +160,18 @@ class CleanUpControllerTest extends TestCase
              ->post(route('post_production.upload_production_audio.cleanup', $episode))
              ->assertRedirect(route('post_production.upload_production_audio.index'))
              ->assertSessionHas('error');
+    }
+
+    /**
+     * Unauthenticated users are redirected to the login page on destroy.
+     */
+    public function test_guest_cannot_destroy(): void
+    {
+        $episode = PodcastEpisode::factory()->create([
+            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+        ]);
+
+        $this->post(route('post_production.upload_production_audio.cleanup', $episode))
+             ->assertRedirect(route('login'));
     }
 }

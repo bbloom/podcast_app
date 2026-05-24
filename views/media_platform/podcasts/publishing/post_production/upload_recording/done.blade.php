@@ -1,0 +1,65 @@
+<x-layouts.app title="Recording Uploaded — {{ $episode->title }}">
+
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold text-purple-700 tracking-wider">Recording Uploaded</h1>
+        <a href="{{ route('post_production.dashboard') }}"
+           class="text-sm text-purple-700 hover:underline">
+            Post-Production Dashboard
+        </a>
+    </div>
+
+    {{-- Success banner --}}
+    <div class="mb-8 rounded-lg border border-green-300 bg-green-50 px-6 py-4">
+        <p class="text-lg font-semibold text-green-700">&#10003; Recording uploaded successfully.</p>
+        <p class="mt-1 text-base text-green-600">
+            The WAV file is confirmed in S3. This episode is now ready for Auphonic processing.
+        </p>
+    </div>
+
+    {{-- Episode --}}
+    <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Episode</div>
+    <div class="border border-purple-500 rounded-lg pl-6 pr-4 py-4 mb-8">
+        <div class="flex items-start gap-5">
+            @if ($episode->show->itunes_image)
+                <img src="{{ $episode->show->itunes_image }}"
+                     alt="{{ $episode->show->title }}"
+                     class="w-[75px] h-[75px] rounded-lg object-cover flex-shrink-0 mt-1">
+            @endif
+            <table class="text-base text-gray-600 border-collapse w-full">
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top w-48">Show</td>
+                    <td class="py-1 text-gray-800">{{ $episode->show->title }}</td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Episode</td>
+                    <td class="py-1 text-gray-800 font-medium">{{ $episode->title }}</td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Scheduled Date</td>
+                    <td class="py-1 text-gray-800 whitespace-nowrap">{{ $episode->scheduled_date?->format('M j, Y') ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td class="pr-6 py-1 text-gray-500 whitespace-nowrap align-top">Recording File</td>
+                    <td class="py-1 text-gray-800 font-mono text-sm">{{ $episode->raw_input_audio_filename ?? '—' }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    {{-- What next --}}
+    <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">What would you like to do next?</div>
+    <div class="border border-purple-500 rounded-lg px-6 py-6">
+        <div class="flex flex-col gap-4">
+            <a href="{{ route('post_production.auphonic_processing.show', $episode) }}"
+               class="flex items-center justify-between px-6 py-4 bg-purple-700 text-white rounded-lg font-semibold text-base hover:bg-purple-800 transition-colors">
+                <span>Continue to Auphonic Processing</span>
+                <span class="text-xl">&rarr;</span>
+            </a>
+            <a href="{{ route('post_production.dashboard') }}"
+               class="flex items-center justify-between px-6 py-4 border border-purple-300 text-purple-700 rounded-lg font-semibold text-base hover:bg-purple-50 transition-colors">
+                <span>Post-Production Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+</x-layouts.app>

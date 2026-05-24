@@ -22,8 +22,8 @@ A Laravel application that aggregates content from YouTube channels, podcasts, a
 - `output_destinations` — where digests are delivered (e.g. SFTP)
 - `published_digests` — persisted digest payloads for static site output type; one record per digest run per list; served via the API to static site generators
 - `language_models` — available AI models for summarisation
-- `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (used by the Finalize Script Wizard)
-- `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing. Includes `script_scratch` (nullable text) — ephemeral AI scratch pad for FinalizeScriptWizard Step 4; persisted to survive crashes; cleared on wizard completion.
+- `podcast_shows` — the five podcast shows; each maps to an RSS `<channel>` element; includes `intro_template` and `outro_template` columns (mandatory; used by FinalizeScriptWizard Steps 5 and 7)
+- `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing. Includes `script_scratch` (nullable text) — ephemeral AI scratch pad for FinalizeScriptWizard Step 4; persisted to survive crashes; cleared on wizard completion (Step 9).
 - `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table; pipeline entry status is `ready_to_upload_recording` (set by PrepareForPublishingWizard)
 - `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
 - `podcast_guests` — guest profiles for interview show episodes
@@ -128,8 +128,7 @@ The app has two separate podcast-related features that must not be confused:
 ### Module Structure (`Podcasts/`)
 
 - `Dashboard/` — podcast dashboard controller and routes
-- `Enums/` — `PodcastEpisodeStatus` enum
-- `Shows/` — CRUD for podcast shows; includes `intro_template` and `outro_template` columns (used by Finalize Script Wizard)
+- `Shows/` — CRUD for podcast shows; includes `intro_template` and `outro_template` columns (mandatory; FinalizeScriptWizard enforces creation)
 - `Guests/` — CRUD for podcast guests, plus attach/detach to both planning and published episodes
 - `Links/` — CRUD for podcast links, plus attach/detach to both planning and published episodes; scoped by `user_id`
 - `Planning/` — Planning module (see below)
@@ -163,14 +162,28 @@ Planning/
 - `working_on_theme` — set manually
 - `writing_script` — set manually
 - `ready_to_finalize_the_script` — set manually; entry point for Finalize Script Wizard
-- `ready_to_record` — set by Finalize Script Wizard
+- `ready_to_record` — set by Finalize Script Wizard (Step 9)
 - `raw_audio_needs_editing` — set manually
 - `ready_for_publishing` — set manually; entry point for Prepare for Publishing Wizard
 
 Statuses can move backwards — the app does not enforce forward-only progression. Data is never cleared on a backwards status move.
 
+**FinalizeScriptWizard (9 steps):**
+
+| Step | Purpose |
+|---|---|
+| 1 | Introduction |
+| 2 | Confirm episode number |
+| 3 | Confirm title (regex rejects digit-leading titles) |
+| 4 | AI Proofing — dual textarea: main script (saves to `script`) + scratch pad (saves to `script_scratch`), both Alpine.js fetch |
+| 5 | Intro template review/create — updates `podcast_show.intro_template`; mandatory, no skip when absent |
+| 6 | Prepend resolved intro to script |
+| 7 | Outro template review/create — updates `podcast_show.outro_template`; mandatory, no skip when absent |
+| 8 | Append resolved outro to script |
+| 9 | Final confirmation — sets `ready_to_record`, clears `script_scratch`, forgets session |
+
 **Hard handoff (PrepareForPublishingWizard Step 3 store):**
-1. Runs all `DerivesPublishedEpisodeFields` population methods (adapted from the old Step3Controller — reads from the planning record instead of a Request)
+1. Runs all `DerivesPublishedEpisodeFields` population methods
 2. Creates `podcast_episodes_published` record
 3. Migrates guests from `podcast_guest_episode_planning` → `podcast_guest_episode`
 4. Migrates links from `podcast_link_episode_planning` → `podcast_link_episode`
@@ -179,15 +192,18 @@ Statuses can move backwards — the app does not enforce forward-only progressio
 
 ### Post-Production (`Publishing/PostProduction/`)
 
-- `UploadRecording` — pre-signed S3 PUT upload, S3 file confirmation, status → `ready_for_auphonic`
-- `AuphonicProcessing` — S3 file verification, Auphonic submission, webhook processing, MP3 download, clean-up; see `AuphonicProcessing/README.md`
-- `UploadProductionAudio` — two-path MP3 upload (Auphonic download or manual upload), getID3 metadata extraction, S3 + R2 upload; see `UploadProductionAudio/README.md`
-- `GenerateRssFeed` — generates RSS XML, validates it, uploads to staging for external validation, promotes to live S3 + R2, advances status to `ready_to_publish`; see `GenerateRssFeed/README.md`
+- `UploadRecording` — pre-signed S3 PUT upload, S3 file confirmation, status → `ready_for_auphonic`; on completion redirects to `DoneController` page
+- `AuphonicProcessing` — S3 file verification, Auphonic submission, webhook processing, MP3 download, clean-up; on completion redirects to `DoneController` page; see `AuphonicProcessing/README.md`
+- `UploadProductionAudio` — two-path MP3 upload (Auphonic download or manual upload), getID3 metadata extraction, S3 + R2 upload; on completion redirects to `DoneController` page; see `UploadProductionAudio/README.md`
+- `GenerateRssFeed` — generates RSS XML, validates it, uploads to staging for external validation, promotes to live S3 + R2, advances status to `ready_to_publish`; on completion redirects to `DoneController` page; see `GenerateRssFeed/README.md`
 - `PublishOnWebsite` — sets `website_enabled = true`, advances status to `published`, redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes go straight to the index
 - `RegenerateRssFeed` — show-level maintenance flow, rebuilds entire RSS feed from all eligible episodes; operates independently of any episode's pipeline status
 - `CloudStorage/` — S3 and R2 bucket/endpoint resolution classes
 - `Dashboard/` — Post-Production pipeline dashboard
-- Known issue: There is currently no automatic continuity between post-production pipeline steps. Completing one step (e.g. Upload Recording) returns the user to that step's index page; they must navigate to the Podcasts Dashboard and click Continue to reach the next step. This is the primary friction point in post-production and is the next development focus.
+
+**Done pages:** Each of the first four pipeline stages has a `DoneController` and done view. After completing a stage, the user lands on a "Stage Complete — what next?" page showing the episode identity, a primary "Continue to [Next Stage] →" button (episode carried forward automatically), and a "Post-Production Dashboard" secondary link. Routes: `post_production.{stage}.done`.
+
+**Next planned feature:** The pipeline order is scheduled to change. Publishing to the website and triggering the static site build will move to *before* RSS feed generation, so that external RSS validators can check that the episode webpage URL resolves. See `RSS_PIPELINE_REORDER_PLAN.md` for the full plan.
 
 ### Five Active Shows
 
@@ -201,7 +217,7 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 ### Status Enums
 
 - `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above. Includes `sortOrder(): int` for pipeline-ordered dashboard sorting and `manualStatuses()` for status-change dropdowns.
-- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`. The `created` case has been removed — episodes enter the pipeline at `ready_to_upload_recording`, set by PrepareForPublishingWizard Step 3. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue/Monitor buttons.
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`. The `created` case has been removed — episodes enter the pipeline at `ready_to_upload_recording`, set by PrepareForPublishingWizard Step 3. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue/Monitor buttons. **Note:** Two new intermediate statuses will be added as part of the RSS Pipeline Reorder feature — see `RSS_PIPELINE_REORDER_PLAN.md`.
 - `ready_to_upload_recording` retained as the pipeline entry point — marked for removal once Post-Production entry point is refactored to `ready_for_publishing`
 - These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records
 
@@ -221,6 +237,7 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
   2. **Multi-hook** — from the podcast show's show page or after publishing an episode (checkbox selection → results)
   3. **Automatic** — `StaticSiteDeliveryStrategy` fires all enabled hooks after persisting a published digest
 - Post-publish trigger: `PublishController` redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes skip the trigger and go straight to the index
+- **Note:** Cloudflare Pages does not send build-completion webhooks. Build confirmation in the post-production pipeline is a manual step. See `RSS_PIPELINE_REORDER_PLAN.md`.
 
 ## Eloquent Scopes — PodcastEpisode
 
