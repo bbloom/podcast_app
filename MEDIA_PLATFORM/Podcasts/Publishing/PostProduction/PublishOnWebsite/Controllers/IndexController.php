@@ -1,10 +1,15 @@
 <?php
 
 // =============================================================================
-// IndexController
+// IndexController — PublishOnWebsite
 //
-// Lists all episodes with status `ready_to_publish`, allowing the user to
-// select one to publish on the website.
+// RSS PIPELINE REORDER CHANGE:
+//   Previously only showed episodes in `ready_to_publish`. Now also shows
+//   `ready_to_publish_website` (new pipeline entry status).
+//   `ready_to_publish` is retained for legacy episodes.
+//
+//   `withStatus()` accepts a single value, so we use `whereIn` directly
+//   when querying for multiple acceptable statuses.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
@@ -18,16 +23,19 @@ use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 class IndexController extends Controller
 {
     /**
-     * Display a list of episodes that are ready to be published on the website.
+     * Display episodes ready to be published on the website.
      *
-     * Only episodes belonging to the authenticated user with status
-     * `ready_to_publish` are shown, ordered by scheduled date ascending
-     * so the most imminent episode appears first.
+     * Shows both `ready_to_publish_website` (new pipeline) and
+     * `ready_to_publish` (legacy pipeline), ordered by scheduled date
+     * ascending so the most imminent episode appears first.
      */
     public function __invoke(): \Illuminate\View\View
     {
         $episodes = PodcastEpisode::forUser(auth()->id())
-            ->withStatus(PodcastEpisodeStatus::ready_to_publish)
+            ->whereIn('status', [
+                PodcastEpisodeStatus::ready_to_publish_website->value,
+                PodcastEpisodeStatus::ready_to_publish->value,
+            ])
             ->orderByScheduledDate()
             ->with('show')
             ->get();

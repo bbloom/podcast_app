@@ -2,169 +2,44 @@
 
 namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing\PostProduction\GenerateRssFeed;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
-use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
-use Tests\TestCase;
+// =============================================================================
+// Step4ControllerTest — DEPRECATED
+//
+// This test class is no longer in use as of the RSS Pipeline Reorder.
+// It is retained here only to make the gap in the step numbering
+// self-explanatory, mirroring Step4Controller.php which is similarly kept.
+//
+// WHAT STEP 4 TESTED:
+//   These tests covered the staging validation page — the page shown after
+//   Step 3 generated and uploaded the RSS XML to the work-in-progress S3
+//   staging bucket. The page displayed the public staging URL and links to
+//   external validators (Cast Feed Validator, Podbase, Podcastpage) so the
+//   user could validate the feed before promoting it to the live bucket in
+//   Step 5.
+//
+// WHY THESE TESTS WERE RETIRED:
+//   Step 4 was removed as part of the RSS Pipeline Reorder because staging
+//   validation was unreliable — the episode's website page did not yet exist
+//   at that point in the pipeline, causing validators to report false 404
+//   errors on <link> and <itunes:link> tags.
+//
+//   Validation now happens in LiveValidationController, after Step 5 has
+//   promoted the feed to the live S3 bucket and the static site build has
+//   completed. See LiveValidationControllerTest for the replacement coverage.
+//
+// DO NOT RESTORE THESE TESTS without also restoring Step4Controller.php
+// and its routes in generate_rss_feed.php, and reverting the Pipeline Reorder.
+//
+// Path: tests/Feature/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/GenerateRssFeed/
+// =============================================================================
 
-class Step4ControllerTest extends TestCase
+/**
+ * @deprecated Retired as part of the RSS Pipeline Reorder.
+ *             See class docblock above for full context.
+ *             Replaced by: LiveValidationControllerTest
+ */
+class Step4ControllerTest
 {
-    use RefreshDatabase;
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    private function makeEpisode(User $user, PodcastEpisodeStatus $status = PodcastEpisodeStatus::ready_to_generate_rss_feed): PodcastEpisode
-    {
-        $show = PodcastShow::factory()->create(['user_id' => $user->id]);
-
-        return PodcastEpisode::factory()->create([
-            'user_id'         => $user->id,
-            'podcast_show_id' => $show->id,
-            'status'          => $status,
-        ]);
-    }
-
-    private function withFullSession(PodcastEpisode $episode): array
-    {
-        return [
-            'wizard.generate_rss_feed.podcast_episode_id' => $episode->id,
-            'wizard.generate_rss_feed.staging_url'        => 'https://staging.example.com/rss/feed.xml',
-            'wizard.generate_rss_feed.rss_filename'       => 'rss_test_show.xml',
-            'wizard.generate_rss_feed.rss_s3_key'         => 'rss/rss_test_show.xml',
-        ];
-    }
-
-    // -------------------------------------------------------------------------
-    // show (GET) — access guards
-    // -------------------------------------------------------------------------
-
-    public function test_show_redirects_unauthenticated_users(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->get(route('post_production.generate_rss_feed.step4', $episode))
-            ->assertRedirect(route('login'));
-    }
-
-    public function test_show_redirects_another_users_episode_to_index(): void
-    {
-        $user    = User::factory()->create();
-        $other   = User::factory()->create();
-        $episode = $this->makeEpisode($other);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->get(route('post_production.generate_rss_feed.step4', $episode))
-            ->assertRedirect(route('post_production.generate_rss_feed.index'));
-    }
-
-    public function test_show_redirects_wrong_status_to_index(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user, PodcastEpisodeStatus::ready_for_auphonic);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->get(route('post_production.generate_rss_feed.step4', $episode))
-            ->assertRedirect(route('post_production.generate_rss_feed.index'));
-    }
-
-    public function test_show_redirects_to_step3_when_staging_url_missing(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->actingAs($user)
-            ->withSession(['wizard.generate_rss_feed.podcast_episode_id' => $episode->id])
-            ->get(route('post_production.generate_rss_feed.step4', $episode))
-            ->assertRedirect(route('post_production.generate_rss_feed.step3', $episode));
-    }
-
-    // -------------------------------------------------------------------------
-    // show (GET) — happy path
-    // -------------------------------------------------------------------------
-
-    public function test_show_renders_with_staging_url(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->get(route('post_production.generate_rss_feed.step4', $episode))
-            ->assertOk()
-            ->assertSee('https://staging.example.com/rss/feed.xml')
-            ->assertSee('Cast Feed Validator')
-            ->assertSee('Podbase');
-    }
-
-    // -------------------------------------------------------------------------
-    // failed (POST)
-    // -------------------------------------------------------------------------
-
-    public function test_failed_redirects_to_episode_show_page(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->post(route('post_production.generate_rss_feed.step4.failed', $episode))
-            ->assertRedirect(route('podcast_episodes.show', $episode))
-            ->assertSessionHas('error');
-    }
-
-    public function test_failed_clears_wizard_session(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->post(route('post_production.generate_rss_feed.step4.failed', $episode));
-
-        $this->assertNull(session('wizard.generate_rss_feed.podcast_episode_id'));
-        $this->assertNull(session('wizard.generate_rss_feed.staging_url'));
-    }
-
-    public function test_failed_does_not_change_episode_status(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->post(route('post_production.generate_rss_feed.step4.failed', $episode));
-
-        $this->assertDatabaseHas('podcast_episodes_published', [
-            'id'     => $episode->id,
-            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed->value,
-        ]);
-    }
-
-    public function test_failed_redirects_unauthenticated_users(): void
-    {
-        $user    = User::factory()->create();
-        $episode = $this->makeEpisode($user);
-
-        $this->post(route('post_production.generate_rss_feed.step4.failed', $episode))
-            ->assertRedirect(route('login'));
-    }
-
-    public function test_failed_redirects_another_users_episode_to_index(): void
-    {
-        $user    = User::factory()->create();
-        $other   = User::factory()->create();
-        $episode = $this->makeEpisode($other);
-
-        $this->actingAs($user)
-            ->withSession($this->withFullSession($episode))
-            ->post(route('post_production.generate_rss_feed.step4.failed', $episode))
-            ->assertRedirect(route('post_production.generate_rss_feed.index'));
-    }
+    // This class is intentionally empty.
+    // See the file header comment for the full explanation.
 }

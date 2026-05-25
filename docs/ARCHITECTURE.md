@@ -2,7 +2,11 @@
 
 ## Overview
 
-A Laravel application that aggregates content from YouTube channels, podcasts, and text-based RSS feeds. Content is fetched nightly, summarised using Gemini AI, and delivered to the user via configurable output destinations.
+A Laravel/PHP podcasting application:
+
+- for producing and publishing 5 podcast shows. The app handles the full episode lifecycle: planning/creative, audio production, RSS feed generation, and website publishing.
+
+- that aggregates content from YouTube channels, podcasts, and text-based RSS feeds. Content is fetched nightly, summarised using Gemini AI, and delivered to the user via configurable output destinations.
 
 ## Core Features
 
@@ -192,18 +196,41 @@ Statuses can move backwards — the app does not enforce forward-only progressio
 
 ### Post-Production (`Publishing/PostProduction/`)
 
-- `UploadRecording` — pre-signed S3 PUT upload, S3 file confirmation, status → `ready_for_auphonic`; on completion redirects to `DoneController` page
-- `AuphonicProcessing` — S3 file verification, Auphonic submission, webhook processing, MP3 download, clean-up; on completion redirects to `DoneController` page; see `AuphonicProcessing/README.md`
-- `UploadProductionAudio` — two-path MP3 upload (Auphonic download or manual upload), getID3 metadata extraction, S3 + R2 upload; on completion redirects to `DoneController` page; see `UploadProductionAudio/README.md`
-- `GenerateRssFeed` — generates RSS XML, validates it, uploads to staging for external validation, promotes to live S3 + R2, advances status to `ready_to_publish`; on completion redirects to `DoneController` page; see `GenerateRssFeed/README.md`
-- `PublishOnWebsite` — sets `website_enabled = true`, advances status to `published`, redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes go straight to the index
-- `RegenerateRssFeed` — show-level maintenance flow, rebuilds entire RSS feed from all eligible episodes; operates independently of any episode's pipeline status
-- `CloudStorage/` — S3 and R2 bucket/endpoint resolution classes
-- `Dashboard/` — Post-Production pipeline dashboard
+The RSS Pipeline Reorder is complete. The website must be published and the static site build confirmed before RSS generation begins, so that external validators see a live episode webpage and audio file.
 
-**Done pages:** Each of the first four pipeline stages has a `DoneController` and done view. After completing a stage, the user lands on a "Stage Complete — what next?" page showing the episode identity, a primary "Continue to [Next Stage] →" button (episode carried forward automatically), and a "Post-Production Dashboard" secondary link. Routes: `post_production.{stage}.done`.
+```
+PostProduction/
+├── AuphonicProcessing/    Controllers/ (incl. DoneController)
+├── BuildConfirmation/     Controllers/ (ShowController, ConfirmController)
+├── CloudStorage/          S3 and R2 bucket/endpoint resolution classes
+├── Dashboard/             DashboardController — surfaces in-progress and needs-attention episodes
+├── GenerateRssFeed/       Controllers/ (Step1–3, Step4†, Step5, LiveValidationController,
+│                                        RestartController, DoneController)
+├── PublishOnWebsite/      Controllers/ (IndexController, ShowController, PublishController,
+│                                        PrepareTriggerBuildsController, TriggerBuildsController,
+│                                        TriggerBuildsResultController)
+├── RegenerateRssFeed/     Controllers/ (IndexController, StageController, PromoteController,
+│                                        LiveValidationController)
+├── UploadProductionAudio/ Controllers/ (incl. DoneController)
+├── UploadRecording/       Controllers/ (incl. DoneController)
+└── Routes/
+```
 
-**Next planned feature:** The pipeline order is scheduled to change. Publishing to the website and triggering the static site build will move to *before* RSS feed generation, so that external RSS validators can check that the episode webpage URL resolves. See `RSS_PIPELINE_REORDER_PLAN.md` for the full plan.
+† `Step4Controller` is intentionally empty and deprecated — retained to explain the gap in step numbering. See its file header for full context.
+
+**Pipeline stages (post RSS Pipeline Reorder):**
+
+- `UploadRecording` — pre-signed S3 PUT upload, S3 file confirmation, status → `ready_for_auphonic`
+- `AuphonicProcessing` — S3 file verification, Auphonic submission, webhook processing, MP3 download, clean-up; status → `ready_to_upload_production_file`
+- `UploadProductionAudio` — two-path MP3 upload, getID3 metadata extraction, S3 + R2 upload; status → `ready_to_publish_website`
+- `PublishOnWebsite` — sets `website_enabled = true`, status → `website_published`; stores episode ID in session, redirects to TriggerBuilds
+- `TriggerBuilds` + `BuildConfirmation` — fires Cloudflare Pages deploy hooks; `BuildConfirmation` polls build status via `CloudflareBuildStatusService` using Alpine.js auto-polling; manual fallback available; status → `ready_to_generate_rss_feed`
+- `GenerateRssFeed` — generates RSS XML (Steps 1–3), uploads to live S3 (Step 5, status → `ready_to_upload_rss_feed`), Live Validation page lets user validate against live S3 URL before promoting to R2; on R2 success status → `published`; validation failure sets `rss_validation_failed` (surfaced on dashboard); `RestartController` resets failed episodes back into the wizard
+- `RegenerateRssFeed` — show-level maintenance flow; same S3-only-then-validate-then-R2 split as GenerateRssFeed; operates independently of any episode's pipeline status
+
+**Done pages:** `UploadRecording`, `AuphonicProcessing`, `UploadProductionAudio`, and `GenerateRssFeed` each have a `DoneController` and done view. After completing a stage the user lands on a "Stage Complete — what next?" page with a primary "Continue to [Next Stage] →" button and a "Post-Production Dashboard" secondary link. Routes: `post_production.{stage}.done`.
+
+**Dashboard (`Dashboard/DashboardController`):** Passes episodes in intermediate pipeline statuses (`website_published`, `build_triggered`, `ready_to_upload_rss_feed`, `rss_validation_failed`) to the view so the user can resume a stuck episode without navigating through each step's index. `postProductionShowRoute()` drives the Continue → links.
 
 ### Five Active Shows
 
@@ -217,9 +244,9 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 ### Status Enums
 
 - `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above. Includes `sortOrder(): int` for pipeline-ordered dashboard sorting and `manualStatuses()` for status-change dropdowns.
-- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`. The `created` case has been removed — episodes enter the pipeline at `ready_to_upload_recording`, set by PrepareForPublishingWizard Step 3. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue/Monitor buttons. **Note:** Two new intermediate statuses will be added as part of the RSS Pipeline Reorder feature — see `RSS_PIPELINE_REORDER_PLAN.md`.
-- `ready_to_upload_recording` retained as the pipeline entry point — marked for removal once Post-Production entry point is refactored to `ready_for_publishing`
-- These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_publish_website` → `website_published` → `build_triggered` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `published`; also `rss_validation_failed` and `not_published`. `ready_to_publish` is retained for backwards compatibility with episodes that entered the pipeline before the RSS Pipeline Reorder. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue buttons.
+- `ready_to_upload_recording` is retained as the pipeline entry point — marked for removal once the entry point is refactored to `ready_for_publishing`.
+- These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records.
 
 ## Static Site Deploy Hooks
 
@@ -229,15 +256,16 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 - Providers supported: Cloudflare Pages, Netlify, Vercel (backed by `DeployHookProvider` enum)
 - Hook URL stored encrypted — anyone holding the URL can trigger a build
 - Tracks `last_triggered_at`, `last_build_id`, `last_trigger_status` per hook
-- `DeployHookTriggerService` handles the HTTP POST, parses provider responses, and records outcomes
+- `DeployHookTriggerService` handles the HTTP POST, parses provider responses, and records outcomes including the Cloudflare deployment ID (`last_build_id`)
 - `DeployHookTriggerResult` is an immutable value object carrying success/failure, build ID, HTTP status, error message
+- `CloudflareBuildStatusService` polls the Cloudflare Pages REST API for deployment status using `last_build_id`; requires a scoped API token (`Account / Pages / Read`) stored in `config/podcast_post_production.php`; used by `BuildStatusController` and `BuildConfirmation`
+- `CloudflareBuildStatusResult` is an immutable value object carrying API call outcome, current deployment stage/status, and convenience booleans (`isPending()`, `buildSucceeded()`, `buildFailed()`)
 - `DeployHook` model provides `triggerable_display_name`, `triggerable_type_label`, and `triggerable_show_route` accessors for polymorphic view rendering
 - Three trigger entry points:
-  1. **Single hook** — from the deploy hook's show page (confirm → execute → result)
-  2. **Multi-hook** — from the podcast show's show page or after publishing an episode (checkbox selection → results)
+  1. **Single hook** — from the deploy hook's show page (confirm → execute → result); show page also has a manual "Check Build Status" section for Cloudflare hooks
+  2. **Multi-hook** — from the podcast show's show page or automatically from the post-production pipeline after publishing an episode (checkbox selection → BuildConfirmation polling)
   3. **Automatic** — `StaticSiteDeliveryStrategy` fires all enabled hooks after persisting a published digest
-- Post-publish trigger: `PublishController` redirects to "Trigger Static Site Builds" when `website_publish_on <= today`; future-dated episodes skip the trigger and go straight to the index
-- **Note:** Cloudflare Pages does not send build-completion webhooks. Build confirmation in the post-production pipeline is a manual step. See `RSS_PIPELINE_REORDER_PLAN.md`.
+- Cloudflare Pages build status is checked via polling (no inbound webhook). The `BuildConfirmation` pipeline step auto-polls every 5 seconds using Alpine.js until the build succeeds or fails, then advances the episode automatically.
 
 ## Eloquent Scopes — PodcastEpisode
 
@@ -279,6 +307,7 @@ The following named scopes are defined on `PodcastEpisode` to avoid duplicating 
 - `RssFeedService` — fetches and parses RSS feeds
 - `SftpService` — handles SFTP connection testing and file delivery
 - `DeployHookTriggerService` — fires deploy hook URLs and records outcomes
+- `CloudflareBuildStatusService` — polls the Cloudflare Pages API for deployment status; requires scoped API token in `config/podcast_post_production.php`
 - `DigestApiService` — queries published digests for the API endpoint
 - `DeliveryStrategyResolver` — resolves delivery strategy by OutputType
 - `DigestRetentionService` — prunes old digest data based on per-list retention_count

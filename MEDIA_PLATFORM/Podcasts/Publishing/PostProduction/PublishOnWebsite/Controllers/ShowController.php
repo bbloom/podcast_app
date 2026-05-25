@@ -1,11 +1,14 @@
 <?php
 
 // =============================================================================
-// ShowController
+// ShowController — PublishOnWebsite
 //
-// Displays the confirmation page for publishing a specific episode on the
-// website. Shows episode details and a link to the episode show page
-// (target="_blank") for a final review before confirming.
+// RSS PIPELINE REORDER CHANGE:
+//   Previously only accepted `ready_to_publish`. Now also accepts
+//   `ready_to_publish_website` (the new pipeline entry status set by
+//   UploadToStorageController after the MP3 is on S3 and R2).
+//   `ready_to_publish` is retained for legacy episodes that entered the
+//   pipeline before the reorder was deployed.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
@@ -23,9 +26,9 @@ class ShowController extends Controller
     /**
      * Display the publish confirmation page for the given episode.
      *
-     * Only available when the episode status is `ready_to_publish`.
-     * A link to the episode show page (target="_blank") is provided so
-     * the user can review all fields before confirming.
+     * Accepts both `ready_to_publish_website` (new pipeline) and
+     * `ready_to_publish` (legacy pipeline) so that episodes created
+     * before and after the reorder both reach this page correctly.
      */
     public function __invoke(PodcastEpisode $podcastEpisode): View|RedirectResponse
     {
@@ -37,7 +40,12 @@ class ShowController extends Controller
         }
 
         // ── Status guard ──────────────────────────────────────────────────────
-        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_publish) {
+        $acceptableStatuses = [
+            PodcastEpisodeStatus::ready_to_publish_website,
+            PodcastEpisodeStatus::ready_to_publish,
+        ];
+
+        if (! in_array($podcastEpisode->status, $acceptableStatuses)) {
             return redirect()
                 ->route('post_production.publish_on_website.index')
                 ->with('error', 'Episode "' . $podcastEpisode->title . '" is not in the expected status for publishing.');

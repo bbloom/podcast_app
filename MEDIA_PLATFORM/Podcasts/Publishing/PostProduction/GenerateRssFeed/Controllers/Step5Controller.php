@@ -1,18 +1,26 @@
 <?php
 
 // =============================================================================
-// Step5Controller
+// Step5Controller — GenerateRssFeed
 //
-// Step 5 of the Generate RSS Feed wizard — promote to live.
+// Step 5 of the Generate RSS Feed wizard — upload to live S3 only.
 //
-// store() copies the XML from the staging S3 bucket to the live S3 bucket
-// and live R2 bucket, deletes the staging file, deletes the local file,
-// advances the episode status to `ready_to_publish`, and clears the wizard
-// session.
+// RSS PIPELINE REORDER CHANGES:
+//   Previously uploaded to both S3 (hard failure) and R2 (soft failure) in
+//   one pass, then advanced to `ready_to_publish` and redirected to the
+//   done page.
 //
-// S3 upload is a hard failure — if it fails the episode status does not advance.
-// R2 upload is a soft failure — logged and shown as a warning, but the pipeline
-// still advances since S3 is the primary store.
+//   Now:
+//   - Uploads to live S3 only (hard failure).
+//   - Deletes the staging S3 file and local file is KEPT for R2 upload.
+//   - Advances status to `ready_to_upload_rss_feed`.
+//   - Stores the live S3 URL in session for the Live Validation page.
+//   - Redirects to Live Validation (not done page).
+//
+//   R2 upload is deferred to LiveValidationController::promoteToR2() after
+//   the user manually validates the live S3 feed and confirms it passes.
+//   R2 is the public-facing CDN polled by Apple, Spotify, etc. — it must
+//   not go live until validation confirms the feed is correct.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
@@ -23,31 +31,27 @@ use App\Http\Controllers\Controller;
 use Aws\S3\S3Client;
 use Aws\S3\Exception\S3Exception;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
-use MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage\R2_rss;
 use MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage\S3_rss;
 
 class Step5Controller extends Controller
 {
-    // ┌────────────────────────────────────────────────────────────────────────┐
-    // │  store()                                                               │
-    // └────────────────────────────────────────────────────────────────────────┘
-
     /**
-     * Promote the RSS feed from staging to live.
+     * Upload the RSS feed to the live S3 bucket and redirect to Live Validation.
      *
      * Steps:
      *   1. Read XML from local storage.
      *   2. Upload to the live S3 RSS bucket (hard failure).
-     *   3. Upload to the live R2 RSS bucket (soft failure).
-     *   4. Delete the staging file from S3.
-     *   5. Delete the local file.
-     *   6. Advance episode status to `ready_to_publish`.
-     *   7. Clear wizard session.
+     *   3. Delete the staging file from the WIP S3 bucket.
+     *   4. Store the live S3 URL and filename in session.
+     *   5. Advance episode status to `ready_to_upload_rss_feed`.
+     *   6. Redirect to Live Validation.
+     *
+     * The local file is NOT deleted here — it is kept for
+     * LiveValidationController::promoteToR2() to use when uploading to R2.
      */
-    public function store(PodcastEpisode $podcastEpisode): RedirectResponse|View
+    public function store(PodcastEpisode $podcastEpisode): RedirectResponse
     {
         // ── Ownership check ───────────────────────────────────────────────────
         if ($podcastEpisode->user_id !== auth()->id()) {
@@ -57,15 +61,22 @@ class Step5Controller extends Controller
         }
 
         // ── Status guard ──────────────────────────────────────────────────────
-        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_generate_rss_feed) {
+        // Accept ready_to_generate_rss_feed (normal flow) and
+        // ready_to_upload_rss_feed (re-run after session expiry or restart).
+        $acceptableStatuses = [
+            PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            PodcastEpisodeStatus::ready_to_upload_rss_feed,
+        ];
+
+        if (! in_array($podcastEpisode->status, $acceptableStatuses)) {
             return redirect()
                 ->route('post_production.generate_rss_feed.index')
-                ->with('error', 'Episode "' . $podcastEpisode->title . '" is not in the expected status for RSS feed generation.');
+                ->with('error', 'Episode "' . $podcastEpisode->title . '" is not in the expected status for RSS feed promotion.');
         }
 
         // ── Retrieve session values ───────────────────────────────────────────
-        $filename    = session('wizard.generate_rss_feed.rss_filename');
-        $stagingKey  = session('wizard.generate_rss_feed.rss_s3_key');
+        $filename   = session('wizard.generate_rss_feed.rss_filename');
+        $stagingKey = session('wizard.generate_rss_feed.rss_s3_key');
 
         if (! $filename || ! $stagingKey) {
             return redirect()
@@ -75,12 +86,11 @@ class Step5Controller extends Controller
 
         // ── Load the show ─────────────────────────────────────────────────────
         $podcastEpisode->load('show');
-        $show     = $podcastEpisode->show;
-        $showSlug = $show->slug;
+        $showSlug  = $podcastEpisode->show->slug;
+        $localPath = storage_path('app/podcasts/rss/' . $filename);
+        $s3Rss     = new S3_rss();
 
         // ── Read XML from local storage ───────────────────────────────────────
-        $localPath = storage_path('app/podcasts/rss/' . $filename);
-
         if (! file_exists($localPath)) {
             return redirect()
                 ->route('post_production.generate_rss_feed.step3', $podcastEpisode)
@@ -99,9 +109,7 @@ class Step5Controller extends Controller
             ],
         ]);
 
-        $s3Rss = new S3_rss();
-
-        // ── Step 1: Upload to live S3 RSS bucket (hard failure) ───────────────
+        // ── Upload to live S3 RSS bucket (hard failure) ───────────────────────
         $liveBucket = $s3Rss->getBucket($showSlug);
         $liveKey    = $s3Rss->getFolderPath() . '/' . $filename;
 
@@ -113,7 +121,7 @@ class Step5Controller extends Controller
                 'ContentType' => 'application/rss+xml',
             ]);
         } catch (S3Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Step5Controller: Live S3 upload failed.', [
+            \Illuminate\Support\Facades\Log::error('Step5Controller (GenerateRssFeed): Live S3 upload failed.', [
                 'episode_id' => $podcastEpisode->id,
                 'bucket'     => $liveBucket,
                 'key'        => $liveKey,
@@ -121,46 +129,11 @@ class Step5Controller extends Controller
             ]);
 
             return redirect()
-                ->route('post_production.generate_rss_feed.step4', $podcastEpisode)
+                ->route('post_production.generate_rss_feed.step3', $podcastEpisode)
                 ->with('error', 'Could not upload RSS feed to the live S3 bucket. Error: ' . $e->getMessage());
         }
 
-        // ── Step 2: Upload to live R2 RSS bucket (soft failure) ───────────────
-        $r2Warning = null;
-        $r2Rss     = new R2_rss();
-
-        try {
-            $r2Endpoint = $r2Rss->get_S3_API_endpoint($showSlug);
-            $r2Bucket   = basename($r2Endpoint);
-
-            $r2Client = new S3Client([
-                'version'     => 'latest',
-                'region'      => 'auto',
-                'endpoint'    => 'https://' . config('podcast_post_production.cloudflare.account_id') . '.r2.cloudflarestorage.com',
-                'credentials' => [
-                    'key'    => config('podcast_post_production.cloudflare.access_key_id'),
-                    'secret' => config('podcast_post_production.cloudflare.secret_access_key'),
-                ],
-                'use_path_style_endpoint' => true,
-            ]);
-
-            $r2Client->putObject([
-                'Bucket'      => $r2Bucket,
-                'Key'         => $filename,
-                'Body'        => $xml,
-                'ContentType' => 'application/rss+xml',
-            ]);
-
-        } catch (\Throwable $e) {
-            $r2Warning = 'R2 upload failed: ' . $e->getMessage();
-
-            \Illuminate\Support\Facades\Log::warning('Step5Controller: R2 upload failed.', [
-                'episode_id' => $podcastEpisode->id,
-                'error'      => $e->getMessage(),
-            ]);
-        }
-
-        // ── Step 3: Delete staging file from S3 ──────────────────────────────
+        // ── Delete staging file from WIP S3 bucket ────────────────────────────
         try {
             $s3Client->deleteObject([
                 'Bucket' => $s3Rss->getWorkInProgressBucket(),
@@ -168,42 +141,30 @@ class Step5Controller extends Controller
             ]);
         } catch (\Throwable $e) {
             // Non-blocking — log and continue.
-            \Illuminate\Support\Facades\Log::warning('Step5Controller: Could not delete staging file from S3.', [
+            \Illuminate\Support\Facades\Log::warning('Step5Controller (GenerateRssFeed): Could not delete staging file from S3.', [
                 'episode_id' => $podcastEpisode->id,
                 'key'        => $stagingKey,
                 'error'      => $e->getMessage(),
             ]);
         }
 
-        // ── Step 4: Delete local file ─────────────────────────────────────────
-        if (file_exists($localPath)) {
-            unlink($localPath);
-        }
+        // ── Build and store the live S3 URL ───────────────────────────────────
+        $region    = config('podcast_post_production.aws.region');
+        $liveS3Url = 'https://' . $liveBucket . '.s3.' . $region . '.amazonaws.com/' . $liveKey;
 
-        // ── Step 5: Advance episode status ────────────────────────────────────
+        session([
+            'wizard.generate_rss_feed.live_s3_url' => $liveS3Url,
+            // Retain rss_filename for LiveValidationController::promoteToR2()
+            // Staging URL and S3 key are no longer relevant — clear them.
+            'wizard.generate_rss_feed.staging_url'  => null,
+            'wizard.generate_rss_feed.rss_s3_key'   => null,
+        ]);
+
+        // ── Advance episode status ────────────────────────────────────────────
         $podcastEpisode->update([
-            'status' => PodcastEpisodeStatus::ready_to_publish,
+            'status' => PodcastEpisodeStatus::ready_to_upload_rss_feed,
         ]);
 
-        // ── Step 6: Clear wizard session ──────────────────────────────────────
-        session()->forget([
-            'wizard.generate_rss_feed.podcast_episode_id',
-            'wizard.generate_rss_feed.staging_url',
-            'wizard.generate_rss_feed.rss_filename',
-            'wizard.generate_rss_feed.rss_s3_key',
-            'wizard.generate_rss_feed.enclosure_manually_verified_' . $podcastEpisode->id,
-        ]);
-
-        // ── Redirect with result ──────────────────────────────────────────────
-        $successMessage = '"' . $podcastEpisode->title . '" RSS feed is live. Episode is ready to publish.';
-
-        if ($r2Warning) {
-            return redirect()
-                ->route('post_production.generate_rss_feed.done', $podcastEpisode)
-                ->with('warning', $r2Warning)
-            ;
-        }
-
-        return redirect()->route('post_production.generate_rss_feed.done', $podcastEpisode);
+        return redirect()->route('post_production.generate_rss_feed.live_validation', $podcastEpisode);
     }
 }

@@ -46,7 +46,7 @@
                 <span class="text-lg">✓</span>
                 <span class="text-sm font-semibold">RSS feed regenerated and uploaded to staging successfully.</span>
             </div>
-            <p class="text-xs text-gray-500 mb-2">Paste this URL into the validators below:</p>
+            <p class="text-xs text-gray-500 mb-2">Staging URL (for internal review only):</p>
             <div class="flex items-center gap-3">
                 <code class="text-xs text-gray-800 bg-gray-100 px-3 py-2 rounded font-mono break-all flex-1">{{ $stagingUrl }}</code>
                 <button onclick="navigator.clipboard.writeText('{{ $stagingUrl }}')"
@@ -56,50 +56,23 @@
             </div>
         </div>
 
-        {{-- External validators --}}
-        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">External Validators</div>
-        <div class="border border-purple-500 rounded-lg px-6 py-4 mb-8">
-            <p class="text-sm text-gray-600 mb-5">
-                Copy the staging URL above, paste it into each validator, and check for errors or warnings.
-            </p>
-            <ul class="space-y-3">
-                <li>
-                    <a href="https://www.castfeedvalidator.com" target="_blank"
-                       class="text-purple-700 hover:underline font-semibold text-sm">
-                        Cast Feed Validator &nearr;
-                    </a>
-                    <span class="ml-2 text-xs text-gray-400">castfeedvalidator.com — primary validator for Apple Podcasts</span>
-                </li>
-                <li>
-                    <a href="https://podba.se/validate/" target="_blank"
-                       class="text-purple-700 hover:underline font-semibold text-sm">
-                        Podbase &nearr;
-                    </a>
-                    <span class="ml-2 text-xs text-gray-400">podba.se — validates against Apple, Spotify, and Google</span>
-                </li>
-                <li>
-                    <a href="https://podcastpage.io/tool/podcast-feed-validator" target="_blank"
-                       class="text-purple-700 hover:underline font-semibold text-sm">
-                        Podcastpage Feed Validator &nearr;
-                    </a>
-                    <span class="ml-2 text-xs text-gray-400">podcastpage.io — useful secondary check</span>
-                </li>
-            </ul>
-        </div>
-
-        {{-- Promote --}}
-        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Promote to Live</div>
-        <div class="border border-purple-500 rounded-lg px-6 py-6 mb-8">
+        {{-- Promote to live S3 --}}
+        {{-- External validators have moved to the Live Validation page, which is
+             reached after this step uploads to live S3. Validation happens against
+             the live S3 URL there, not the staging URL here. --}}
+        <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">Promote to Live S3</div>
+        <div class="border border-purple-500 rounded-lg px-6 py-6">
             <p class="text-sm text-gray-600 mb-6">
-                Once validation passes, promote the feed to live. This replaces the current live RSS feed
-                for <strong>{{ $show->title }}</strong> on both S3 and Cloudflare R2.
+                Upload the feed to the live S3 bucket for <strong>{{ $show->title }}</strong>.
+                You will then validate against the live S3 URL before it is promoted to
+                Cloudflare R2 (the public CDN).
             </p>
             <form method="POST"
                   action="{{ route('post_production.regenerate_rss_feed.promote', $show) }}">
                 @csrf
                 <button type="submit"
                         class="rounded bg-purple-700 px-6 py-2 text-sm font-semibold text-white hover:bg-purple-800 transition-colors">
-                    Validation Passed — Promote to Live &rarr;
+                    Upload to Live S3 &rarr;
                 </button>
             </form>
         </div>

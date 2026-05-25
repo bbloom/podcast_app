@@ -7,23 +7,12 @@
 // and Cloudflare R2, then extracting and persisting the file metadata
 // (duration and filesize) to the episode record.
 //
-// This controller is reached from two paths:
-//   1. The happy path — the MP3 was downloaded from Auphonic automatically
-//      and is already in storage_path('app/podcasts/').
-//   2. The manual upload path — the user uploaded the file from their local
-//      machine via ManualUploadController, which saved it to the same location.
-//
-// In both cases this controller behaves identically — it simply expects the
-// file to exist at storage_path('app/podcasts/{expectedFilename}').
-//
-// Steps performed:
-//   1. Confirm the file exists on the server.
-//   2. Extract duration (itunes_duration) and filesize (itunes_enclosure_length)
-//      using james-heinrich/getid3.
-//   3. Upload the file to the show's AWS S3 production audio bucket.
-//   4. Upload the file to the show's Cloudflare R2 production audio bucket.
-//   5. Persist duration, filesize, and enclosure URL to the episode record.
-//   6. Advance the episode status to `ready_to_generate_rss_feed`.
+// RSS PIPELINE REORDER CHANGE:
+//   Step 5 previously advanced the episode status to `ready_to_generate_rss_feed`.
+//   In the reordered pipeline, publishing on the website and triggering the static
+//   site build must happen before RSS generation. Status now advances to
+//   `ready_to_publish_website` so the dashboard Continue button routes to
+//   PublishOnWebsite instead of GenerateRssFeed.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
@@ -48,21 +37,15 @@ class UploadToStorageController extends Controller
 
     /**
      * Display the upload-to-storage confirmation page.
-     *
-     * Shows the episode details, the expected filename, and whether the file
-     * is present on the server — so the user can confirm before triggering
-     * the upload to S3 and R2.
      */
     public function show(PodcastEpisode $podcastEpisode): View|RedirectResponse
     {
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($podcastEpisode->user_id !== auth()->id()) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'You do not have permission to access that episode.');
         }
 
-        // ── Status guard ──────────────────────────────────────────────────────
         if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_upload_production_file) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
@@ -92,18 +75,16 @@ class UploadToStorageController extends Controller
      *   2. Extract duration and filesize via getID3 (hard failure).
      *   3. Upload to AWS S3 (hard failure — S3 is the primary store).
      *   4. Upload to Cloudflare R2 (soft failure — logged, pipeline continues).
-     *   5. Persist metadata and advance episode status.
+     *   5. Persist metadata and advance episode status to `ready_to_publish_website`.
      */
     public function store(PodcastEpisode $podcastEpisode): RedirectResponse
     {
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($podcastEpisode->user_id !== auth()->id()) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'You do not have permission to access that episode.');
         }
 
-        // ── Status guard ──────────────────────────────────────────────────────
         if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_upload_production_file) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
@@ -137,7 +118,6 @@ class UploadToStorageController extends Controller
         }
 
         // ── Step 3: Upload to AWS S3 ──────────────────────────────────────────
-        // Hard failure — S3 is the primary production audio store.
         $s3Storage = new S3_production_audio();
         $s3Bucket  = $s3Storage->getBucket($showSlug);
         $s3Key     = $s3Storage->getFolderPath() . '/' . $expectedFilename;
@@ -153,9 +133,9 @@ class UploadToStorageController extends Controller
             ]);
 
             $s3Client->putObject([
-                'Bucket'     => $s3Bucket,
-                'Key'        => $s3Key,
-                'SourceFile' => $filePath,
+                'Bucket'      => $s3Bucket,
+                'Key'         => $s3Key,
+                'SourceFile'  => $filePath,
                 'ContentType' => 'audio/mpeg',
             ]);
 
@@ -173,13 +153,12 @@ class UploadToStorageController extends Controller
         }
 
         // ── Step 4: Upload to Cloudflare R2 ──────────────────────────────────
-        // Soft failure — R2 is the CDN/delivery layer. If it fails, the pipeline
-        // still advances so the user is not blocked, but a warning is shown.
         $r2Warning = null;
         $r2Storage = new R2_production_audio();
 
         try {
             $r2Endpoint = $r2Storage->get_S3_API_endpoint($showSlug);
+            $r2Bucket   = basename($r2Endpoint);
 
             $r2Client = new S3Client([
                 'version'     => 'latest',
@@ -191,10 +170,6 @@ class UploadToStorageController extends Controller
                 ],
                 'use_path_style_endpoint' => true,
             ]);
-
-            // Extract the bucket name from the R2 endpoint URL.
-            // The endpoint format is: https://{account_id}.r2.cloudflarestorage.com/{bucket}
-            $r2Bucket = basename($r2Endpoint);
 
             $r2Client->putObject([
                 'Bucket'      => $r2Bucket,
@@ -213,16 +188,18 @@ class UploadToStorageController extends Controller
         }
 
         // ── Build the public S3 enclosure URL ─────────────────────────────────
-        // This is the URL podcast apps will use to stream or download the episode.
-        $region        = config('podcast_post_production.aws.region');
-        $enclosureUrl  = 'https://' . $s3Bucket . '.s3.' . $region . '.amazonaws.com/' . $s3Key;
+        $region       = config('podcast_post_production.aws.region');
+        $enclosureUrl = 'https://' . $s3Bucket . '.s3.' . $region . '.amazonaws.com/' . $s3Key;
 
         // ── Step 5: Persist metadata and advance episode status ───────────────
+        // Status advances to `ready_to_publish_website` (RSS Pipeline Reorder).
+        // The episode must be published on the website and the static site build
+        // must complete before RSS generation begins.
         $podcastEpisode->update([
             'itunes_duration'         => $duration,
             'itunes_enclosure_length' => (string) $filesize,
             'itunes_enclosure_url'    => $enclosureUrl,
-            'status'                  => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status'                  => PodcastEpisodeStatus::ready_to_publish_website,
         ]);
 
         // ── Redirect with appropriate flash message ───────────────────────────
@@ -234,34 +211,23 @@ class UploadToStorageController extends Controller
 
         return redirect()
             ->route('post_production.upload_production_audio.index')
-            ->with('success', 'Production file uploaded to S3 and R2 successfully. "' . $podcastEpisode->title . '" is ready for RSS feed generation.');
+            ->with('success', '"' . $podcastEpisode->title . '" is uploaded and ready to publish on the website.');
     }
 
     // ╔════════════════════════════════════════════════════════════════════════╗
     // ║  PRIVATE METHODS                                                       ║
     // ╚════════════════════════════════════════════════════════════════════════╝
 
-    // ┌────────────────────────────────────────────────────────────────────────┐
-    // │  extractMetadata()                                                     │
-    // └────────────────────────────────────────────────────────────────────────┘
-
     /**
      * Extracts the duration and filesize from an MP3 file using getID3.
      *
-     * Returns an array of [ string $duration, int $filesize ]:
-     *   - $duration is formatted as mm:ss (e.g. "04:35") or h:mm:ss (e.g. "1:04:35")
-     *     with zero-padded minutes when under 10 (e.g. "09:45")
-     *   - $filesize is the raw byte count for itunes_enclosure_length
-     *
-     * @param  string  $filePath  Absolute path to the MP3 file.
      * @return array{string, int}
-     *
-     * @throws \RuntimeException  If getID3 cannot read the file or duration is missing.
+     * @throws \RuntimeException
      */
     private function extractMetadata(string $filePath): array
     {
-        $getID3  = new \getID3();
-        $info    = $getID3->analyze($filePath);
+        $getID3 = new \getID3();
+        $info   = $getID3->analyze($filePath);
 
         if (empty($info['playtime_seconds'])) {
             throw new \RuntimeException('getID3 could not determine the audio duration from the file.');
@@ -270,16 +236,13 @@ class UploadToStorageController extends Controller
         $totalSeconds = (int) round($info['playtime_seconds']);
         $filesize     = $info['filesize'] ?? filesize($filePath);
 
-        // ── Format duration ───────────────────────────────────────────────────
         $hours   = (int) floor($totalSeconds / 3600);
         $minutes = (int) floor(($totalSeconds % 3600) / 60);
         $seconds = $totalSeconds % 60;
 
         if ($hours > 0) {
-            // h:mm:ss — e.g. "1:04:35"
             $duration = $hours . ':' . str_pad($minutes, 2, '0', STR_PAD_LEFT) . ':' . str_pad($seconds, 2, '0', STR_PAD_LEFT);
         } else {
-            // mm:ss — zero-pad minutes when under 10, e.g. "09:45" or "45:30"
             $duration = str_pad($minutes, 2, '0', STR_PAD_LEFT) . ':' . str_pad($seconds, 2, '0', STR_PAD_LEFT);
         }
 

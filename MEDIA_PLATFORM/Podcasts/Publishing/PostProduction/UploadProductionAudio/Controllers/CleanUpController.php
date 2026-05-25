@@ -6,18 +6,16 @@
 // Handles the clean-up step after the production audio file has been uploaded
 // to S3 and R2.
 //
-// Clean-up deletes the MP3 from local server storage (storage_path('app/podcasts/'))
-// and advances the episode status to `ready_to_generate_rss_feed`.
+// STATUS CHANGE (RSS Pipeline Reorder):
+//   The upload controller that runs before this one previously set the episode
+//   status to `ready_to_generate_rss_feed`. In the reordered pipeline it now
+//   sets `ready_to_publish_website`. The guards here are updated to match.
 //
-// A confirmation page is shown before anything is deleted, consistent with
-// the no-modals convention — destructive actions always require a dedicated
-// confirmation page.
+//   *** The UploadProductionAudio S3+R2 upload controller (not shown here)
+//   also needs its status advancement changed from `ready_to_generate_rss_feed`
+//   to `ready_to_publish_website`. Apply the same pattern there. ***
 //
-// Steps performed on confirm:
-//   1. Delete the MP3 from storage_path('app/podcasts/').
-//   2. Advance the episode status to `ready_to_generate_rss_feed`.
-//
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers;
@@ -37,26 +35,18 @@ class CleanUpController extends Controller
     /**
      * Display the clean-up confirmation page.
      *
-     * Shows the episode details, the filename that will be deleted, and
-     * whether the file currently exists on the server.
-     *
-     * Only allowed when the episode is in `ready_to_upload_production_file` status.
-     * The upload to S3 and R2 must have succeeded (and the status advanced) before
-     * clean-up is available. Clean-up is a separate step reached from the index.
+     * Clean-up is only available after the upload to S3 and R2 has succeeded.
+     * At that point the status has advanced to `ready_to_publish_website`.
      */
     public function confirm(PodcastEpisode $podcastEpisode): View|RedirectResponse
     {
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($podcastEpisode->user_id !== auth()->id()) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'You do not have permission to access that episode.');
         }
 
-        // ── Status guard ──────────────────────────────────────────────────────
-        // Clean-up is only available after the upload to S3 and R2 has succeeded.
-        // At that point the status has advanced to `ready_to_generate_rss_feed`.
-        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_generate_rss_feed) {
+        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_publish_website) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'Episode "' . $podcastEpisode->title . '" is not in the expected status for clean-up.');
@@ -81,20 +71,18 @@ class CleanUpController extends Controller
      * Run the clean-up sequence.
      *
      * Deletes the production MP3 from local server storage.
-     * If the file does not exist, that is treated as a soft failure —
-     * the status still advances since the upload to S3 and R2 is already done.
+     * The status remains `ready_to_publish_website` — it was set by the
+     * upload controller and is not changed here.
      */
     public function destroy(PodcastEpisode $podcastEpisode): RedirectResponse
     {
-        // ── Ownership check ───────────────────────────────────────────────────
         if ($podcastEpisode->user_id !== auth()->id()) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'You do not have permission to access that episode.');
         }
 
-        // ── Status guard ──────────────────────────────────────────────────────
-        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_generate_rss_feed) {
+        if ($podcastEpisode->status !== PodcastEpisodeStatus::ready_to_publish_website) {
             return redirect()
                 ->route('post_production.upload_production_audio.index')
                 ->with('error', 'Episode "' . $podcastEpisode->title . '" is not in the expected status for clean-up.');
@@ -103,9 +91,6 @@ class CleanUpController extends Controller
         $expectedFilename = pathinfo($podcastEpisode->raw_input_audio_filename, PATHINFO_FILENAME) . '.mp3';
         $filePath         = storage_path('app/podcasts/' . $expectedFilename);
 
-        // ── Delete the local MP3 ──────────────────────────────────────────────
-        // Soft failure — if the file is missing it was already cleaned up or
-        // never arrived. The status still advances.
         $warning = null;
 
         if (file_exists($filePath)) {
@@ -118,21 +103,18 @@ class CleanUpController extends Controller
                 ]);
             }
         } else {
-            // File not found — log for awareness but do not block the pipeline.
             \Illuminate\Support\Facades\Log::info('CleanUpController (UploadProductionAudio): File not found during clean-up — already removed.', [
                 'episode_id' => $podcastEpisode->id,
                 'file'       => $filePath,
             ]);
         }
 
-        // ── Redirect with appropriate flash message ───────────────────────────
         if ($warning) {
             return redirect()
                 ->route('post_production.upload_production_audio.done', $podcastEpisode)
-                ->with('warning', $warning)
-            ;
+                ->with('warning', $warning);
         }
 
-        return redirect()->route('post_production.upload_production_audio.done', $podcastEpisode);    
+        return redirect()->route('post_production.upload_production_audio.done', $podcastEpisode);
     }
 }

@@ -13,13 +13,8 @@ class IndexControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Create a show and episode belonging to the given user with the given status.
-     */
     private function episodeForUser(User $user, PodcastEpisodeStatus $status): PodcastEpisode
     {
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
@@ -31,9 +26,7 @@ class IndexControllerTest extends TestCase
         ]);
     }
 
-    // -------------------------------------------------------------------------
-    // index
-    // -------------------------------------------------------------------------
+    // ── Authentication ────────────────────────────────────────────────────────
 
     public function test_index_renders_for_authenticated_user(): void
     {
@@ -50,26 +43,52 @@ class IndexControllerTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function test_index_shows_only_ready_to_generate_rss_feed_episodes(): void
-    {
-        $user = User::factory()->create();
+    // ── ready_to_generate_rss_feed (unchanged) ────────────────────────────────
 
-        $ready   = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_generate_rss_feed);
-        $notReady = $this->episodeForUser($user, PodcastEpisodeStatus::ready_for_auphonic);
+    public function test_index_shows_ready_to_generate_rss_feed_episodes(): void
+    {
+        $user  = User::factory()->create();
+        $ready = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_generate_rss_feed);
+
+        $this->actingAs($user)
+            ->get(route('post_production.generate_rss_feed.index'))
+            ->assertOk()
+            ->assertSee($ready->title);
+    }
+
+    // ── rss_validation_failed (new) ───────────────────────────────────────────
+
+    public function test_index_shows_rss_validation_failed_episodes(): void
+    {
+        $user   = User::factory()->create();
+        $failed = $this->episodeForUser($user, PodcastEpisodeStatus::rss_validation_failed);
+
+        $this->actingAs($user)
+            ->get(route('post_production.generate_rss_feed.index'))
+            ->assertOk()
+            ->assertSee($failed->title);
+    }
+
+    public function test_index_shows_both_statuses_together(): void
+    {
+        $user   = User::factory()->create();
+        $ready  = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_generate_rss_feed);
+        $failed = $this->episodeForUser($user, PodcastEpisodeStatus::rss_validation_failed);
 
         $this->actingAs($user)
             ->get(route('post_production.generate_rss_feed.index'))
             ->assertOk()
             ->assertSee($ready->title)
-            ->assertDontSee($notReady->title);
+            ->assertSee($failed->title);
     }
+
+    // ── Ownership isolation ───────────────────────────────────────────────────
 
     public function test_index_shows_only_the_authenticated_users_episodes(): void
     {
-        $user  = User::factory()->create();
-        $other = User::factory()->create();
-
-        $mine   = $this->episodeForUser($user,  PodcastEpisodeStatus::ready_to_generate_rss_feed);
+        $user   = User::factory()->create();
+        $other  = User::factory()->create();
+        $mine   = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_generate_rss_feed);
         $theirs = $this->episodeForUser($other, PodcastEpisodeStatus::ready_to_generate_rss_feed);
 
         $this->actingAs($user)
@@ -77,6 +96,33 @@ class IndexControllerTest extends TestCase
             ->assertOk()
             ->assertSee($mine->title)
             ->assertDontSee($theirs->title);
+    }
+
+    public function test_index_does_not_show_other_users_rss_validation_failed_episodes(): void
+    {
+        $user   = User::factory()->create();
+        $other  = User::factory()->create();
+        $theirs = $this->episodeForUser($other, PodcastEpisodeStatus::rss_validation_failed);
+
+        $this->actingAs($user)
+            ->get(route('post_production.generate_rss_feed.index'))
+            ->assertOk()
+            ->assertDontSee($theirs->title);
+    }
+
+    // ── Irrelevant statuses hidden ────────────────────────────────────────────
+
+    public function test_index_does_not_show_episodes_in_other_statuses(): void
+    {
+        $user      = User::factory()->create();
+        $published = $this->episodeForUser($user, PodcastEpisodeStatus::published);
+        $auphonic  = $this->episodeForUser($user, PodcastEpisodeStatus::ready_for_auphonic);
+
+        $this->actingAs($user)
+            ->get(route('post_production.generate_rss_feed.index'))
+            ->assertOk()
+            ->assertDontSee($published->title)
+            ->assertDontSee($auphonic->title);
     }
 
     public function test_index_shows_empty_state_when_no_episodes_are_ready(): void

@@ -1,20 +1,26 @@
 <?php
 
 // =============================================================================
-// PromoteController
+// PromoteController — RegenerateRssFeed
 //
-// Promotes the staged RSS feed from the podcast-work-in-progress S3 bucket
-// to the live S3 RSS bucket and the live Cloudflare R2 RSS bucket.
+// Promotes the staged RSS feed to the live S3 bucket only.
+//
+// RSS PIPELINE REORDER CHANGES:
+//   Previously uploaded to both S3 (hard) and R2 (soft) in one pass.
+//   Now uploads to S3 only and redirects to Live Validation. R2 upload
+//   is deferred to LiveValidationController::promoteToR2() after the user
+//   manually validates the live S3 feed.
+//
+//   The local file is KEPT for the R2 upload step.
 //
 // Steps:
 //   1. Read XML from local storage.
 //   2. Upload to live S3 RSS bucket (hard failure).
-//   3. Upload to live R2 RSS bucket (soft failure — logged, pipeline continues).
-//   4. Delete the staging file from S3.
-//   5. Delete the local file.
-//   6. Clear the regenerate session keys.
+//   3. Delete the staging file from the WIP S3 bucket.
+//   4. Store the live S3 URL in session.
+//   5. Redirect to Live Validation.
 //
-// No episode status changes occur — this is a show-level operation.
+// No episode status changes — this is a show-level operation.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/RegenerateRssFeed/Controllers/
 // =============================================================================
@@ -26,16 +32,12 @@ use Aws\S3\S3Client;
 use Aws\S3\Exception\S3Exception;
 use Illuminate\Http\RedirectResponse;
 use MediaPlatform\Podcasts\Shows\Models\PodcastShow;
-use MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage\R2_rss;
 use MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage\S3_rss;
 
 class PromoteController extends Controller
 {
     /**
-     * Promote the staged RSS feed to the live S3 and R2 buckets.
-     *
-     * Reads from local storage, uploads to live S3 (hard failure) and R2
-     * (soft failure), deletes staging and local files, clears session.
+     * Upload the staged RSS feed to the live S3 bucket and redirect to Live Validation.
      */
     public function promote(PodcastShow $podcastShow): RedirectResponse
     {
@@ -80,7 +82,7 @@ class PromoteController extends Controller
             ],
         ]);
 
-        // ── Step 1: Upload to live S3 RSS bucket (hard failure) ───────────────
+        // ── Upload to live S3 RSS bucket (hard failure) ───────────────────────
         $liveBucket = $s3Rss->getBucket($showSlug);
         $liveKey    = $s3Rss->getFolderPath() . '/' . $filename;
 
@@ -104,42 +106,7 @@ class PromoteController extends Controller
                 ->with('error', 'Could not upload RSS feed to the live S3 bucket. Error: ' . $e->getMessage());
         }
 
-        // ── Step 2: Upload to live R2 RSS bucket (soft failure) ───────────────
-        $r2Warning = null;
-        $r2Rss     = new R2_rss();
-
-        try {
-            $r2Endpoint = $r2Rss->get_S3_API_endpoint($showSlug);
-            $r2Bucket   = basename($r2Endpoint);
-
-            $r2Client = new S3Client([
-                'version'     => 'latest',
-                'region'      => 'auto',
-                'endpoint'    => 'https://' . config('podcast_post_production.cloudflare.account_id') . '.r2.cloudflarestorage.com',
-                'credentials' => [
-                    'key'    => config('podcast_post_production.cloudflare.access_key_id'),
-                    'secret' => config('podcast_post_production.cloudflare.secret_access_key'),
-                ],
-                'use_path_style_endpoint' => true,
-            ]);
-
-            $r2Client->putObject([
-                'Bucket'      => $r2Bucket,
-                'Key'         => $filename,
-                'Body'        => $xml,
-                'ContentType' => 'application/rss+xml',
-            ]);
-
-        } catch (\Throwable $e) {
-            $r2Warning = 'R2 upload failed: ' . $e->getMessage();
-
-            \Illuminate\Support\Facades\Log::warning('PromoteController (RegenerateRssFeed): R2 upload failed.', [
-                'show_id' => $podcastShow->id,
-                'error'   => $e->getMessage(),
-            ]);
-        }
-
-        // ── Step 3: Delete staging file from S3 ──────────────────────────────
+        // ── Delete staging file from WIP S3 bucket ────────────────────────────
         try {
             $s3Client->deleteObject([
                 'Bucket' => $s3Rss->getWorkInProgressBucket(),
@@ -153,30 +120,17 @@ class PromoteController extends Controller
             ]);
         }
 
-        // ── Step 4: Delete local file ─────────────────────────────────────────
-        if (file_exists($localPath)) {
-            unlink($localPath);
-        }
+        // ── Build and store the live S3 URL ───────────────────────────────────
+        $region    = config('podcast_post_production.aws.region');
+        $liveS3Url = 'https://' . $liveBucket . '.s3.' . $region . '.amazonaws.com/' . $liveKey;
 
-        // ── Step 5: Clear session ─────────────────────────────────────────────
-        session()->forget([
-            'regenerate_rss_feed.staging_url',
-            'regenerate_rss_feed.rss_filename',
-            'regenerate_rss_feed.rss_s3_key',
-            'regenerate_rss_feed.show_id',
+        session([
+            'regenerate_rss_feed.live_s3_url'  => $liveS3Url,
+            // Clear staging keys — no longer relevant after staging deletion.
+            'regenerate_rss_feed.staging_url'   => null,
+            'regenerate_rss_feed.rss_s3_key'    => null,
         ]);
 
-        // ── Redirect with result ──────────────────────────────────────────────
-        $successMessage = 'RSS feed for "' . $podcastShow->title . '" has been regenerated and is now live.';
-
-        if ($r2Warning) {
-            return redirect()
-                ->route('post_production.regenerate_rss_feed.index')
-                ->with('success', $successMessage . ' Warning: ' . $r2Warning);
-        }
-
-        return redirect()
-            ->route('post_production.regenerate_rss_feed.index')
-            ->with('success', $successMessage);
+        return redirect()->route('post_production.regenerate_rss_feed.live_validation', $podcastShow);
     }
 }

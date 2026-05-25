@@ -3,7 +3,10 @@
 // =============================================================================
 // Routes: GenerateRssFeed
 //
-// All routes for the "Generate RSS Feed" post-production pipeline step.
+// RSS PIPELINE REORDER CHANGES:
+//   - Step 4 (staging validation) routes REMOVED entirely.
+//   - Live Validation routes ADDED after Step 5.
+//   - Restart route ADDED for rss_validation_failed and session-expired recovery.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/generate_rss_feed.php
 // Registered in: routes/web.php
@@ -14,10 +17,10 @@ use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step1Controller;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step2Controller;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step3Controller;
-use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step4Controller;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\Step5Controller;
+use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\LiveValidationController;
+use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\RestartController;
 use MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers\DoneController;
-
 
 // Index — list episodes ready for RSS feed generation.
 Route::get('/post-production/generate-rss-feed', IndexController::class)
@@ -29,17 +32,15 @@ Route::get('/post-production/generate-rss-feed/{podcastEpisode}/step1', [Step1Co
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step1');
 
-// Step 1 — confirm and advance to Step 2.
 Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step1', [Step1Controller::class, 'store'])
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step1.store');
 
-// Step 2 — pre-generation validation.
+// Step 2 — pre-generation field validation.
 Route::get('/post-production/generate-rss-feed/{podcastEpisode}/step2', [Step2Controller::class, 'show'])
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step2');
 
-// Step 2 — R2 manual enclosure confirmation form submission.
 Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step2', [Step2Controller::class, 'store'])
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step2.store');
@@ -49,26 +50,33 @@ Route::get('/post-production/generate-rss-feed/{podcastEpisode}/step3', [Step3Co
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step3');
 
-// Step 4 — external validator links page.
-Route::get('/post-production/generate-rss-feed/{podcastEpisode}/step4', [Step4Controller::class, 'show'])
-    ->middleware(['auth'])
-    ->name('post_production.generate_rss_feed.step4');
+// Step 4 REMOVED — staging validation replaced by Live Validation after Step 5.
 
-// Step 4 — "something failed" — redirect to episode show page.
-Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step4/failed', [Step4Controller::class, 'failed'])
-    ->middleware(['auth'])
-    ->name('post_production.generate_rss_feed.step4.failed');
-
-// Step 5 — promote to live S3 + R2, advance status, clear session.
+// Step 5 — promote to live S3 (R2 deferred to Live Validation).
 Route::post('/post-production/generate-rss-feed/{podcastEpisode}/step5', [Step5Controller::class, 'store'])
     ->middleware(['auth'])
     ->name('post_production.generate_rss_feed.step5');
 
+// Live Validation — validate against live S3 URL, then promote to R2.
+Route::get('/post-production/generate-rss-feed/{podcastEpisode}/live-validation', [LiveValidationController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('post_production.generate_rss_feed.live_validation');
 
-    
-// Done — "what next?" page shown after the RSS feed is promoted to live.
-// All RSS work is done; status is ready_to_publish.
+Route::post('/post-production/generate-rss-feed/{podcastEpisode}/live-validation/promote', [LiveValidationController::class, 'promoteToR2'])
+    ->middleware(['auth'])
+    ->name('post_production.generate_rss_feed.live_validation.promote');
+
+Route::post('/post-production/generate-rss-feed/{podcastEpisode}/live-validation/fail', [LiveValidationController::class, 'fail'])
+    ->middleware(['auth'])
+    ->name('post_production.generate_rss_feed.live_validation.fail');
+
+// Restart — resets rss_validation_failed or ready_to_upload_rss_feed back
+// to ready_to_generate_rss_feed and redirects to Step 1.
+Route::get('/post-production/generate-rss-feed/{podcastEpisode}/restart', RestartController::class)
+    ->middleware(['auth'])
+    ->name('post_production.generate_rss_feed.restart');
+
+// Done — shown after R2 promotion succeeds. Episode is now published.
 Route::get('/post-production/generate-rss-feed/{podcastEpisode}/done', DoneController::class)
     ->middleware(['auth'])
-    ->name('post_production.generate_rss_feed.done')
-; 
+    ->name('post_production.generate_rss_feed.done');

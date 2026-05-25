@@ -19,7 +19,7 @@
         <p class="text-lg font-semibold text-green-700">&#10003; Production audio uploaded and clean-up complete.</p>
         <p class="mt-1 text-base text-green-600">
             The MP3 has been uploaded to S3 and R2, and the local file has been deleted.
-            This episode is now ready for RSS feed generation.
+            This episode is now ready to be published on the website.
         </p>
     </div>
 
@@ -53,9 +53,9 @@
     <div class="pb-1 text-xl font-bold text-purple-700 tracking-wider">What would you like to do next?</div>
     <div class="border border-purple-500 rounded-lg px-6 py-6">
         <div class="flex flex-col gap-4">
-            <a href="{{ route('post_production.generate_rss_feed.step1', $episode) }}"
+            <a href="{{ route('post_production.publish_on_website.show', $episode) }}"
                class="flex items-center justify-between px-6 py-4 bg-purple-700 text-white rounded-lg font-semibold text-base hover:bg-purple-800 transition-colors">
-                <span>Continue to Generate RSS Feed</span>
+                <span>Continue to Publish on Website</span>
                 <span class="text-xl">&rarr;</span>
             </a>
             <a href="{{ route('post_production.dashboard') }}"

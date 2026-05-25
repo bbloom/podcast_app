@@ -2,13 +2,15 @@
 
 ## What This Project Is
 
-A Laravel/PHP podcasting application for producing and publishing 5 podcast shows.
-The app handles the full episode lifecycle: planning/creative, audio production,
-RSS feed generation, and website publishing.
+A Laravel/PHP podcasting application:
+
+- for producing and publishing 5 podcast shows. The app handles the full episode lifecycle: planning/creative, audio production, RSS feed generation, and website publishing.
+
+- that aggregates content from YouTube channels, podcasts, and text-based RSS feeds. Content is fetched nightly, summarised using Gemini AI, and delivered to the user via configurable output destinations.
 
 ## Current State
 
-**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, and Post-Production flow fix are complete and pushed.**
+**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, Post-Production flow fix, and RSS Pipeline Reorder are complete and pushed.**
 
 - Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
@@ -17,10 +19,9 @@ RSS feed generation, and website publishing.
 - Planning UI pass: All Planning views restyled — show image in headers, `text-base` body, stacked buttons, breadcrumbs
 - FinalizeScriptWizard refactor: Expanded from 7 to 9 steps — dual-textarea AI proofing, inline intro/outro template create/edit, `script_scratch` column added, dashboard advisory
 - Post-Production flow fix: Four "Done" pages added — completing a pipeline stage now lands on a "Stage Complete — what next?" page with a direct "Continue to [Next Stage] →" button. No re-selection of episode needed.
+- RSS Pipeline Reorder: Website published and static site build confirmed before RSS generation. Four new statuses. Cloudflare build status polling via `CloudflareBuildStatusService`. GenerateRssFeed split into S3-only promote + Live Validation + R2 promote. RegenerateRssFeed updated to match. Dashboard surfaces in-progress and needs-attention episodes.
 
-**Test suite: 1420 passing, 3294 assertions.**
-
-**Next feature:** RSS Pipeline Reorder — see `RSS_PIPELINE_REORDER_PLAN.md`.
+**Test suite: 1536 passing, 3503 assertions.**
 
 ---
 
@@ -64,11 +65,16 @@ MEDIA_PLATFORM/
     │   │   └── PodcastEpisode.php         ← in Models/, table: podcast_episodes_published
     │   └── PostProduction/
     │       ├── AuphonicProcessing/    Controllers/ (incl. DoneController)
+    │       ├── BuildConfirmation/     Controllers/ (ShowController, ConfirmController)
     │       ├── CloudStorage/
     │       ├── Dashboard/
-    │       ├── GenerateRssFeed/       Controllers/ (incl. DoneController)
-    │       ├── PublishOnWebsite/
-    │       ├── RegenerateRssFeed/
+    │       ├── GenerateRssFeed/       Controllers/ (Step1–3, Step4†, Step5,
+    │       │                           LiveValidationController, RestartController,
+    │       │                           DoneController)
+    │       ├── PublishOnWebsite/      Controllers/ (IndexController, ShowController,
+    │       │                           PublishController, PrepareTriggerBuildsController,
+    │       │                           TriggerBuildsController, TriggerBuildsResultController)
+    │       ├── RegenerateRssFeed/     Controllers/ (incl. LiveValidationController)
     │       ├── UploadProductionAudio/ Controllers/ (incl. DoneController)
     │       ├── UploadRecording/       Controllers/ (incl. DoneController)
     │       └── Routes/
@@ -76,6 +82,8 @@ MEDIA_PLATFORM/
         ├── Controllers/ / Models/ / Requests/ / Routes/
         └── PodcastShow.php   ← in Models/
 ```
+
+† `Step4Controller` is intentionally empty and deprecated — retained to explain the gap in step numbering. See its file header.
 
 ---
 
@@ -129,27 +137,35 @@ ready_for_auphonic
 processing_at_auphonic
 auphonic_complete
 ready_to_upload_production_file
-ready_to_generate_rss_feed
-ready_to_upload_rss_feed
-ready_to_publish
+ready_to_publish_website        → set by UploadToStorageController (RSS Pipeline Reorder)
+website_published               → set by PublishController (RSS Pipeline Reorder)
+build_triggered                 → set by TriggerBuildsController in pipeline context
+ready_to_generate_rss_feed      → set by BuildConfirmation / RestartController
+ready_to_upload_rss_feed        → set by Step5Controller: RSS on live S3, awaiting R2 upload
+rss_validation_failed           → set by LiveValidationController::fail(); needs attention
+ready_to_publish                → legacy; retained for backwards compatibility
 published
 not_published                   → set manually
 ```
 `postProductionShowRoute(): string` — maps each status to its pipeline route for dashboard Continue buttons.
 
-**Note:** Two new intermediate statuses will be added as part of the RSS Pipeline Reorder feature. See `RSS_PIPELINE_REORDER_PLAN.md`.
-
 ---
 
-## Post-Production Pipeline — Current State
+## Post-Production Pipeline — Current State (RSS Pipeline Reorder complete)
 
 | Stage | Entry status | Exit status | Done route |
 |---|---|---|---|
 | UploadRecording | `ready_to_upload_recording` | `ready_for_auphonic` | `post_production.upload_recording.done` |
 | AuphonicProcessing | `ready_for_auphonic` | `ready_to_upload_production_file` | `post_production.auphonic_processing.done` |
-| UploadProductionAudio | `ready_to_upload_production_file` | `ready_to_generate_rss_feed` | `post_production.upload_production_audio.done` |
-| GenerateRssFeed | `ready_to_generate_rss_feed` | `ready_to_publish` | `post_production.generate_rss_feed.done` |
-| PublishOnWebsite | `ready_to_publish` | `published` | (trigger builds flow) |
+| UploadProductionAudio | `ready_to_upload_production_file` | `ready_to_publish_website` | `post_production.upload_production_audio.done` |
+| PublishOnWebsite | `ready_to_publish_website` | `website_published` | → TriggerBuilds (via session) |
+| TriggerBuilds | `website_published` | `build_triggered` | → BuildConfirmation |
+| BuildConfirmation | `build_triggered` | `ready_to_generate_rss_feed` | → GenerateRssFeed Step 1 |
+| GenerateRssFeed | `ready_to_generate_rss_feed` | `published` (via `ready_to_upload_rss_feed`) | `post_production.generate_rss_feed.done` |
+
+**GenerateRssFeed internal flow:** Steps 1–3 (review/validate/generate+stage) → Step 5 (upload to live S3, status → `ready_to_upload_rss_feed`) → Live Validation (validate against live S3 URL) → Promote to R2 (status → `published`).
+
+**`rss_validation_failed`:** Set by `LiveValidationController::fail()`. Surfaced on the Post-Production Dashboard and the GenerateRssFeed index. `RestartController` resets the episode to `ready_to_generate_rss_feed` and redirects to Step 1.
 
 ---
 
@@ -198,6 +214,26 @@ post_production.upload_recording.done
 post_production.auphonic_processing.done
 post_production.upload_production_audio.done
 post_production.generate_rss_feed.done
+
+# Post-Production Pipeline (RSS Pipeline Reorder additions)
+post_production.prepare_trigger_builds          ← bridge: episode → TriggerBuilds select
+post_production.trigger_builds.select
+post_production.trigger_builds.trigger
+post_production.trigger_builds.results
+post_production.build_confirmation.show
+post_production.build_confirmation.confirm
+post_production.generate_rss_feed.live_validation
+post_production.generate_rss_feed.live_validation.promote
+post_production.generate_rss_feed.live_validation.fail
+post_production.generate_rss_feed.restart
+post_production.regenerate_rss_feed.live_validation
+post_production.regenerate_rss_feed.live_validation.promote
+
+# Deploy Hooks
+deploy_hooks.index / .create / .store / .show / .edit / .update
+deploy_hooks.delete.confirm / .destroy
+deploy_hooks.trigger.confirm / .execute / .result
+deploy_hooks.build_status                        ← JSON endpoint; polled by Alpine.js
 ```
 
 ---
@@ -253,15 +289,20 @@ views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blad
 - Post-production: Continue/Monitor buttons via `postProductionShowRoute()`; excludes `published` and `not_published`
 - Recently Published: last 5
 
+## Post-Production Dashboard
+
+- `DashboardController` queries for episodes in intermediate pipeline statuses (`website_published`, `build_triggered`, `ready_to_upload_rss_feed`, `rss_validation_failed`) and passes them as `$inProgressEpisodes`
+- Dashboard view shows an **In Progress** section at the top when any such episodes exist, with a status badge and a Continue → link using `postProductionShowRoute()`
+- Pipeline steps are listed in the new order: Upload Recording → Submit to Auphonic → Upload Production Audio → Publish on Website → (Trigger Builds + Build Confirmation, automatic) → Generate RSS Feed
+
 ---
 
 ## Outstanding / Deferred Items
 
 1. **`ready_to_upload_recording`** — marked for removal once entry point changes to `ready_for_publishing`. Deferred.
 2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will change to `ready_for_publishing`. Deferred.
-3. **RSS Pipeline Reorder** — ⬅ **NEXT FEATURE.** Full plan in `RSS_PIPELINE_REORDER_PLAN.md`.
-4. **UI review** — Post-Production and Publishing views not yet reviewed for consistency with Planning UI conventions.
-5. **Guest Interaction feature** — inline guest creation inside wizards. Out of scope for now.
+3. **UI review** — Post-Production and Publishing views not yet reviewed for consistency with Planning UI conventions.
+4. **Guest Interaction feature** — inline guest creation inside wizards. Out of scope for now.
 
 ---
 

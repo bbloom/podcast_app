@@ -1,158 +1,123 @@
 # RSS Pipeline Reorder — Feature Planning Document
 
-> Status: **Planned — not started**
+> Status: **Complete**
 > Lives at: `MEDIA_PLATFORM/Podcasts/RSS_PIPELINE_REORDER_PLAN.md`
+> Test suite after completion: **1536 passing, 3503 assertions**
 
 ---
 
 ## Problem Statement
 
-The current post-production pipeline generates and validates the RSS feed *before* publishing the episode to the website. With a static site (Astro on Cloudflare Pages), the episode webpage URL does not exist until after a site build completes. This means:
+The current post-production pipeline generated and validated the RSS feed *before* publishing the episode to the website. With a static site (Astro on Cloudflare Pages), the episode webpage URL did not exist until after a site build completed. This meant:
 
-1. External RSS validators that check whether the episode's webpage URL resolves (`<link>` element in each `<item>`) will report a false failure during staging validation — the page does not exist yet.
-2. In the past (dynamic site), `website_enabled = true` made the page immediately live. This is no longer the case.
-3. The staging validation step (GenerateRssFeed Step 4) validates against a temporary S3 URL, not the live feed URL. Some validators follow the `<atom:link rel="self">` self-reference, which points to the live URL — meaning staging validation is structurally incomplete.
+1. External RSS validators that check whether the episode's webpage URL resolves (`<link>` element in each `<item>`) reported false failures during staging validation — the page did not exist yet.
+2. In the past (dynamic site), `website_enabled = true` made the page immediately live. This was no longer the case.
+3. The staging validation step (GenerateRssFeed Step 4) validated against a temporary S3 URL, not the live feed URL. Some validators follow the `<atom:link rel="self">` self-reference, which points to the live URL — meaning staging validation was structurally incomplete.
 
-The correct principle: **the RSS feed should go live last**, after everything it references already resolves correctly — audio file (S3/R2) and episode webpage (static site).
-
----
-
-## Guiding Principles
-
-- No racing bots. The RSS feed must not go live until the episode webpage is confirmed live.
-- One external validation step only — against the **live RSS URL**, post-promotion.
-- Validation must be meaningful: audio file URL resolves, episode webpage resolves.
-- The Cloudflare build confirmation is a **manual step** for now (no API polling).
-- Cloudflare does not send build-completion webhooks. Auphonic does; Cloudflare does not.
-- The internal pre-generation field validation (Step 2) is retained — it catches bad episode data before any upload happens.
+The correct principle: **the RSS feed goes live last**, after everything it references already resolves correctly — audio file (S3/R2) and episode webpage (static site).
 
 ---
 
-## Current Pipeline Order
+## Implemented Pipeline Order
 
 ```
-1. Upload Recording           → ready_for_auphonic
-2. Auphonic Processing        → ready_to_upload_production_file
-3. Upload Production Audio    → ready_to_generate_rss_feed
-4. Generate RSS Feed          → ready_to_publish
-   (includes staging validation against temporary S3 URL)
-5. Publish on Website         → published
-   (triggers static site build)
+1. Upload Recording              → ready_for_auphonic                (unchanged)
+2. Auphonic Processing           → ready_to_upload_production_file   (unchanged)
+3. Upload Production Audio       → ready_to_publish_website          (new status)
+4. Publish on Website            → website_published                 (new status)
+5. Trigger Static Site Build     → build_triggered                   (new status)
+6. Build Confirmation            → ready_to_generate_rss_feed        (automated via Cloudflare API)
+7. Generate RSS Feed (Steps 1–3) — generate XML, upload to WIP staging
+8. Promote to Live S3 (Step 5)   → ready_to_upload_rss_feed          (repurposed status)
+9. Live Validation               — validate against live S3 URL
+10. Promote to R2                → published
 ```
 
 ---
 
-## New Pipeline Order
+## New Statuses Added
 
-```
-1. Upload Recording              → ready_for_auphonic            (unchanged)
-2. Auphonic Processing           → ready_to_upload_production_file (unchanged)
-3. Upload Production Audio       → ready_to_publish_website       (NEW status)
-4. Publish on Website            → website_published              (NEW status — internal)
-5. Trigger Static Site Build     → build_triggered                (NEW status — internal, or combined with step 4)
-6. Confirm Build Complete        → ready_to_generate_rss_feed     (manual confirmation step)
-7. Generate RSS Feed             → ready_to_publish               (unchanged name, new position)
-   (no staging validation — promote directly after generation)
-8. Validate Live RSS Feed        → confirmed by user              (NEW step, live URL)
-9. Done → Publish on Website done page                            (existing done page adapted)
-```
+| Enum case | Value | Set by | Meaning |
+|---|---|---|---|
+| `ready_to_publish_website` | `ready-to-publish-website` | `UploadToStorageController` | MP3 on S3+R2; entry for PublishOnWebsite |
+| `website_published` | `website-published` | `PublishController` | Website live; entry for TriggerBuilds |
+| `build_triggered` | `build-triggered` | `TriggerBuildsController` | Deploy hooks fired; entry for BuildConfirmation |
+| `rss_validation_failed` | `rss-validation-failed` | `LiveValidationController::fail()` | Validation failed; needs attention |
 
-### Notes on status changes
-- Two new intermediate statuses are needed: one between Upload Production Audio and Publish on Website, one between Publish on Website and Generate RSS Feed.
-- Exact enum case names to be decided at implementation time — follow existing naming convention (snake_case, descriptive).
-- `ready_to_generate_rss_feed` is retained as the entry point for GenerateRssFeed but now set by the build confirmation step rather than Upload Production Audio cleanup.
-- `ready_to_publish` is retained as the exit status of GenerateRssFeed — unchanged meaning.
+`ready_to_upload_rss_feed` was **repurposed**: previously mapped to the removed Step 4 (staging validation); now means "RSS XML is on the live S3 bucket, awaiting R2 upload after user validates".
+
+`ready_to_publish` is **retained** for backwards compatibility with episodes that entered the pipeline before this reorder was deployed.
 
 ---
 
-## Changes Required
+## Open Questions — Resolved
 
-### PodcastEpisodeStatus enum
-- Add: `ready_to_publish_website` (or similar) — set by UploadProductionAudio cleanup done page continuation
-- Add: `website_published` (or similar) — set by PublishOnWebsite store
-- `postProductionShowRoute()` updated for new statuses
-- Existing cases (`ready_to_generate_rss_feed`, `ready_to_publish`, `published`) unchanged
+1. **Exact new status enum case names** → `ready_to_publish_website`, `website_published`, `build_triggered`, `rss_validation_failed`
 
-### New migration
-- Add two new enum values to `podcast_episodes_published.status` column (or adjust column type if not using DB enum)
+2. **Build Confirmation step location** → Standalone `BuildConfirmation/` feature folder under `PostProduction/` (`ShowController`, `ConfirmController`)
 
-### UploadProductionAudio done page
-- Primary button changes from "Continue to Generate RSS Feed" → "Continue to Publish on Website"
+3. **Live Validation step location** → Inside `GenerateRssFeed/` as `LiveValidationController` (three actions: `show`, `promoteToR2`, `fail`)
 
-### GenerateRssFeed done page
-- Primary button changes from "Continue to Publish on Website" → validation confirmation (or the existing publish on website done flow)
+4. **RegenerateRssFeed live validation** → Separate implementation in `RegenerateRssFeed/LiveValidationController` — same pattern, show-level (no episode status changes, no `fail()` action)
 
-### PublishOnWebsite
-- Controller: after setting `website_enabled = true`, advance status to `website_published`, redirect to trigger builds
-
-### Trigger Builds
-- Existing trigger builds flow is already separate from PublishOnWebsite
-- After triggering, redirect to a new **Build Confirmation** step
-- Build Confirmation: a simple page — "Your Cloudflare build has been triggered. When the build completes (check your Cloudflare dashboard), click Confirm." — sets status to `ready_to_generate_rss_feed`, routes to GenerateRssFeed Step 1
-
-### GenerateRssFeed wizard
-- **Remove** Step 4 (external staging validation) entirely
-- Step 3 (generate + stage) stays, but "stage" step may be simplified or collapsed — the staging bucket upload exists to allow the XML to be read by Step 5 (promote). It is still needed.
-- After Step 5 (promote to live), redirect to new **Live Validation** step instead of done page
-
-### Live Validation step (new)
-- New controller and view in GenerateRssFeed or as a standalone post-production step
-- Presents the **live RSS feed URL** (not staging) for copy/paste into external validators
-- Same three validator links: Cast Feed Validator, Podbase, Podcastpage
-- Two actions: "Validation Passed → Done" and "Something failed → episode show page"
-- This replaces the staging validation step entirely
-
-### RegenerateRssFeed wizard
-- Remove staging validation links from the StageController view
-- After PromoteController succeeds, redirect to a live validation step (same pattern as above)
-
-### Dashboard Continue buttons
-- `postProductionShowRoute()` must map new statuses to correct routes
-- Dashboard post-production section must show correct Continue targets for new statuses
+5. **Cloudflare API polling** → **Implemented** — not deferred. `CloudflareBuildStatusService` polls the Cloudflare Pages REST API using `last_build_id` from `deploy_hooks.last_build_id`. Alpine.js auto-polls every 5 seconds on the BuildConfirmation page. A scoped Cloudflare API token (`Account / Pages / Read`) is stored in `config/podcast_post_production.php`. Manual confirmation fallback is always available. See `CloudflareBuildStatusService` and `BuildStatusController`.
 
 ---
 
-## What Is Not Changing
+## Implementation — What Was Built
 
-- UploadRecording — unchanged
-- AuphonicProcessing — unchanged
-- UploadProductionAudio internals — only the done page continuation target changes
-- GenerateRssFeed internal field validation (Step 2) — retained as-is
-- GenerateRssFeed XML generation and S3/R2 promotion logic — unchanged
-- All existing done pages — UploadRecording, AuphonicProcessing, UploadProductionAudio done pages remain; GenerateRssFeed done page adapts
-- PublishOnWebsite core logic — `website_enabled = true` logic unchanged; status advancement and redirect target change
+### New files
+- `CloudflareBuildStatusResult` — `StaticSiteDeployHooks/Services/`
+- `CloudflareBuildStatusService` — `StaticSiteDeployHooks/Services/`
+- `BuildStatusController` — `StaticSiteDeployHooks/Controllers/` (JSON endpoint for Alpine.js polling)
+- `BuildConfirmation/ShowController` — auto-polls build status; manual fallback
+- `BuildConfirmation/ConfirmController` — advances status to `ready_to_generate_rss_feed`
+- `PrepareTriggerBuildsController` — bridge controller: episode → TriggerBuilds session setup
+- `GenerateRssFeed/LiveValidationController` — `show`, `promoteToR2`, `fail`
+- `GenerateRssFeed/RestartController` — resets `rss_validation_failed` / `ready_to_upload_rss_feed` → `ready_to_generate_rss_feed`, redirects to Step 1
+- `RegenerateRssFeed/LiveValidationController` — `show`, `promoteToR2`
+- `build_confirmation.php` routes
+- `step3.blade.php`, `live_validation.blade.php` (×2), `live_validation.blade.php` (RegenerateRssFeed)
+
+### Modified files
+- `PodcastEpisodeStatus` — four new cases; `postProductionShowRoute()` updated; `label()` updated
+- `UploadToStorageController` — exit status `ready_to_generate_rss_feed` → `ready_to_publish_website`
+- `CleanUpController` — status guard updated to `ready_to_publish_website`
+- `done.blade.php` (UploadProductionAudio) — button → "Continue to Publish on Website"
+- `PublishController` — exit status → `website_published`; stores episode ID in session for TriggerBuilds
+- `TriggerBuildsController` — pipeline context detection; advances episode to `build_triggered`; redirects to BuildConfirmation
+- `PublishOnWebsite/ShowController` — accepts both `ready_to_publish_website` and `ready_to_publish`
+- `PublishOnWebsite/IndexController` — shows both statuses
+- `GenerateRssFeed/Step4Controller` — **deprecated** (emptied, retained for step-numbering clarity)
+- `GenerateRssFeed/Step5Controller` — uploads to live S3 only (R2 deferred to Live Validation)
+- `GenerateRssFeed/IndexController` — also shows `rss_validation_failed` episodes
+- `generate_rss_feed.php` routes — Step 4 removed; live validation + restart added
+- `PromoteController` (RegenerateRssFeed) — uploads to live S3 only; redirects to Live Validation
+- `stage.blade.php` (RegenerateRssFeed) — staging validator links removed; button → "Upload to Live S3"
+- `regenerate_rss_feed.php` routes — live validation added
+- `done.blade.php` (GenerateRssFeed) — updated: episode is fully published at this point; "Continue to Publish on Website" button removed
+- `DashboardController` (Post-Production) — passes `$inProgressEpisodes` to view
+- `dashboard.blade.php` (Post-Production) — In Progress section added; pipeline steps in new order
+- `config/podcast_post_production.php` — `cloudflare.api_token` added
+- `deploy_hooks/show.blade.php` — "Check Build Status" section added for Cloudflare hooks
+
+### S3 / R2 split — GenerateRssFeed and RegenerateRssFeed
+
+Previously Step 5 uploaded to both S3 and R2 in one pass. The split:
+- **Step 5 / PromoteController** — uploads to live S3 only. S3 is used for validation (not public-facing for podcast directories).
+- **Live Validation** — user validates the live S3 URL against external validators. All referenced URLs now resolve (audio file on R2, episode webpage live).
+- **Promote to R2** — R2 is the public-facing CDN polled by Apple Podcasts, Spotify, etc. Promoted only after validation confirms the feed is correct.
 
 ---
 
-## Open Questions (to resolve at implementation time)
+## Implementation Order — Completed
 
-1. **Exact new status enum case names** — propose at start of implementation, confirm before writing migrations.
-2. **Build Confirmation step location** — does it live inside PublishOnWebsite feature folder, or as a new standalone `BuildConfirmation/` feature under PostProduction?
-3. **Live Validation step location** — inside GenerateRssFeed, or a new standalone step?
-4. **RegenerateRssFeed live validation** — should it share the same controller/view as GenerateRssFeed live validation, or be a separate (but identical) implementation?
-5. **Cloudflare API polling** — manual confirmation is the starting point. If the Cloudflare REST API (build status endpoint) is worth implementing later, it can replace the manual step without changing the rest of the pipeline.
-
----
-
-## Implementation Order (proposed)
-
-1. New migration — add two status enum cases
-2. `PodcastEpisodeStatus` enum — add cases, update `postProductionShowRoute()`
-3. UploadProductionAudio done page — update continuation target
-4. PublishOnWebsite controller — update status advancement and redirect
-5. Build Confirmation step — new controller, route, view, test
-6. GenerateRssFeed — remove Step 4, add Live Validation step after Step 5
-7. RegenerateRssFeed — remove staging validator links, add live validation after promote
-8. Dashboard — verify Continue buttons for all new statuses
-9. Full test suite pass
-
----
-
-## Cloudflare Build Completion — For Reference
-
-Cloudflare Pages does **not** send outbound build-completion webhooks. The app cannot be notified automatically. Options if manual confirmation becomes friction:
-
-- **Cloudflare API polling** — after triggering a build, the app stores `last_build_id`. The Cloudflare REST API (`GET /client/v4/accounts/{account_id}/pages/projects/{project_name}/deployments/{deployment_id}`) returns build status. A poll loop or scheduled job could check this and auto-advance the status. Requires storing a Cloudflare API token per show.
-- **Manual confirmation** (current plan) — simple, honest, reliable. Zero API complexity. The build takes 1–3 minutes; the user checks the Cloudflare dashboard and clicks Confirm.
-
-Manual confirmation is the correct starting point.
+1. ✅ New migration — string column; no DB migration needed
+2. ✅ `PodcastEpisodeStatus` enum — new cases, updated routes and labels
+3. ✅ UploadProductionAudio done page — button updated
+4. ✅ PublishOnWebsite controller — status + session
+5. ✅ Build Confirmation step — controllers, routes, view, tests; Cloudflare API polling implemented
+6. ✅ GenerateRssFeed — Step 4 deprecated, Step 5 S3-only, Live Validation added
+7. ✅ RegenerateRssFeed — staging validators removed, Live Validation added
+8. ✅ Dashboard — In Progress section, new pipeline order
+9. ✅ Full test suite pass — 1536 passing, 3503 assertions

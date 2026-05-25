@@ -1,9 +1,5 @@
 <?php
 
-// =============================================================================
-// IndexControllerTest
-// =============================================================================
-
 namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing\PostProduction\PublishOnWebsite;
 
 use App\Models\User;
@@ -17,7 +13,9 @@ class IndexControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeEpisode(User $user, PodcastEpisodeStatus $status = PodcastEpisodeStatus::ready_to_publish): PodcastEpisode
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private function episodeForUser(User $user, PodcastEpisodeStatus $status): PodcastEpisode
     {
         $show = PodcastShow::factory()->create(['user_id' => $user->id]);
 
@@ -28,53 +26,92 @@ class IndexControllerTest extends TestCase
         ]);
     }
 
-    public function test_index_renders_for_authenticated_user(): void
-    {
-        $this->actingAs(User::factory()->create())
-            ->get(route('post_production.publish_on_website.index'))
-            ->assertOk();
-    }
+    // ── Authentication ────────────────────────────────────────────────────────
 
-    public function test_index_redirects_unauthenticated_users(): void
+    public function test_unauthenticated_user_is_redirected_to_login(): void
     {
         $this->get(route('post_production.publish_on_website.index'))
             ->assertRedirect(route('login'));
     }
 
-    public function test_index_shows_only_ready_to_publish_episodes(): void
-    {
-        $user = User::factory()->create();
+    // ── New pipeline status ───────────────────────────────────────────────────
 
-        $ready    = $this->makeEpisode($user, PodcastEpisodeStatus::ready_to_publish);
-        $notReady = $this->makeEpisode($user, PodcastEpisodeStatus::ready_for_auphonic);
+    public function test_shows_episodes_in_ready_to_publish_website_status(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_publish_website);
 
         $this->actingAs($user)
             ->get(route('post_production.publish_on_website.index'))
             ->assertOk()
-            ->assertSee($ready->title)
-            ->assertDontSee($notReady->title);
+            ->assertSee($episode->title);
     }
 
-    public function test_index_shows_only_the_authenticated_users_episodes(): void
-    {
-        $user  = User::factory()->create();
-        $other = User::factory()->create();
+    // ── Legacy pipeline status ────────────────────────────────────────────────
 
-        $mine   = $this->makeEpisode($user,  PodcastEpisodeStatus::ready_to_publish);
-        $theirs = $this->makeEpisode($other, PodcastEpisodeStatus::ready_to_publish);
+    public function test_still_shows_legacy_ready_to_publish_episodes(): void
+    {
+        $user    = User::factory()->create();
+        $episode = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_publish);
 
         $this->actingAs($user)
             ->get(route('post_production.publish_on_website.index'))
             ->assertOk()
-            ->assertSee($mine->title)
+            ->assertSee($episode->title);
+    }
+
+    // ── Both statuses shown together ──────────────────────────────────────────
+
+    public function test_shows_both_new_and_legacy_status_episodes_together(): void
+    {
+        $user     = User::factory()->create();
+        $newPipe  = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_publish_website);
+        $legacy   = $this->episodeForUser($user, PodcastEpisodeStatus::ready_to_publish);
+
+        $this->actingAs($user)
+            ->get(route('post_production.publish_on_website.index'))
+            ->assertOk()
+            ->assertSee($newPipe->title)
+            ->assertSee($legacy->title);
+    }
+
+    // ── Ownership isolation ───────────────────────────────────────────────────
+
+    public function test_does_not_show_another_users_episodes(): void
+    {
+        $user   = User::factory()->create();
+        $other  = User::factory()->create();
+        $theirs = $this->episodeForUser($other, PodcastEpisodeStatus::ready_to_publish_website);
+
+        $this->actingAs($user)
+            ->get(route('post_production.publish_on_website.index'))
+            ->assertOk()
             ->assertDontSee($theirs->title);
     }
 
-    public function test_index_shows_empty_state_when_no_episodes_are_ready(): void
+    // ── Irrelevant statuses hidden ────────────────────────────────────────────
+
+    public function test_does_not_show_episodes_in_other_statuses(): void
     {
-        $this->actingAs(User::factory()->create())
+        $user      = User::factory()->create();
+        $published = $this->episodeForUser($user, PodcastEpisodeStatus::published);
+        $auphonic  = $this->episodeForUser($user, PodcastEpisodeStatus::ready_for_auphonic);
+
+        $this->actingAs($user)
             ->get(route('post_production.publish_on_website.index'))
             ->assertOk()
-            ->assertSee('No episodes are ready to publish.');
+            ->assertDontSee($published->title)
+            ->assertDontSee($auphonic->title);
+    }
+
+    // ── Renders cleanly with no episodes ─────────────────────────────────────
+
+    public function test_renders_for_authenticated_user_with_no_episodes(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('post_production.publish_on_website.index'))
+            ->assertOk();
     }
 }

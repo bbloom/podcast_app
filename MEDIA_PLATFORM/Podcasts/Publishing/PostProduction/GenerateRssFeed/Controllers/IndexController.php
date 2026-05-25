@@ -1,10 +1,15 @@
 <?php
 
 // =============================================================================
-// IndexController
+// IndexController — GenerateRssFeed
 //
-// Lists all episodes with status `ready_to_generate_rss_feed`, allowing the
-// user to select one to proceed with RSS feed generation.
+// RSS PIPELINE REORDER CHANGE:
+//   Now also shows episodes in `rss_validation_failed` status so the user
+//   can re-enter the wizard after fixing the underlying issue. These episodes
+//   are reset to `ready_to_generate_rss_feed` by RestartController when
+//   the user re-enters Step 1.
+//
+//   `withStatus()` accepts a single value, so we use `whereIn` directly.
 //
 // Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
@@ -18,16 +23,24 @@ use MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus;
 class IndexController extends Controller
 {
     /**
-     * Display a list of episodes that are ready for RSS feed generation.
+     * Display episodes ready for RSS feed generation, plus any that have
+     * failed validation and need attention.
      *
-     * Only episodes belonging to the authenticated user with status
-     * `ready_to_generate_rss_feed` are shown, ordered by scheduled date
-     * ascending so the most imminent episode appears first.
+     * Statuses shown:
+     *   `ready_to_generate_rss_feed` — normal entry point.
+     *   `rss_validation_failed`      — previously attempted and marked as
+     *                                  failed; user can re-enter the wizard
+     *                                  after fixing the issue.
+     *
+     * Both are ordered by scheduled date ascending.
      */
     public function __invoke(): \Illuminate\View\View
     {
         $episodes = PodcastEpisode::forUser(auth()->id())
-            ->withStatus(PodcastEpisodeStatus::ready_to_generate_rss_feed)
+            ->whereIn('status', [
+                PodcastEpisodeStatus::ready_to_generate_rss_feed->value,
+                PodcastEpisodeStatus::rss_validation_failed->value,
+            ])
             ->orderByScheduledDate()
             ->with('show')
             ->get();

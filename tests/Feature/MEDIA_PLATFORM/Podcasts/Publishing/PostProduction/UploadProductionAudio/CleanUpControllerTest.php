@@ -22,7 +22,7 @@ class CleanUpControllerTest extends TestCase
     public function test_guest_cannot_view_confirm_page(): void
     {
         $episode = PodcastEpisode::factory()->create([
-            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status' => PodcastEpisodeStatus::ready_to_publish_website,
         ]);
 
         $this->get(route('post_production.upload_production_audio.cleanup_confirm', $episode))
@@ -36,7 +36,7 @@ class CleanUpControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($user)->create([
-            'status'                   => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status'                   => PodcastEpisodeStatus::ready_to_publish_website,
             'raw_input_audio_filename' => 'my-episode.wav',
         ]);
 
@@ -54,7 +54,7 @@ class CleanUpControllerTest extends TestCase
         $user    = User::factory()->create();
         $other   = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($other)->create([
-            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status' => PodcastEpisodeStatus::ready_to_publish_website,
         ]);
 
         $this->actingAs($user)
@@ -90,7 +90,7 @@ class CleanUpControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($user)->create([
-            'status'                   => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status'                   => PodcastEpisodeStatus::ready_to_publish_website,
             'raw_input_audio_filename' => 'my-episode.wav',
         ]);
 
@@ -115,7 +115,7 @@ class CleanUpControllerTest extends TestCase
     {
         $user    = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($user)->create([
-            'status'                   => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status'                   => PodcastEpisodeStatus::ready_to_publish_website,
             'raw_input_audio_filename' => 'my-episode.wav',
         ]);
 
@@ -137,7 +137,7 @@ class CleanUpControllerTest extends TestCase
         $user    = User::factory()->create();
         $other   = User::factory()->create();
         $episode = PodcastEpisode::factory()->for($other)->create([
-            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status' => PodcastEpisodeStatus::ready_to_publish_website,
         ]);
 
         $this->actingAs($user)
@@ -168,7 +168,7 @@ class CleanUpControllerTest extends TestCase
     public function test_guest_cannot_destroy(): void
     {
         $episode = PodcastEpisode::factory()->create([
-            'status' => PodcastEpisodeStatus::ready_to_generate_rss_feed,
+            'status' => PodcastEpisodeStatus::ready_to_publish_website,
         ]);
 
         $this->post(route('post_production.upload_production_audio.cleanup', $episode))
