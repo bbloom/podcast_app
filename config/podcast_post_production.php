@@ -38,10 +38,14 @@ return [
     // R2 is S3-compatible — bucket names are shared with the S3 enum cases.
     // The account_id is required to construct the R2 endpoint URL.
     //
+    // The api_key is used for the Cloudflare REST API (e.g. checking Pages
+    // build status). It is separate from the R2 access credentials above.
+    //
     'cloudflare' => [
         'access_key_id'     => env('PODCAST_POST_PRODUCTION_CLOUDFLARE_ACCESS_KEY_ID'),
         'secret_access_key' => env('PODCAST_POST_PRODUCTION_CLOUDFLARE_SECRET_ACCESS_KEY'),
         'account_id'        => env('PODCAST_POST_PRODUCTION_CLOUDFLARE_ACCOUNT_ID'),
+        'api_key'           => env('PODCAST_POST_PRODUCTION_CLOUDFLARE_API_TOKEN'),
     ],
 
     // -------------------------------------------------------------------------

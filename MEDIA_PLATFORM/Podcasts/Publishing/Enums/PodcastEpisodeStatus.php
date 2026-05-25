@@ -44,6 +44,9 @@ enum PodcastEpisodeStatus: string
     case ready_to_upload_production_file = 'ready-to-upload-production-file';
 
     // Production file is uploaded — episode is ready for RSS feed generation.
+    // NOTE: In the RSS Pipeline Reorder (see RSS_PIPELINE_REORDER_PLAN.md),
+    // this status will be replaced by `ready_to_publish_website`. Retained
+    // here until the full reorder is implemented.
     case ready_to_generate_rss_feed      = 'ready-to-generate-rss-feed';
 
     // RSS feed file is generated and staged — ready for external validation
@@ -52,6 +55,12 @@ enum PodcastEpisodeStatus: string
 
     // RSS feed file is live — episode is ready to be published on the website.
     case ready_to_publish                = 'ready-to-publish';
+
+    // Static site deploy hooks have been triggered — the episode is waiting
+    // for the Cloudflare Pages build to complete before RSS generation begins.
+    // Set by TriggerBuildsController when operating in the pipeline context.
+    // Part of the RSS Pipeline Reorder — see RSS_PIPELINE_REORDER_PLAN.md.
+    case build_triggered                 = 'build-triggered';
 
     // Episode is live on the website and in the RSS feed.
     case published                       = 'published';
@@ -77,6 +86,7 @@ enum PodcastEpisodeStatus: string
             self::ready_to_generate_rss_feed      => 'Ready to Generate RSS Feed',
             self::ready_to_upload_rss_feed        => 'Ready to Upload RSS Feed to S3 & R2',
             self::ready_to_publish                => 'Ready to Publish on Website',
+            self::build_triggered                 => 'Build Triggered — Awaiting Completion',
             self::published                       => 'Published',
             self::not_published                   => 'Not Published',
         };
@@ -84,17 +94,6 @@ enum PodcastEpisodeStatus: string
 
     // =========================================================================
     // Post-production route mapping
-    //
-    // Returns the named route for the episode-specific page at each pipeline
-    // step. Used by the dashboard to render a "Continue" button that takes
-    // the user directly to the relevant wizard page for that episode.
-    //
-    // `processing_at_auphonic` links to the Auphonic show page, which has
-    // the live webhook-polling UI — there is no user action here, but the
-    // page shows current state.
-    //
-    // `published` and `not_published` are excluded from the post-production
-    // dashboard entirely, but a safe fallback prevents a crash if they appear.
     // =========================================================================
 
     /**
@@ -112,6 +111,7 @@ enum PodcastEpisodeStatus: string
             self::ready_to_generate_rss_feed      => 'post_production.generate_rss_feed.step1',
             self::ready_to_upload_rss_feed        => 'post_production.generate_rss_feed.step4',
             self::ready_to_publish                => 'post_production.publish_on_website.show',
+            self::build_triggered                 => 'post_production.build_confirmation.show',
             self::published, self::not_published  => 'podcast_episodes.index',
         };
     }

@@ -14,6 +14,8 @@
 
 use Illuminate\Support\Facades\Route;
 use MediaPlatform\StaticSiteDeployHooks\Controllers\DeployHookController;
+use MediaPlatform\StaticSiteDeployHooks\Controllers\BuildStatusController;
+
 
 Route::get('/deploy-hooks', [DeployHookController::class, 'index'])
     ->middleware(['auth'])
@@ -58,3 +60,15 @@ Route::post('/deploy-hooks/{deploy_hook}/trigger', [DeployHookController::class,
 Route::get('/deploy-hooks/{deploy_hook}/trigger/result', [DeployHookController::class, 'triggerResult'])
     ->middleware(['auth'])
     ->name('deploy_hooks.trigger.result');
+
+
+    
+// ── Build Status (Cloudflare Pages) ──────────────────────────────────────────
+//
+// JSON endpoint polled by Alpine.js on the deploy hook show page and the
+// BuildConfirmation pipeline step. Returns the current deployment status
+// for the hook's last triggered build.
+
+Route::get('/deploy-hooks/{deploy_hook}/build-status', BuildStatusController::class)
+    ->middleware(['auth'])
+    ->name('deploy_hooks.build_status');    

@@ -69,6 +69,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/R
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/upload_production_audio.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/generate_rss_feed.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/publish_on_website.php';
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/build_confirmation.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Publishing/PostProduction/Routes/regenerate_rss_feed.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/API/v1/Routes/web.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/StaticSiteDeployHooks/Routes/deploy_hooks.php';
