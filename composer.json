@@ -35,7 +35,9 @@
             "MediaPlatform\\": "MEDIA_PLATFORM/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
-            "Gemini\\Laravel\\": "Gemini/"
+            "Gemini\\Laravel\\": "GEMINI/",
+            "InboundEmail\\": "INBOUND_EMAIL/",
+            "InboundEmailProviders\\": "INBOUND_EMAIL_PROVIDERS/"
         }
     },
     "autoload-dev": {
