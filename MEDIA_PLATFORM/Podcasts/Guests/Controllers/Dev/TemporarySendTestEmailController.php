@@ -21,6 +21,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use MediaPlatform\Podcasts\Guests\Models\PodcastGuest;
+use Symfony\Component\Mailer\Exception\TransportException;
 use MediaPlatform\Podcasts\Guests\Services\GuestEmailService;
 
 class TemporarySendTestEmailController extends Controller
@@ -51,7 +52,15 @@ class TemporarySendTestEmailController extends Controller
         ]);
 
         $guest = PodcastGuest::findOrFail($validated['podcast_guest_id']);
-        $email = $service->send($guest, $validated['subject'], $validated['body']);
+
+        try {
+            $email = $service->send($guest, $validated['subject'], $validated['body']);
+        } catch (TransportException $e) {
+            return redirect()
+                ->route('dev.guest-email-test.create')
+                ->withInput()
+                ->with('error', 'Postmark error: ' . $e->getMessage());
+        }
 
         return redirect()
             ->route('dev.guest-email-test.create')

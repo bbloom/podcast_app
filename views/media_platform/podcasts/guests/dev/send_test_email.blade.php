@@ -12,6 +12,12 @@
             Temporary dev scaffolding. Remove after Phase 6 proof-of-life is complete.
         </p>
 
+        @session('error')
+            <div class="bg-red-50 border border-red-200 text-red-800 rounded px-4 py-3 mb-6 text-sm font-mono break-all">
+                {{ $value }}
+            </div>
+        @endsession
+
         @session('success')
             <div class="bg-green-50 border border-green-200 text-green-800 rounded px-4 py-3 mb-6 text-sm font-mono break-all">
                 {{ $value }}
