@@ -18,6 +18,11 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'postmark_webhook' => [
+        'user'     => env('POSTMARK_WEBHOOK_USER'),
+        'password' => env('POSTMARK_WEBHOOK_PASSWORD'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

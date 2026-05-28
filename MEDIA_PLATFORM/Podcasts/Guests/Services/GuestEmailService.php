@@ -20,6 +20,7 @@ namespace MediaPlatform\Podcasts\Guests\Services;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use InboundEmail\ValueObjects\ParsedInboundEmail;
 use MediaPlatform\Podcasts\Guests\Enums\GuestEmailDirection;
 use MediaPlatform\Podcasts\Guests\Mail\GuestEmailMailable;
 use MediaPlatform\Podcasts\Guests\Models\GuestEmail;
@@ -34,6 +35,50 @@ class GuestEmailService
      * @param  string        $subject    Email subject line.
      * @param  string        $body       Email body text.
      * @param  string|null   $inReplyTo  Message-ID of the prior email in this thread,
+     *                                   without angle brackets. Null for first contact.
+     * @return GuestEmail                The persisted outbound record.
+     */
+    /**
+     * Receive an inbound reply from a guest and store it in guest_emails.
+     *
+     * Matches the sender against podcast_guests.email_address to identify the guest.
+     * Matches in_reply_to against a prior outbound message_id for thread correlation.
+     * Returns the stored GuestEmail, or null if the sender is not a known guest.
+     *
+     * Message-ID and In-Reply-To values arrive from PostmarkProvider already
+     * stripped of angle brackets — stored as-is for consistent DB matching.
+     */
+    public function receive(ParsedInboundEmail $inbound): ?GuestEmail
+    {
+        $guest = PodcastGuest::where('email_address', $inbound->fromAddress())->first();
+
+        if (! $guest) {
+            // Unknown sender — not a known guest. Silently discard.
+            // See INBOUND_EMAILS_FEATURES.md §1 for deferred handling options.
+            return null;
+        }
+
+        return GuestEmail::create([
+            'podcast_guest_id' => $guest->id,
+            'direction'        => GuestEmailDirection::Inbound,
+            'subject'          => $inbound->subject(),
+            'body_stripped'    => $inbound->strippedReplyBody(),
+            'body_full'        => $inbound->fullTextBody(),
+            'message_id'       => $inbound->messageId(),
+            'in_reply_to'      => $inbound->inReplyTo() ?: null,
+            'sent_at'          => null,
+            'received_at'      => $inbound->receivedAt(),
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+
+    /**
+     * Send an email to a guest and store the outbound record in guest_emails.
+     *
+     * @param  string        $subject    Email subject line.
+     * @param  string        $body       Email body text.
+     * @param  string|null   $inReplyTo  message_id of the prior email in this thread,
      *                                   without angle brackets. Null for first contact.
      * @return GuestEmail                The persisted outbound record.
      */

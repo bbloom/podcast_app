@@ -68,6 +68,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->validateCsrfTokens(except: [
             '/post-production/auphonic/webhook',
+            '/webhooks/postmark/inbound',
+            '/webhooks/postmark/bounce',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

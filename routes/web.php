@@ -51,6 +51,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Links/Routes/podcast_links.
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/podcast_guests.php';
 // TEMPORARY — remove after Phase 6 proof-of-life (Phase 7 clean-up)
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/guest_email_dev.php';
+require dirname(__DIR__) . '/INBOUND_EMAIL_PROVIDERS/Postmark/Routes/postmark_webhooks.php';
 
 
 // Podcast Episodes Planning
