@@ -6,7 +6,7 @@
 // Stores podcast episode metadata. An episode maps to an RSS <item> element.
 // Each episode belongs to a podcast show and a user.
 //
-// Path: database/migrations/media_platform/podcast_studio/management/
+// Path: database/migrations/media_platform/podcasts/
 // Register this path in AppServiceProvider::boot() via loadMigrationsFrom().
 // =============================================================================
 

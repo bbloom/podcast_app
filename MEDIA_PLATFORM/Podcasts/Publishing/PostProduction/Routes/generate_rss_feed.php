@@ -8,7 +8,7 @@
 //   - Live Validation routes ADDED after Step 5.
 //   - Restart route ADDED for rss_validation_failed and session-expired recovery.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/generate_rss_feed.php
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/Routes/generate_rss_feed.php
 // Registered in: routes/web.php
 // =============================================================================
 

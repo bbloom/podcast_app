@@ -16,7 +16,7 @@
 //              advances the status to `processing_at_auphonic`, and renders
 //              the processing waiting view.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

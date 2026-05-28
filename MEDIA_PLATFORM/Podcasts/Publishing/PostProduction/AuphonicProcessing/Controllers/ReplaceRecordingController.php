@@ -13,7 +13,7 @@
 // identified when there are multiple files. The user handles S3 clean-up
 // manually via the AWS console link provided on the show page.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

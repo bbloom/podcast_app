@@ -1,4 +1,4 @@
-<x-layouts.app title="Podcast Studio">
+<x-layouts.app title="Podcasts">
 <div class="max-w-7xl mx-auto px-4 py-8">
 
     {{-- ══════════════════════════════════════════════════════════════════════ --}}

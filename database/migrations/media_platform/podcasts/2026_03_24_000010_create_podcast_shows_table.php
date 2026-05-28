@@ -6,7 +6,7 @@
 // Stores podcast show metadata. A show maps to the RSS <channel> element.
 // Each show belongs to a user and has one RSS feed.
 //
-// Path: database/migrations/media_platform/podcast_studio/management/
+// Path: database/migrations/media_platform/podcasts/
 // Register this path in AppServiceProvider::boot() via loadMigrationsFrom().
 // =============================================================================
 

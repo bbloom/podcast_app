@@ -20,8 +20,7 @@
         <div class="rounded-lg border border-purple-200 bg-purple-50 px-6 py-10 text-center text-gray-500">
             <p class="text-lg font-medium text-purple-700">No episodes are ready for Auphonic.</p>
             <p class="mt-2 text-sm">
-                To submit an episode for processing, open it in the Podcast Studio,
-                set its status to <span class="font-semibold">Ready for Auphonic</span>, and return here.
+                To submit an episode for Auphonic's processing, set its status to <span class="font-semibold">Ready for Auphonic</span>, and return here.
             </p>
         </div>
 

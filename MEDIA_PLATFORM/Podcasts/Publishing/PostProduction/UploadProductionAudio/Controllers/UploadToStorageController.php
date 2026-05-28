@@ -14,7 +14,7 @@
 //   `ready_to_publish_website` so the dashboard Continue button routes to
 //   PublishOnWebsite instead of GenerateRssFeed.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers;

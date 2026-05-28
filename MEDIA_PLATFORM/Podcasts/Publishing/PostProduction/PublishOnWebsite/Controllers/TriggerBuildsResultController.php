@@ -9,7 +9,7 @@
 // after firing the selected hooks. The session is cleared after display
 // so the results page cannot be revisited stale.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;

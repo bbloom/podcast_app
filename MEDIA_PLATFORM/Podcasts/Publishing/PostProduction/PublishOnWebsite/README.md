@@ -45,7 +45,7 @@ to `published`, and redirects to the index with a success flash message.
 
 ### Routes
 
-Defined in `MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/publish_on_website.php`,
+Defined in `MEDIA_PLATFORM/Podcasts/PostProduction/Routes/publish_on_website.php`,
 required by `routes/web.php`. Accessible from the **Pipeline** section of
 the Post-Production Dashboard.
 

@@ -16,7 +16,7 @@
 // the UploadToStorageController handles the rest of the pipeline identically
 // regardless of how the file arrived on the server.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers;

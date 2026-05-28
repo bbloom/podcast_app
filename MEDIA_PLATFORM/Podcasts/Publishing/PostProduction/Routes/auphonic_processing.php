@@ -7,7 +7,7 @@
 //
 // The webhook route is excluded from CSRF verification in bootstrap/app.php.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Routes/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Routes/
 // =============================================================================
 
 use Illuminate\Support\Facades\Route;

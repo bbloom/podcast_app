@@ -15,7 +15,7 @@
 //
 // Non-admin users see the Yes/No decision buttons only.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers;

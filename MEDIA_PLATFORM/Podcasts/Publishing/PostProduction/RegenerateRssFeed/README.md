@@ -74,7 +74,7 @@ staging URL before promoting to live.
 
 ### Routes
 
-Defined in `MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/regenerate_rss_feed.php`,
+Defined in `MEDIA_PLATFORM/Podcasts/PostProduction/Routes/regenerate_rss_feed.php`,
 required by `routes/web.php`. Accessible from the **Maintenance** section of
 the Post-Production Dashboard.
 

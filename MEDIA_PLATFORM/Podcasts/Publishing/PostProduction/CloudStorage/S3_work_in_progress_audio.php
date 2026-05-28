@@ -7,7 +7,7 @@
 // podcast work-in-progress S3 bucket. All raw WAV recordings land here,
 // organised by show folder.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/CloudStorage/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/CloudStorage/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\CloudStorage;

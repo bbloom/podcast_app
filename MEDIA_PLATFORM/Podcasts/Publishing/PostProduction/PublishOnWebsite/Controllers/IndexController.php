@@ -11,7 +11,7 @@
 //   `withStatus()` accepts a single value, so we use `whereIn` directly
 //   when querying for multiple acceptable statuses.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;

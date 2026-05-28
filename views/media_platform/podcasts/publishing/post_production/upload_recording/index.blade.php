@@ -25,7 +25,7 @@
         {{-- Empty state --}}
         <div class="rounded-lg border border-purple-200 bg-purple-50 px-6 py-10 text-center text-gray-500">
             <p class="text-lg font-medium text-purple-700">No episodes are ready for upload.</p>
-            <p class="mt-2 text-sm">To upload a recording, open the episode in the Podcast Studio, set its status to
+            <p class="mt-2 text-sm">To upload a recording, set an episode's status to
                 <span class="font-semibold">Ready to Upload Recording</span>, and return here.
             </p>
         </div>

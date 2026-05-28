@@ -22,7 +22,7 @@
 //   R2 is the public-facing CDN polled by Apple, Spotify, etc. — it must
 //   not go live until validation confirms the feed is correct.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

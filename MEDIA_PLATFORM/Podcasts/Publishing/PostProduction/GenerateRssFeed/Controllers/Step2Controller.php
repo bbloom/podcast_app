@@ -15,7 +15,7 @@
 //   - Sets a session flag so the validator skips R2 on the next pass.
 //   - Redirects back to show() which re-runs the validator.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

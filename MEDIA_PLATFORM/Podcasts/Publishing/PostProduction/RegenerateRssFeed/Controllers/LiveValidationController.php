@@ -21,7 +21,7 @@
 // No "fail" action — this is a show-level operation with no episode status
 // to set. If the feed is wrong, the user simply regenerates from the index.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/RegenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/RegenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\RegenerateRssFeed\Controllers;

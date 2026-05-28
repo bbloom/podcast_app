@@ -11,7 +11,7 @@
 //
 //   `withStatus()` accepts a single value, so we use `whereIn` directly.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

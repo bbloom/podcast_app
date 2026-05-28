@@ -13,7 +13,7 @@
 //   If not found (manual trigger from show page), falls back to the existing
 //   results page flow.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;

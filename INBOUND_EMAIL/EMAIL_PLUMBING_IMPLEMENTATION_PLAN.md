@@ -269,7 +269,7 @@ Once all eight steps pass, the plumbing is proven.
 To be completed after the plumbing is proven end-to-end. Do not begin until Phase 7 is done and the test suite is green.
 
 1. **Remove future-development placeholders** — find and delete any folders, dashboard items, or UI elements that were placeholders for deferred features
-2. **PodcastStudio rename sweep** — search for `PodcastStudio`, `podcast_studio`, `podcast-studio`, `Podcast Studio` and any other permutations throughout the codebase (comments, URLs, config values) and update to current naming
+2. **Podcasts rename sweep** — search for `Podcasts`, `podcasts`, `podcast-studio`, `Podcast Studio` and any other permutations throughout the codebase (comments, URLs, config values) and update to current naming
 3. **Composer dependency audit** — update all package version constraints in `composer.json` to latest, then run `composer update` and confirm the test suite passes clean
 
 ---

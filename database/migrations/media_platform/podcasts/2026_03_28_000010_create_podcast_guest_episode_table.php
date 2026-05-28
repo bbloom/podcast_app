@@ -9,7 +9,7 @@
 //
 // No surrogate id — composite primary key prevents duplicate attachments.
 //
-// Path: database/migrations/media_platform/podcast_studio/management/
+// Path: database/migrations/media_platform/podcasts/
 // Register this path in AppServiceProvider::boot() via loadMigrationsFrom().
 // =============================================================================
 

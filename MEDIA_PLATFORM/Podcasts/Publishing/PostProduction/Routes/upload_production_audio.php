@@ -9,7 +9,7 @@
 // Route name prefix: post_production.upload_production_audio
 //
 // Require this file from routes/web.php:
-//   require __DIR__ . '/../MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Routes/upload_production_audio.php';
+//   require __DIR__ . '/../MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/Routes/upload_production_audio.php';
 // =============================================================================
 
 use Illuminate\Support\Facades\Route;

@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Log;
 //
 // Returns a RssFeedValidatorResult value object.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Services/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Services/
 // =============================================================================
 
 class RssFeedValidatorService

@@ -6,7 +6,7 @@
 // Lists all episodes with status `ready_for_auphonic`, allowing the user to
 // select one to submit to Auphonic for audio processing.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

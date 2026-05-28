@@ -11,7 +11,7 @@ This feature is the third step in the post-production pipeline, following **Auph
 ## Location
 
 ```
-MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/
+MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/
 ├── Controllers/
 │   ├── IndexController.php
 │   ├── ShowController.php
@@ -22,9 +22,9 @@ MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/
     └── upload_production_audio.php
 ```
 
-**Views:** `views/media_platform/podcast_studio/post_production/upload_production_audio/`
+**Views:** `views/media_platform/podcasts/post_production/upload_production_audio/`
 
-**Tests:** `tests/Feature/MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/`
+**Tests:** `tests/Feature/MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/`
 
 ---
 

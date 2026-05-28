@@ -10,7 +10,7 @@
 //   `ready_to_publish` is retained for legacy episodes that entered the
 //   pipeline before the reorder was deployed.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;

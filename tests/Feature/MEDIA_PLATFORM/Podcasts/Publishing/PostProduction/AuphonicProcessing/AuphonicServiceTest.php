@@ -10,7 +10,7 @@
 // directory is created by the service itself, so no test setup is needed.
 // Files written during tests are cleaned up in tearDown().
 //
-// Path: tests/Feature/MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/
+// Path: tests/Feature/MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/
 // =============================================================================
 
 namespace Tests\Feature\MEDIA_PLATFORM\Podcasts\Publishing\PostProduction\AuphonicProcessing;

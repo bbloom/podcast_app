@@ -26,7 +26,7 @@
 // both confirm() and destroy() — constructor injection ensures the mock
 // binds correctly in tests.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

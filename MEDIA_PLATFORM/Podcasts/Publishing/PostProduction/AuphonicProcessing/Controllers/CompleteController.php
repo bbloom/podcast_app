@@ -14,7 +14,7 @@
 //   - Re-submit to Auphonic (link to ResubmitController::confirm(), which
 //     deletes the existing production and starts a fresh one)
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

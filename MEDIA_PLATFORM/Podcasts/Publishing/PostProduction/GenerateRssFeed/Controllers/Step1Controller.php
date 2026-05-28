@@ -14,7 +14,7 @@
 //
 // No fields are edited here. No status change occurs at this step.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

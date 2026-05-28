@@ -6,7 +6,7 @@
 // Lists all podcast shows belonging to the authenticated user so they can
 // select one to regenerate the RSS feed for.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/RegenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/RegenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\RegenerateRssFeed\Controllers;

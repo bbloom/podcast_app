@@ -35,7 +35,7 @@
 // DO NOT RESTORE THIS CONTROLLER without also restoring the routes in
 // generate_rss_feed.php and reverting the RSS Pipeline Reorder changes.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

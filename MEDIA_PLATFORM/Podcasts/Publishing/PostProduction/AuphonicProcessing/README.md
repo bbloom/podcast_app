@@ -128,7 +128,7 @@ The webhook route must be defined **before** the `{podcastEpisode}` wildcard rou
 
 ## Views
 
-All views are in `views/media_platform/podcast_studio/post_production/auphonic_processing/`.
+All views are in `views/media_platform/podcasts/post_production/auphonic_processing/`.
 
 | File | Rendered by |
 |---|---|
@@ -143,7 +143,7 @@ All views are in `views/media_platform/podcast_studio/post_production/auphonic_p
 
 ## Tests
 
-All test files are in `tests/Feature/MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/`.
+All test files are in `tests/Feature/MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/`.
 
 | File | Coverage |
 |---|---|

@@ -14,7 +14,7 @@
 //     RSS generation regardless of publish date, so all episodes now proceed
 //     to TriggerBuilds immediately after publishing.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/PublishOnWebsite/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/PublishOnWebsite/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\PublishOnWebsite\Controllers;

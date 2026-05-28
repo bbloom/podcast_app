@@ -138,7 +138,7 @@ Bucket and endpoint mappings are defined in:
 
 ### Routes
 
-Defined in `MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/generate_rss_feed.php`,
+Defined in `MEDIA_PLATFORM/Podcasts/PostProduction/Routes/generate_rss_feed.php`,
 required by `routes/web.php`.
 
 | Method | URI | Name |

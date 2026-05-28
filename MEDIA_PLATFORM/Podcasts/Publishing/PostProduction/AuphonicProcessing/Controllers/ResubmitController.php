@@ -25,7 +25,7 @@
 // and decided the MP3 is not acceptable) or from the `processing_at_auphonic`
 // screen (Auphonic returned an error via webhook).
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Controllers;

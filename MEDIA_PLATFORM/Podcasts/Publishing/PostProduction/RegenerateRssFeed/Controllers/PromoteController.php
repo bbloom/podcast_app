@@ -22,7 +22,7 @@
 //
 // No episode status changes — this is a show-level operation.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/RegenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/RegenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\RegenerateRssFeed\Controllers;

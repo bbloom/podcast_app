@@ -12,7 +12,7 @@ A Laravel/PHP podcasting application:
 
 **Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, Post-Production flow fix, RSS Pipeline Reorder, and guest email Phase 0 + infrastructure are complete and pushed.**
 
-- Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
+- Phase 1: Structural reshuffle — `Podcasts/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
 - Phase 3: Planning module — all wizards, field editors, CRUD, attach/detach, PrepareForPublishingWizard
 - Post-Phase-3: Dashboard rewritten, status enums moved, RecordingView built, UI pass

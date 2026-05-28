@@ -136,6 +136,6 @@ During local development, set `AllowedOrigins` to `["*"]`. Lock it down to your 
 
 ## Tests
 
-`tests/Feature/MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadRecording/UploadRecordingControllerTest.php`
+`tests/Feature/MEDIA_PLATFORM/Podcasts/PostProduction/UploadRecording/UploadRecordingControllerTest.php`
 
 18 tests covering: index listing, status and ownership filtering, show page access, presign JSON response, session key storage, filename validation, S3 failure handling, status advancement, filename persistence, session key cleanup, missing session key guard, and wrong-owner protection on all four endpoints.

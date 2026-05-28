@@ -9,9 +9,7 @@
 // All values are read from .env — never call env() outside of config files,
 // as doing so breaks Laravel's config caching (php artisan config:cache).
 //
-// Cloud storage bucket names and Auphonic preset UUIDs are NOT stored here —
-// they live in PHP Enums under:
-//   MEDIA_PLATFORM/PodcastStudio/PostProduction/Enums/
+// Cloud storage bucket names and Auphonic preset UUIDs are NOT stored here.
 //
 // =============================================================================
 

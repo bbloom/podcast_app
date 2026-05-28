@@ -7,7 +7,7 @@
 //   Live Validation routes added after PromoteController. PromoteController
 //   now redirects to live_validation instead of the index.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/Routes/regenerate_rss_feed.php
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/Routes/regenerate_rss_feed.php
 // Registered in: routes/web.php
 // =============================================================================
 

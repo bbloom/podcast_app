@@ -15,7 +15,7 @@
 // Authentication: Bearer token from config('podcast_post_production.auphonic.api_key')
 // HTTP client: Laravel's built-in Http facade (wraps Guzzle)
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/AuphonicProcessing/Services/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/AuphonicProcessing/Services/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\AuphonicProcessing\Services;

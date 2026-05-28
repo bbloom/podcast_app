@@ -22,7 +22,7 @@
 //   3. Reset status to `ready_to_generate_rss_feed`.
 //   4. Redirect to Step 1 so the user can re-enter the wizard normally.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/GenerateRssFeed/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/GenerateRssFeed/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\GenerateRssFeed\Controllers;

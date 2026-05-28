@@ -6,7 +6,7 @@
 // Lists all episodes with status `ready_to_upload_production_file`, allowing
 // the user to select one to proceed with the production audio upload pipeline.
 //
-// Path: MEDIA_PLATFORM/PodcastStudio/PostProduction/UploadProductionAudio/Controllers/
+// Path: MEDIA_PLATFORM/Podcasts/PostProduction/UploadProductionAudio/Controllers/
 // =============================================================================
 
 namespace MediaPlatform\Podcasts\Publishing\PostProduction\UploadProductionAudio\Controllers;
