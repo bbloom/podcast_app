@@ -43,8 +43,8 @@ assertion can substitute for that.
 - The presence of PHP extensions the app depends on (`pdo`, `simplexml`,
   `mbstring`, `pcre`)
 - That specific language features used heavily in this codebase are
-  available (`match` expressions, named arguments, fibers are NOT used,
-  but `readonly` properties and `first-class callables` are noted)
+  available (`match` expressions, named arguments, nullsafe operator,
+  arrow functions, `str_contains`, `str_starts_with`)
 - The Laravel version range the app was developed and tested against
 
 These are canary checks — they fire early and clearly if an environment
@@ -94,8 +94,8 @@ class. The test database is SQLite in-memory (configured in
 ## Mocking strategy
 
 ### LLM calls
-`LlmService` is mocked via Pest's `mock()` helper and bound into the container
-with `app()->instance()` in `beforeEach()`. This means:
+`LlmService` is mocked via Mockery and bound into the container with
+`app()->instance()` in `setUp()`. This means:
 - No HTTP calls leave the process
 - No database language-model records are needed in the seeded test data
 - Each test explicitly declares what the LLM would return, keeping tests
@@ -119,18 +119,38 @@ When adding a new processor (e.g. `PodcastContentProcessor`), follow this
 pattern:
 
 1. Create `PodcastContentProcessorTest.php` in this folder.
-2. Use `uses(RefreshDatabase::class)` at the top of the file — no class required.
-3. Copy the `beforeEach()` scaffolding from one of the existing test files
+2. Create a PHPUnit class extending `TestCase` with the `RefreshDatabase` trait — follow the pattern in `YoutubeContentProcessorTest`.
+
+```php
+namespace Tests\Feature\MEDIA_PLATFORM\Digest\Processing;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class PodcastContentProcessorTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // user, list, feed/channel, list_source, LLM mock + app()->instance()
+    }
+
+    #[Test]
+    public function description_mode_stores_content(): void
+    {
+        // ...
+    }
+}
+```
+
+3. Copy the `setUp()` scaffolding from one of the existing test files
    (user, list, feed/channel, list_source, LLM mock + `app()->instance()`).
 4. Mirror the test group structure: happy path → first run → dedup →
    feed failures → LLM failures → data integrity.
 5. Add an entry to the table at the top of this README.
-
----
-
-## One thing to watch
-
-In the original tests, $this->mock(LlmService::class) automatically bound the mock into the container via Laravel's TestCase. In Pest, mock() returns a Mockery mock but doesn't automatically bind it unless you're using $this->mock() from inside a class that extends TestCase. I've added explicit app()->instance(...) calls in beforeEach() for both processor tests to make sure the mock is actually injected. If your processor uses constructor injection directly (which it does), this should be fine since you're passing the mock directly to new YoutubeContentProcessor($this->llmMock) anyway — but the app()->instance() call ensures anything that resolves from the container also gets the mock.
 
 ---
 
@@ -146,9 +166,8 @@ php artisan test tests/Feature/Processing/TextBasedRssContentProcessorTest.php
 php artisan test tests/Feature/Processing/YoutubeContentProcessorTest.php
 php artisan test tests/Feature/Processing/PodcastContentProcessorTest.php
 
-
-# Run a single test by name (Pest --filter)
-php artisan test --filter "description mode rss2 inserts summary with wrapped description"
+# Run a single test by name
+php artisan test --filter "description_mode_inserts_summary_with_wrapped_description"
 
 # Run with coverage (requires Xdebug or PCOV)
 php artisan test tests/Feature/Processing --coverage

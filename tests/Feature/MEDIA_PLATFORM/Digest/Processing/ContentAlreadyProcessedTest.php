@@ -1,134 +1,160 @@
 <?php
 
-// tests/Feature/Processing/ContentAlreadyProcessedTest.php
+// tests/Feature/MEDIA_PLATFORM/Digest/Processing/ContentAlreadyProcessedTest.php
+
+namespace Tests\Feature\MEDIA_PLATFORM\Digest\Processing;
 
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
-use App\Models\User;
 use MediaPlatform\Digest\Processing\Models\ContentAlreadyProcessed;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
-uses(RefreshDatabase::class);
+class ContentAlreadyProcessedTest extends TestCase
+{
+    use RefreshDatabase;
 
-beforeEach(function () {
-    $this->user = User::factory()->create();
-    $this->list = ListModel::factory()->forUser($this->user)->create();
+    private User      $user;
+    private ListModel $list;
+    private int       $listSourceId;
 
-    DB::table('list_sources')->insert([
-        'list_id'         => $this->list->id,
-        'sourceable_id'   => 1,
-        'sourceable_type' => 'youtube_channel',
-        'enabled'         => true,
-        'suspended'       => false,
-        'processing_mode' => 'description',
-        'search_terms'    => null,
-        'created_at'      => now(),
-        'updated_at'      => now(),
-    ]);
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-    $this->listSourceId = DB::table('list_sources')->value('id');
-});
+        $this->user = User::factory()->create();
+        $this->list = ListModel::factory()->forUser($this->user)->create();
 
-// ============================================================================
-// findBookmark
-// ============================================================================
+        DB::table('list_sources')->insert([
+            'list_id'         => $this->list->id,
+            'sourceable_id'   => 1,
+            'sourceable_type' => 'youtube_channel',
+            'enabled'         => true,
+            'suspended'       => false,
+            'processing_mode' => 'description',
+            'search_terms'    => null,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
 
-it('returns null when no bookmark exists', function () {
-    expect(ContentAlreadyProcessed::findBookmark($this->listSourceId))->toBeNull();
-});
+        $this->listSourceId = DB::table('list_sources')->value('id');
+    }
 
-it('returns the bookmark when one exists', function () {
-    ContentAlreadyProcessed::create([
-        'list_source_id' => $this->listSourceId,
-        'user_id'        => $this->user->id,
-        'source_url'     => 'https://example.com/item-1',
-        'processed_at'   => now(),
-    ]);
+    // =========================================================================
+    // findBookmark
+    // =========================================================================
 
-    $bookmark = ContentAlreadyProcessed::findBookmark($this->listSourceId);
+    #[Test]
+    public function returns_null_when_no_bookmark_exists(): void
+    {
+        $this->assertNull(ContentAlreadyProcessed::findBookmark($this->listSourceId));
+    }
 
-    expect($bookmark)->not->toBeNull();
-    expect($bookmark->source_url)->toBe('https://example.com/item-1');
-});
+    #[Test]
+    public function returns_the_bookmark_when_one_exists(): void
+    {
+        ContentAlreadyProcessed::create([
+            'list_source_id' => $this->listSourceId,
+            'user_id'        => $this->user->id,
+            'source_url'     => 'https://example.com/item-1',
+            'processed_at'   => now(),
+        ]);
 
-// ============================================================================
-// rotateBookmark
-// ============================================================================
+        $bookmark = ContentAlreadyProcessed::findBookmark($this->listSourceId);
 
-it('inserts a bookmark when none exists', function () {
-    ContentAlreadyProcessed::rotateBookmark(
-        listSourceId: $this->listSourceId,
-        userId:       $this->user->id,
-        sourceUrl:    'https://example.com/item-1',
-    );
+        $this->assertNotNull($bookmark);
+        $this->assertSame('https://example.com/item-1', $bookmark->source_url);
+    }
 
-    expect(ContentAlreadyProcessed::where('list_source_id', $this->listSourceId)->count())->toBe(1);
-    expect(ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url)
-        ->toBe('https://example.com/item-1');
-});
+    // =========================================================================
+    // rotateBookmark
+    // =========================================================================
 
-it('deletes old bookmark and inserts new one on rotation', function () {
-    // Insert initial bookmark.
-    ContentAlreadyProcessed::create([
-        'list_source_id' => $this->listSourceId,
-        'user_id'        => $this->user->id,
-        'source_url'     => 'https://example.com/item-1',
-        'processed_at'   => now()->subDay(),
-    ]);
+    #[Test]
+    public function inserts_a_bookmark_when_none_exists(): void
+    {
+        ContentAlreadyProcessed::rotateBookmark(
+            listSourceId: $this->listSourceId,
+            userId:       $this->user->id,
+            sourceUrl:    'https://example.com/item-1',
+        );
 
-    // Rotate to a new bookmark.
-    ContentAlreadyProcessed::rotateBookmark(
-        listSourceId: $this->listSourceId,
-        userId:       $this->user->id,
-        sourceUrl:    'https://example.com/item-2',
-    );
+        $this->assertSame(1, ContentAlreadyProcessed::where('list_source_id', $this->listSourceId)->count());
+        $this->assertSame(
+            'https://example.com/item-1',
+            ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url,
+        );
+    }
 
-    // Still only one row.
-    expect(ContentAlreadyProcessed::where('list_source_id', $this->listSourceId)->count())->toBe(1);
+    #[Test]
+    public function deletes_old_bookmark_and_inserts_new_one_on_rotation(): void
+    {
+        ContentAlreadyProcessed::create([
+            'list_source_id' => $this->listSourceId,
+            'user_id'        => $this->user->id,
+            'source_url'     => 'https://example.com/item-1',
+            'processed_at'   => now()->subDay(),
+        ]);
 
-    // Points to the new URL.
-    expect(ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url)
-        ->toBe('https://example.com/item-2');
-});
+        ContentAlreadyProcessed::rotateBookmark(
+            listSourceId: $this->listSourceId,
+            userId:       $this->user->id,
+            sourceUrl:    'https://example.com/item-2',
+        );
 
-it('sets processed_at to approximately now on rotation', function () {
-    $before = now()->subSecond();
+        $this->assertSame(1, ContentAlreadyProcessed::where('list_source_id', $this->listSourceId)->count());
+        $this->assertSame(
+            'https://example.com/item-2',
+            ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url,
+        );
+    }
 
-    ContentAlreadyProcessed::rotateBookmark(
-        listSourceId: $this->listSourceId,
-        userId:       $this->user->id,
-        sourceUrl:    'https://example.com/item-1',
-    );
+    #[Test]
+    public function sets_processed_at_to_approximately_now_on_rotation(): void
+    {
+        $before = now()->subSecond();
 
-    $bookmark = ContentAlreadyProcessed::findBookmark($this->listSourceId);
+        ContentAlreadyProcessed::rotateBookmark(
+            listSourceId: $this->listSourceId,
+            userId:       $this->user->id,
+            sourceUrl:    'https://example.com/item-1',
+        );
 
-    expect($bookmark->processed_at->gte($before))->toBeTrue();
-});
+        $bookmark = ContentAlreadyProcessed::findBookmark($this->listSourceId);
 
-it('bookmarks are scoped per list_source — two sources have independent bookmarks', function () {
-    // Insert a second list_source.
-    DB::table('list_sources')->insert([
-        'list_id'         => $this->list->id,
-        'sourceable_id'   => 2,
-        'sourceable_type' => 'youtube_channel',
-        'enabled'         => true,
-        'suspended'       => false,
-        'processing_mode' => 'description',
-        'search_terms'    => null,
-        'created_at'      => now(),
-        'updated_at'      => now(),
-    ]);
+        $this->assertTrue($bookmark->processed_at->gte($before));
+    }
 
-    $listSourceId2 = DB::table('list_sources')->orderByDesc('id')->value('id');
+    #[Test]
+    public function bookmarks_are_scoped_per_list_source_two_sources_have_independent_bookmarks(): void
+    {
+        DB::table('list_sources')->insert([
+            'list_id'         => $this->list->id,
+            'sourceable_id'   => 2,
+            'sourceable_type' => 'youtube_channel',
+            'enabled'         => true,
+            'suspended'       => false,
+            'processing_mode' => 'description',
+            'search_terms'    => null,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
 
-    ContentAlreadyProcessed::rotateBookmark($this->listSourceId,  $this->user->id, 'https://example.com/source1-item');
-    ContentAlreadyProcessed::rotateBookmark($listSourceId2,        $this->user->id, 'https://example.com/source2-item');
+        $listSourceId2 = DB::table('list_sources')->orderByDesc('id')->value('id');
 
-    expect(ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url)
-        ->toBe('https://example.com/source1-item');
+        ContentAlreadyProcessed::rotateBookmark($this->listSourceId, $this->user->id, 'https://example.com/source1-item');
+        ContentAlreadyProcessed::rotateBookmark($listSourceId2,      $this->user->id, 'https://example.com/source2-item');
 
-    expect(ContentAlreadyProcessed::findBookmark($listSourceId2)->source_url)
-        ->toBe('https://example.com/source2-item');
-
-    expect(ContentAlreadyProcessed::count())->toBe(2);
-});
+        $this->assertSame(
+            'https://example.com/source1-item',
+            ContentAlreadyProcessed::findBookmark($this->listSourceId)->source_url,
+        );
+        $this->assertSame(
+            'https://example.com/source2-item',
+            ContentAlreadyProcessed::findBookmark($listSourceId2)->source_url,
+        );
+        $this->assertSame(2, ContentAlreadyProcessed::count());
+    }
+}

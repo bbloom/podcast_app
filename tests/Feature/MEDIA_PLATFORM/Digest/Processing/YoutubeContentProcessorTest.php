@@ -1,390 +1,423 @@
 <?php
 
+// tests/Feature/MEDIA_PLATFORM/Digest/Processing/YoutubeContentProcessorTest.php
+
+namespace Tests\Feature\MEDIA_PLATFORM\Digest\Processing;
+
 use MediaPlatform\Digest\ContentSources\Lists\Models\ListModel;
-use App\Models\User;
+use MediaPlatform\Digest\ContentSources\Youtube\Models\YoutubeChannel;
 use MediaPlatform\Digest\Processing\Exceptions\LlmAuthenticationException;
-use MediaPlatform\Digest\Processing\Exceptions\LlmException;
 use MediaPlatform\Digest\Processing\Exceptions\LlmRateLimitException;
 use MediaPlatform\Digest\Processing\Models\ContentAlreadyProcessed;
 use MediaPlatform\Digest\Processing\Services\LlmService;
 use MediaPlatform\Digest\Processing\Youtube\Services\YoutubeContentProcessor;
-use MediaPlatform\Digest\ContentSources\Youtube\Models\YoutubeChannel;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
-/**
- * YoutubeContentProcessorTest
- *
- * APPROACH
- * ────────
- * Real DB, fake HTTP, mocked LlmService, faked Process facade.
- *
- * TEST GROUPS
- * ───────────
- *   0.  cleanDescription() — unit tests
- *   1.  Description mode
- *   2.  Summary mode
- *   3.  Search mode
- *   4.  First-run lookback window
- *   5.  Bookmark — regular run stop conditions
- *   6.  Bookmark — rotation after processing
- *   7.  Bookmark — no rotation when nothing processed
- *   8.  Deduplication removed (summaries table no longer used for dedup)
- *   9.  YouTube API failures and auto-suspension
- *  10.  Transcript script failures
- *  11.  LLM failure modes
- *  12.  Data integrity
- *  13.  Edge cases
- */
-
-uses(RefreshDatabase::class);
-
-const YT_CHANNEL_ID  = 'UCtest1234567890123456';
-const YT_PLAYLIST_ID = 'UUtest1234567890123456';
-const YT_API_BASE    = 'www.googleapis.com/youtube/v3/playlistItems*';
-
-beforeEach(function () {
-    $this->user    = User::factory()->create();
-    $this->list    = ListModel::factory()->forUser($this->user)->create();
-    $this->channel = YoutubeChannel::factory()->forUser($this->user)->create([
-        'channel_id' => YT_CHANNEL_ID,
-    ]);
-
-    DB::table('list_sources')->insert([
-        'list_id'         => $this->list->id,
-        'sourceable_id'   => $this->channel->id,
-        'sourceable_type' => 'youtube_channel',
-        'enabled'         => true,
-        'suspended'       => false,
-        'processing_mode' => 'description',
-        'search_terms'    => null,
-        'created_at'      => now(),
-        'updated_at'      => now(),
-    ]);
-
-    $this->listSource = DB::table('list_sources')
-        ->where('sourceable_id', $this->channel->id)
-        ->where('sourceable_type', 'youtube_channel')
-        ->first();
-
-    $this->llmMock = mock(LlmService::class);
-    app()->instance(LlmService::class, $this->llmMock);
-    $this->processor = new YoutubeContentProcessor($this->llmMock);
-});
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function setYtProcessingMode(string $mode, ?string $searchTerms = null): void
+class YoutubeContentProcessorTest extends TestCase
 {
-    DB::table('list_sources')
-        ->where('id', test()->listSource->id)
-        ->update(['processing_mode' => $mode, 'search_terms' => $searchTerms]);
-    test()->listSource = DB::table('list_sources')->find(test()->listSource->id);
-}
+    use RefreshDatabase;
 
-function ytPlaylistApiResponse(array $items): array
-{
-    return [
-        'kind'     => 'youtube#playlistItemListResponse',
-        'etag'     => 'fake-etag',
-        'pageInfo' => ['totalResults' => count($items), 'resultsPerPage' => 50],
-        'items'    => $items,
-    ];
-}
+    private const CHANNEL_ID  = 'UCtest1234567890123456';
+    private const PLAYLIST_ID = 'UUtest1234567890123456';
+    private const API_BASE    = 'www.googleapis.com/youtube/v3/playlistItems*';
 
-function ytVideoSnippet(string $videoId, string $title, string $description, string $publishedAt): array
-{
-    return [
-        'kind'   => 'youtube#playlistItem',
-        'etag'   => 'fake-etag-' . $videoId,
-        'snippet' => [
-            'publishedAt' => $publishedAt,
-            'title'       => $title,
-            'description' => $description,
-            'resourceId'  => ['kind' => 'youtube#video', 'videoId' => $videoId],
-        ],
-        'contentDetails' => [
-            'videoId'          => $videoId,
-            'videoPublishedAt' => $publishedAt,
-        ],
-    ];
-}
+    private User                    $user;
+    private ListModel               $list;
+    private YoutubeChannel          $channel;
+    private object                  $listSource;
+    private LlmService              $llmMock;
+    private YoutubeContentProcessor $processor;
 
-// =============================================================================
-// GROUP 0: cleanDescription() — unit tests
-// =============================================================================
+    protected function setUp(): void
+    {
+        parent::setUp();
 
-test('cleanDescription returns body text when no boilerplate present', function () {
-    $desc = "This is a great video about Laravel.\nWe cover queues and jobs.";
-    expect($this->processor->cleanDescription($desc))->toBe("This is a great video about Laravel.\nWe cover queues and jobs.");
-});
+        $this->user    = User::factory()->create();
+        $this->list    = ListModel::factory()->forUser($this->user)->create();
+        $this->channel = YoutubeChannel::factory()->forUser($this->user)->create([
+            'channel_id' => self::CHANNEL_ID,
+        ]);
 
-test('cleanDescription stops at first bare URL', function () {
-    $desc = "Great video about testing.\nhttps://sponsor.com\nMore text after.";
-    expect($this->processor->cleanDescription($desc))->toBe('Great video about testing.');
-});
+        DB::table('list_sources')->insert([
+            'list_id'         => $this->list->id,
+            'sourceable_id'   => $this->channel->id,
+            'sourceable_type' => 'youtube_channel',
+            'enabled'         => true,
+            'suspended'       => false,
+            'processing_mode' => 'description',
+            'search_terms'    => null,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
 
-test('cleanDescription stops at chapter timestamp', function () {
-    $desc = "A tutorial on PHP.\n0:00 Intro\n1:23 Topic one";
-    expect($this->processor->cleanDescription($desc))->toBe('A tutorial on PHP.');
-});
+        $this->listSource = DB::table('list_sources')
+            ->where('sourceable_id', $this->channel->id)
+            ->where('sourceable_type', 'youtube_channel')
+            ->first();
 
-test('cleanDescription stops at timestamp with hours', function () {
-    $desc = "A long video.\n1:23:45 Deep dive";
-    expect($this->processor->cleanDescription($desc))->toBe('A long video.');
-});
-
-test('cleanDescription stops at known section headers', function () {
-    foreach (['CHAPTERS', 'TIMESTAMPS', 'LINKS', 'SPONSORS', 'FOLLOW', 'CONNECT',
-              'SUPPORT', 'AFFILIATE', 'MERCH', 'SOCIALS', 'PATREON'] as $header) {
-        $desc = "Good content here.\n{$header}\nhttps://example.com";
-        expect($this->processor->cleanDescription($desc))
-            ->toBe('Good content here.')
-            ->not->toContain($header);
+        $this->llmMock = mock(LlmService::class);
+        app()->instance(LlmService::class, $this->llmMock);
+        $this->processor = new YoutubeContentProcessor($this->llmMock);
     }
-});
 
-test('cleanDescription stops at section headers with trailing colon', function () {
-    $desc = "Good content here.\nLINKS:\nhttps://example.com";
-    expect($this->processor->cleanDescription($desc))->toBe('Good content here.');
-});
+    // =========================================================================
+    // Helpers
+    // =========================================================================
 
-test('cleanDescription skips subscribe line before content and returns body', function () {
-    $desc = "Subscribe for more videos!\nThis episode covers deployment strategies.";
-    expect($this->processor->cleanDescription($desc))->toBe('This episode covers deployment strategies.');
-});
+    private function setYtProcessingMode(string $mode, ?string $searchTerms = null): void
+    {
+        DB::table('list_sources')
+            ->where('id', $this->listSource->id)
+            ->update(['processing_mode' => $mode, 'search_terms' => $searchTerms]);
+        $this->listSource = DB::table('list_sources')->find($this->listSource->id);
+    }
 
-test('cleanDescription stops at subscribe line once content has started', function () {
-    $desc = "This episode covers deployment strategies.\nSubscribe for more!";
-    expect($this->processor->cleanDescription($desc))->toBe('This episode covers deployment strategies.');
-});
+    private function ytPlaylistApiResponse(array $items): array
+    {
+        return [
+            'kind'     => 'youtube#playlistItemListResponse',
+            'etag'     => 'fake-etag',
+            'pageInfo' => ['totalResults' => count($items), 'resultsPerPage' => 50],
+            'items'    => $items,
+        ];
+    }
 
-test('cleanDescription looks past blank lines and does not stop on them', function () {
-    $desc = "First paragraph.\n\nSecond paragraph.\nhttps://link.com";
-    expect($this->processor->cleanDescription($desc))->toBe("First paragraph.\n\nSecond paragraph.");
-});
+    private function ytVideoSnippet(string $videoId, string $title, string $description, string $publishedAt): array
+    {
+        return [
+            'kind'           => 'youtube#playlistItem',
+            'etag'           => 'fake-etag-' . $videoId,
+            'snippet'        => [
+                'publishedAt' => $publishedAt,
+                'title'       => $title,
+                'description' => $description,
+                'resourceId'  => ['kind' => 'youtube#video', 'videoId' => $videoId],
+            ],
+            'contentDetails' => [
+                'videoId'          => $videoId,
+                'videoPublishedAt' => $publishedAt,
+            ],
+        ];
+    }
 
-test('cleanDescription returns no description provided when nothing useful found', function () {
-    $desc = "https://subscribe.com\n0:00 Intro\nLINKS:";
-    expect($this->processor->cleanDescription($desc))->toBe('No description provided');
-});
+    // =========================================================================
+    // GROUP 0: cleanDescription() — unit tests
+    // =========================================================================
 
-test('cleanDescription returns no description provided for empty string', function () {
-    expect($this->processor->cleanDescription(''))->toBe('No description provided');
-});
+    #[Test]
+    public function cleanDescription_returns_body_text_when_no_boilerplate_present(): void
+    {
+        $desc = "This is a great video about Laravel.\nWe cover queues and jobs.";
+        $this->assertSame($desc, $this->processor->cleanDescription($desc));
+    }
 
-test('cleanDescription trims trailing blank lines from collected body', function () {
-    $desc = "Real content.\n\n\nhttps://link.com";
-    expect($this->processor->cleanDescription($desc))->toBe('Real content.');
-});
+    #[Test]
+    public function cleanDescription_stops_at_first_bare_URL(): void
+    {
+        $desc = "Great video about testing.\nhttps://sponsor.com\nMore text after.";
+        $this->assertSame('Great video about testing.', $this->processor->cleanDescription($desc));
+    }
 
-// =============================================================================
-// GROUP 1: Description mode
-// =============================================================================
+    #[Test]
+    public function cleanDescription_stops_at_chapter_timestamp(): void
+    {
+        $desc = "A tutorial on PHP.\n0:00 Intro\n1:23 Topic one";
+        $this->assertSame('A tutorial on PHP.', $this->processor->cleanDescription($desc));
+    }
 
-test('description mode stores cleaned description', function () {
-    $this->llmMock->shouldNotReceive('generateContent');
-    Process::fake();
+    #[Test]
+    public function cleanDescription_stops_at_timestamp_with_hours(): void
+    {
+        $desc = "A long video.\n1:23:45 Deep dive";
+        $this->assertSame('A long video.', $this->processor->cleanDescription($desc));
+    }
 
-    $raw = "A great video about Laravel queues.\nhttps://sponsor.com\n0:00 Intro";
+    #[Test]
+    public function cleanDescription_stops_at_known_section_headers(): void
+    {
+        foreach (['CHAPTERS', 'TIMESTAMPS', 'LINKS', 'SPONSORS', 'FOLLOW', 'CONNECT',
+                  'SUPPORT', 'AFFILIATE', 'MERCH', 'SOCIALS', 'PATREON'] as $header) {
+            $desc   = "Good content here.\n{$header}\nhttps://example.com";
+            $result = $this->processor->cleanDescription($desc);
+            $this->assertSame('Good content here.', $result);
+            $this->assertStringNotContainsString($header, $result);
+        }
+    }
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+    #[Test]
+    public function cleanDescription_stops_at_section_headers_with_trailing_colon(): void
+    {
+        $desc = "Good content here.\nLINKS:\nhttps://example.com";
+        $this->assertSame('Good content here.', $this->processor->cleanDescription($desc));
+    }
 
-    $this->processor->process($this->listSource);
+    #[Test]
+    public function cleanDescription_skips_subscribe_line_before_content_and_returns_body(): void
+    {
+        $desc = "Subscribe for more videos!\nThis episode covers deployment strategies.";
+        $this->assertSame('This episode covers deployment strategies.', $this->processor->cleanDescription($desc));
+    }
 
-    $summary = DB::table('summaries')->where('source_url', 'https://www.youtube.com/watch?v=vid1')->first();
-    expect($summary->summary_html)->toContain('A great video about Laravel queues.');
-    expect($summary->summary_html)->not->toContain('sponsor.com');
-    expect($summary->summary_html)->not->toContain('0:00');
-    expect($summary->summary_html)->toStartWith('<p>');
-});
+    #[Test]
+    public function cleanDescription_stops_at_subscribe_line_once_content_has_started(): void
+    {
+        $desc = "This episode covers deployment strategies.\nSubscribe for more!";
+        $this->assertSame('This episode covers deployment strategies.', $this->processor->cleanDescription($desc));
+    }
 
-test('description mode stores no description provided when description is empty', function () {
-    $this->llmMock->shouldNotReceive('generateContent');
-    Process::fake();
+    #[Test]
+    public function cleanDescription_looks_past_blank_lines_and_does_not_stop_on_them(): void
+    {
+        $desc = "First paragraph.\n\nSecond paragraph.\nhttps://link.com";
+        $this->assertSame("First paragraph.\n\nSecond paragraph.", $this->processor->cleanDescription($desc));
+    }
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', '', now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+    #[Test]
+    public function cleanDescription_returns_no_description_provided_when_nothing_useful_found(): void
+    {
+        $desc = "https://subscribe.com\n0:00 Intro\nLINKS:";
+        $this->assertSame('No description provided', $this->processor->cleanDescription($desc));
+    }
 
-    $this->processor->process($this->listSource);
+    #[Test]
+    public function cleanDescription_returns_no_description_provided_for_empty_string(): void
+    {
+        $this->assertSame('No description provided', $this->processor->cleanDescription(''));
+    }
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->summary_html)->toContain('No description provided');
-    expect($summary->is_relevant)->toBeTrue();
-});
+    #[Test]
+    public function cleanDescription_trims_trailing_blank_lines_from_collected_body(): void
+    {
+        $desc = "Real content.\n\n\nhttps://link.com";
+        $this->assertSame('Real content.', $this->processor->cleanDescription($desc));
+    }
 
-test('description mode stores raw description in source_description column unchanged', function () {
-    $this->llmMock->shouldNotReceive('generateContent');
-    Process::fake();
+    // =========================================================================
+    // GROUP 1: Description mode
+    // =========================================================================
 
-    $raw = "Good content.\nhttps://sponsor.com";
+    #[Test]
+    public function description_mode_stores_cleaned_description(): void
+    {
+        $this->llmMock->shouldNotReceive('generateContent');
+        Process::fake();
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        $raw = "A great video about Laravel queues.\nhttps://sponsor.com\n0:00 Intro";
 
-    $this->processor->process($this->listSource);
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    // source_description preserves the raw value; summary_html is cleaned.
-    expect($summary->source_description)->toBe($raw);
-    expect($summary->summary_html)->not->toContain('sponsor.com');
-});
+        $this->processor->process($this->listSource);
 
-// =============================================================================
-// GROUP 2: Summary mode
-// =============================================================================
+        $summary = DB::table('summaries')->where('source_url', 'https://www.youtube.com/watch?v=vid1')->first();
+        $this->assertStringContainsString('A great video about Laravel queues.', $summary->summary_html);
+        $this->assertStringNotContainsString('sponsor.com', $summary->summary_html);
+        $this->assertStringNotContainsString('0:00', $summary->summary_html);
+        $this->assertStringStartsWith('<p>', $summary->summary_html);
+    }
 
-test('summary mode fetches transcript calls llm and stores result', function () {
-    setYtProcessingMode('summary');
+    #[Test]
+    public function description_mode_stores_no_description_provided_when_description_is_empty(): void
+    {
+        $this->llmMock->shouldNotReceive('generateContent');
+        Process::fake();
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', 'Desc.', now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', '', now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-    Process::fake([
-        '*get_transcript.py vid1*' => Process::result(
-            output: json_encode(['transcript' => 'Full transcript text.']),
-        ),
-    ]);
+        $this->processor->process($this->listSource);
 
-    $this->llmMock->shouldReceive('generateContent')->once()->andReturn('<p>LLM summary.</p>');
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertStringContainsString('No description provided', $summary->summary_html);
+        $this->assertTrue((bool) $summary->is_relevant);
+    }
 
-    $this->processor->process($this->listSource);
+    #[Test]
+    public function description_mode_stores_raw_description_in_source_description_column_unchanged(): void
+    {
+        $this->llmMock->shouldNotReceive('generateContent');
+        Process::fake();
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->summary_html)->toBe('<p>LLM summary.</p>');
-});
+        $raw = "Good content.\nhttps://sponsor.com";
 
-test('summary mode falls back to cleaned description when transcript unavailable', function () {
-    setYtProcessingMode('summary');
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-    $raw = "Really useful description content.\nhttps://sponsor.com\n0:00 Intro";
+        $this->processor->process($this->listSource);
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertSame($raw, $summary->source_description);
+        $this->assertStringNotContainsString('sponsor.com', $summary->summary_html);
+    }
 
-    Process::fake([
-        '*get_transcript.py vid1*' => Process::result(
-            output: json_encode(['transcript' => 'ERROR: No captions available.']),
-        ),
-    ]);
+    // =========================================================================
+    // GROUP 2: Summary mode
+    // =========================================================================
 
-    $this->llmMock->shouldNotReceive('generateContent');
+    #[Test]
+    public function summary_mode_fetches_transcript_calls_llm_and_stores_result(): void
+    {
+        $this->setYtProcessingMode('summary');
 
-    $this->processor->process($this->listSource);
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', 'Desc.', now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->summary_html)->toContain('Really useful description content.');
-    expect($summary->summary_html)->not->toContain('sponsor.com');
-    expect($summary->summary_html)->not->toContain('0:00');
-});
+        Process::fake([
+            '*get_transcript.py vid1*' => Process::result(
+                output: json_encode(['transcript' => 'Full transcript text.']),
+            ),
+        ]);
 
-test('summary mode stores unavailable message when transcript and description both absent', function () {
-    setYtProcessingMode('summary');
+        $this->llmMock->shouldReceive('generateContent')->once()->andReturn('<p>LLM summary.</p>');
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Video One', '', now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        $this->processor->process($this->listSource);
 
-    Process::fake([
-        '*get_transcript.py vid1*' => Process::result(
-            output: json_encode(['transcript' => 'ERROR: No captions available.']),
-        ),
-    ]);
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertSame('<p>LLM summary.</p>', $summary->summary_html);
+    }
 
-    $this->llmMock->shouldNotReceive('generateContent');
+    #[Test]
+    public function summary_mode_falls_back_to_cleaned_description_when_transcript_unavailable(): void
+    {
+        $this->setYtProcessingMode('summary');
 
-    $this->processor->process($this->listSource);
+        $raw = "Really useful description content.\nhttps://sponsor.com\n0:00 Intro";
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect(strtolower($summary->summary_html))->toContain('unavailable');
-});
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', $raw, now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-// =============================================================================
-// GROUP 3: Search mode
-// =============================================================================
+        Process::fake([
+            '*get_transcript.py vid1*' => Process::result(
+                output: json_encode(['transcript' => 'ERROR: No captions available.']),
+            ),
+        ]);
 
-test('search mode tier1 matches title and summarises', function () {
-    setYtProcessingMode('search', 'quantum computing');
+        $this->llmMock->shouldNotReceive('generateContent');
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Intro to quantum computing', 'Desc.', now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        $this->processor->process($this->listSource);
 
-    Process::fake(['*get_transcript.py vid1*' => Process::result(output: json_encode(['transcript' => 'Transcript.']))]);
-    $this->llmMock->shouldReceive('generateContent')->once()->andReturn('<p>Summary.</p>');
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertStringContainsString('Really useful description content.', $summary->summary_html);
+        $this->assertStringNotContainsString('sponsor.com', $summary->summary_html);
+        $this->assertStringNotContainsString('0:00', $summary->summary_html);
+    }
 
-    $this->processor->process($this->listSource);
+    #[Test]
+    public function summary_mode_stores_unavailable_message_when_transcript_and_description_both_absent(): void
+    {
+        $this->setYtProcessingMode('summary');
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->is_relevant)->toBeTrue();
-});
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Video One', '', now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-test('search mode tier3 not relevant stores row with is_relevant false', function () {
-    setYtProcessingMode('search', 'astrophysics');
+        Process::fake([
+            '*get_transcript.py vid1*' => Process::result(
+                output: json_encode(['transcript' => 'ERROR: No captions available.']),
+            ),
+        ]);
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Cooking Pasta', 'How to make pasta.', now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        $this->llmMock->shouldNotReceive('generateContent');
 
-    Process::fake(['*get_transcript.py vid1*' => Process::result(output: json_encode(['transcript' => 'Pasta cooking transcript.']))]);
-    $this->llmMock->shouldReceive('generateContent')->once()->andReturn('NOT_RELEVANT');
+        $this->processor->process($this->listSource);
 
-    $this->processor->process($this->listSource);
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertStringContainsString('unavailable', strtolower($summary->summary_html));
+    }
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->is_relevant)->toBeFalse();
-});
+    // =========================================================================
+    // GROUP 3: Search mode
+    // =========================================================================
 
-test('search mode tier3 falls back to cleaned description when transcript unavailable', function () {
-    setYtProcessingMode('search', 'astrophysics');
+    #[Test]
+    public function search_mode_tier1_matches_title_and_summarises(): void
+    {
+        $this->setYtProcessingMode('search', 'quantum computing');
 
-    $raw = "A deep dive into black holes and dark matter.\nhttps://sponsor.com";
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Intro to quantum computing', 'Desc.', now()->subHour()->toIso8601String()),
+            ])),
+        ]);
 
-    Http::fake([
-        YT_API_BASE => Http::response(ytPlaylistApiResponse([
-            ytVideoSnippet('vid1', 'Cooking Pasta', $raw, now()->subHour()->toIso8601String()),
-        ])),
-    ]);
+        Process::fake(['*get_transcript.py vid1*' => Process::result(output: json_encode(['transcript' => 'Transcript.']))]);
+        $this->llmMock->shouldReceive('generateContent')->once()->andReturn('<p>Summary.</p>');
 
-    Process::fake([
-        '*get_transcript.py vid1*' => Process::result(
-            output: json_encode(['transcript' => 'ERROR: No captions available.']),
-        ),
-    ]);
+        $this->processor->process($this->listSource);
 
-    // LLM should NOT be called — we never reach the semantic check.
-    $this->llmMock->shouldNotReceive('generateContent');
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertTrue((bool) $summary->is_relevant);
+    }
 
-    $this->processor->process($this->listSource);
+    #[Test]
+    public function search_mode_tier3_not_relevant_stores_row_with_is_relevant_false(): void
+    {
+        $this->setYtProcessingMode('search', 'astrophysics');
 
-    $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
-    expect($summary->summary_html)->toContain('A deep dive into black holes');
-    expect($summary->summary_html)->not->toContain('sponsor.com');
-    expect($summary->is_relevant)->toBeTrue();
-});
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Cooking Pasta', 'How to make pasta.', now()->subHour()->toIso8601String()),
+            ])),
+        ]);
+
+        Process::fake(['*get_transcript.py vid1*' => Process::result(output: json_encode(['transcript' => 'Pasta cooking transcript.']))]);
+        $this->llmMock->shouldReceive('generateContent')->once()->andReturn('NOT_RELEVANT');
+
+        $this->processor->process($this->listSource);
+
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertFalse((bool) $summary->is_relevant);
+    }
+
+    #[Test]
+    public function search_mode_tier3_falls_back_to_cleaned_description_when_transcript_unavailable(): void
+    {
+        $this->setYtProcessingMode('search', 'astrophysics');
+
+        $raw = "A deep dive into black holes and dark matter.\nhttps://sponsor.com";
+
+        Http::fake([
+            self::API_BASE => Http::response($this->ytPlaylistApiResponse([
+                $this->ytVideoSnippet('vid1', 'Cooking Pasta', $raw, now()->subHour()->toIso8601String()),
+            ])),
+        ]);
+
+        Process::fake([
+            '*get_transcript.py vid1*' => Process::result(
+                output: json_encode(['transcript' => 'ERROR: No captions available.']),
+            ),
+        ]);
+
+        $this->llmMock->shouldNotReceive('generateContent');
+
+        $this->processor->process($this->listSource);
+
+        $summary = DB::table('summaries')->where('list_source_id', $this->listSource->id)->first();
+        $this->assertStringContainsString('A deep dive into black holes', $summary->summary_html);
+        $this->assertStringNotContainsString('sponsor.com', $summary->summary_html);
+        $this->assertTrue((bool) $summary->is_relevant);
+    }
+}

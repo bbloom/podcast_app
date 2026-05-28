@@ -1,6 +1,8 @@
 <?php
 
-// tests/Feature/Processing/SftpUploadTest.php
+// tests/Feature/MEDIA_PLATFORM/Digest/Processing/SftpUploadTest.php
+
+namespace Tests\Feature\MEDIA_PLATFORM\Digest\Processing;
 
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Models\OutputDestination;
 use MediaPlatform\Digest\ContentSources\OutputDestinations\Services\SftpService;
@@ -8,148 +10,142 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use League\Flysystem\Filesystem;
 use League\Flysystem\UnableToWriteFile;
+use Mockery;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
-uses(RefreshDatabase::class);
+class SftpUploadTest extends TestCase
+{
+    use RefreshDatabase;
 
-// ============================================================================
-// SftpService::upload() — unit-level tests using a mocked Filesystem
-//
-// We cannot (and should not) make real SFTP connections in tests.
-// The upload() method is tested by:
-//   1. Checking the return value from a real call that hits a fake Flysystem
-//   2. Verifying error handling for the known failure modes
-//
-// The Flysystem Filesystem is injected into the test via partial mocking of
-// SftpService to bypass the real SFTP connection builder.
-// ============================================================================
+    // =========================================================================
+    // Helpers
+    // =========================================================================
 
-it('returns success array with path when upload succeeds', function () {
-    $user = User::factory()->create();
-    $dest = OutputDestination::factory()->forUser($user)->create([
-        'type'      => 'sftp',
-        'host'      => 'sftp.example.com',
-        'port'      => 22,
-        'username'  => 'deploy',
-        'auth_type' => 'password',
-        'password'  => 'secret',
-        'path'      => '/var/www/digests',
-    ]);
+    private function makeDest(User $user): OutputDestination
+    {
+        return OutputDestination::factory()->forUser($user)->create([
+            'type'      => 'sftp',
+            'host'      => 'sftp.example.com',
+            'port'      => 22,
+            'username'  => 'deploy',
+            'auth_type' => 'password',
+            'password'  => 'secret',
+            'path'      => '/var/www/digests',
+        ]);
+    }
 
-    // Partial mock: replace buildFilesystemFromDestination to return a mocked Filesystem
-    $mockFilesystem = Mockery::mock(Filesystem::class);
-    $mockFilesystem->shouldReceive('write')
-        ->once()
-        ->with('morning-tech-digest-2026-03-13.html', '<html>digest</html>')
-        ->andReturnNull(); // write() returns void on success
+    private function humanizeError(string $message): array
+    {
+        $svc        = new SftpService();
+        $reflection = new \ReflectionClass($svc);
+        $method     = $reflection->getMethod('humanizeError');
+        $method->setAccessible(true);
+        return $method->invoke($svc, $message);
+    }
 
-    $service = Mockery::mock(SftpService::class)->makePartial();
-    $service->shouldAllowMockingProtectedMethods();
-    $service->shouldReceive('buildFilesystemFromDestination')
-        ->once()
-        ->andReturn($mockFilesystem);
+    // =========================================================================
+    // SftpService::upload()
+    // =========================================================================
 
-    $result = $service->upload($dest, 'morning-tech-digest-2026-03-13', '<html>digest</html>');
+    #[Test]
+    public function returns_success_array_with_path_when_upload_succeeds(): void
+    {
+        $user = User::factory()->create();
+        $dest = $this->makeDest($user);
 
-    expect($result['success'])->toBeTrue();
-    expect($result['path'])->toBe('/var/www/digests/morning-tech-digest-2026-03-13.html');
-});
+        $mockFilesystem = Mockery::mock(Filesystem::class);
+        $mockFilesystem->shouldReceive('write')
+            ->once()
+            ->with('morning-tech-digest-2026-03-13.html', '<html>digest</html>')
+            ->andReturnNull();
 
-it('returns failure array when Flysystem throws UnableToWriteFile', function () {
-    $user = User::factory()->create();
-    $dest = OutputDestination::factory()->forUser($user)->create([
-        'type'      => 'sftp',
-        'host'      => 'sftp.example.com',
-        'port'      => 22,
-        'username'  => 'deploy',
-        'auth_type' => 'password',
-        'password'  => 'secret',
-        'path'      => '/var/www/digests',
-    ]);
+        $service = Mockery::mock(SftpService::class)->makePartial();
+        $service->shouldAllowMockingProtectedMethods();
+        $service->shouldReceive('buildFilesystemFromDestination')->once()->andReturn($mockFilesystem);
 
-    $mockFilesystem = Mockery::mock(Filesystem::class);
-    $mockFilesystem->shouldReceive('write')
-        ->once()
-        ->andThrow(UnableToWriteFile::atLocation('/var/www/digests/test', 'Permission denied'));
+        $result = $service->upload($dest, 'morning-tech-digest-2026-03-13', '<html>digest</html>');
 
-    $service = Mockery::mock(SftpService::class)->makePartial();
-    $service->shouldAllowMockingProtectedMethods();
-    $service->shouldReceive('buildFilesystemFromDestination')
-        ->once()
-        ->andReturn($mockFilesystem);
+        $this->assertTrue($result['success']);
+        $this->assertSame('/var/www/digests/morning-tech-digest-2026-03-13.html', $result['path']);
+    }
 
-    $result = $service->upload($dest, 'test', 'content');
+    #[Test]
+    public function returns_failure_array_when_Flysystem_throws_UnableToWriteFile(): void
+    {
+        $user = User::factory()->create();
+        $dest = $this->makeDest($user);
 
-    expect($result['success'])->toBeFalse();
-    expect($result['message'])->toContain('Could not write file');
-});
+        $mockFilesystem = Mockery::mock(Filesystem::class);
+        $mockFilesystem->shouldReceive('write')
+            ->once()
+            ->andThrow(UnableToWriteFile::atLocation('/var/www/digests/test', 'Permission denied'));
 
-it('returns humanized failure array when a connection-level Throwable is thrown', function () {
-    $user = User::factory()->create();
-    $dest = OutputDestination::factory()->forUser($user)->create([
-        'type'      => 'sftp',
-        'host'      => 'sftp.example.com',
-        'port'      => 22,
-        'username'  => 'deploy',
-        'auth_type' => 'password',
-        'password'  => 'secret',
-        'path'      => '/digests',
-    ]);
+        $service = Mockery::mock(SftpService::class)->makePartial();
+        $service->shouldAllowMockingProtectedMethods();
+        $service->shouldReceive('buildFilesystemFromDestination')->once()->andReturn($mockFilesystem);
 
-    $service = Mockery::mock(SftpService::class)->makePartial();
-    $service->shouldAllowMockingProtectedMethods();
-    $service->shouldReceive('buildFilesystemFromDestination')
-        ->once()
-        ->andThrow(new \RuntimeException('Connection refused'));
+        $result = $service->upload($dest, 'test', 'content');
 
-    $result = $service->upload($dest, 'test', 'content');
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Could not write file', $result['message']);
+    }
 
-    expect($result['success'])->toBeFalse();
-    expect($result['message'])->toContain('Connection refused');
-});
+    #[Test]
+    public function returns_humanized_failure_array_when_a_connection_level_Throwable_is_thrown(): void
+    {
+        $user = User::factory()->create();
+        $dest = OutputDestination::factory()->forUser($user)->create([
+            'type'      => 'sftp',
+            'host'      => 'sftp.example.com',
+            'port'      => 22,
+            'username'  => 'deploy',
+            'auth_type' => 'password',
+            'password'  => 'secret',
+            'path'      => '/digests',
+        ]);
 
-// ============================================================================
-// testWithPassword / testWithSshKey are already tested implicitly via the
-// OutputDestination wizard tests. These spot-checks just confirm the
-// humanizeError paths are reached for common connection error strings.
-// ============================================================================
+        $service = Mockery::mock(SftpService::class)->makePartial();
+        $service->shouldAllowMockingProtectedMethods();
+        $service->shouldReceive('buildFilesystemFromDestination')
+            ->once()
+            ->andThrow(new \RuntimeException('Connection refused'));
 
-it('humanizes authentication failed error in test methods', function () {
-    // We test the humanizeError branch indirectly through testWithPassword
-    // by faking a connection that throws "Authentication failed"
-    $service = new SftpService();
+        $result = $service->upload($dest, 'test', 'content');
 
-    // Use reflection to call the private humanizeError method directly
-    $reflection = new \ReflectionClass($service);
-    $method     = $reflection->getMethod('humanizeError');
-    $method->setAccessible(true);
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Connection refused', $result['message']);
+    }
 
-    $result = $method->invoke($service, 'Authentication failed: bad credentials');
+    // =========================================================================
+    // humanizeError — reflection spot-checks
+    // =========================================================================
 
-    expect($result['success'])->toBeFalse();
-    expect($result['error_step'])->toBe(5);
-    expect($result['message'])->toContain('Authentication failed');
-});
+    #[Test]
+    public function humanizes_authentication_failed_error(): void
+    {
+        $result = $this->humanizeError('Authentication failed: bad credentials');
 
-it('humanizes connection refused error', function () {
-    $service    = new SftpService();
-    $reflection = new \ReflectionClass($service);
-    $method     = $reflection->getMethod('humanizeError');
-    $method->setAccessible(true);
+        $this->assertFalse($result['success']);
+        $this->assertSame(5, $result['error_step']);
+        $this->assertStringContainsString('Authentication failed', $result['message']);
+    }
 
-    $result = $method->invoke($service, 'Connection refused by server');
+    #[Test]
+    public function humanizes_connection_refused_error(): void
+    {
+        $result = $this->humanizeError('Connection refused by server');
 
-    expect($result['success'])->toBeFalse();
-    expect($result['error_step'])->toBe(3);
-});
+        $this->assertFalse($result['success']);
+        $this->assertSame(3, $result['error_step']);
+    }
 
-it('humanizes connection timed out error', function () {
-    $service    = new SftpService();
-    $reflection = new \ReflectionClass($service);
-    $method     = $reflection->getMethod('humanizeError');
-    $method->setAccessible(true);
+    #[Test]
+    public function humanizes_connection_timed_out_error(): void
+    {
+        $result = $this->humanizeError('Connection timed out after 30s');
 
-    $result = $method->invoke($service, 'Connection timed out after 30s');
-
-    expect($result['success'])->toBeFalse();
-    expect($result['error_step'])->toBe(3);
-});
+        $this->assertFalse($result['success']);
+        $this->assertSame(3, $result['error_step']);
+    }
+}

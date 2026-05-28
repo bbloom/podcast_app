@@ -2,203 +2,254 @@
 
 // tests/Feature/MEDIA_PLATFORM/Digest/ContentSources/SftpFixControllerTest.php
 
+namespace Tests\Feature\MEDIA_PLATFORM\Digest\ContentSources;
+
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
-uses(RefreshDatabase::class);
+class SftpFixControllerTest extends TestCase
+{
+    use RefreshDatabase;
 
-beforeEach(function () {
-    $this->user = User::factory()->create();
-    $this->actingAs($this->user);
-});
+    private User $user;
 
-// Valid SFTP wizard session for use across tests.
-$validSession = fn () => [
-    'od_wizard' => [
-        'name'        => 'My SFTP Server',
-        'type'        => 'sftp',
-        'host'        => 'sftp.example.com',
-        'port'        => 22,
-        'username'    => 'deploy',
-        'auth_type'   => 'password',
-        'password'    => 'secret',
-        'path'        => '/var/www/digests',
-        'test_passed' => false,
-    ],
-];
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        $this->actingAs($this->user);
+    }
 
-// ============================================================================
-// Host fix
-// ============================================================================
+    private function validSession(): array
+    {
+        return [
+            'od_wizard' => [
+                'name'        => 'My SFTP Server',
+                'type'        => 'sftp',
+                'host'        => 'sftp.example.com',
+                'port'        => 22,
+                'username'    => 'deploy',
+                'auth_type'   => 'password',
+                'password'    => 'secret',
+                'path'        => '/var/www/digests',
+                'test_passed' => false,
+            ],
+        ];
+    }
 
-it('renders the host fix form when session is valid', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->get(route('output_destinations.fix.sftp.host'))
-        ->assertOk()
-        ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.host');
-});
+    // =========================================================================
+    // Host fix
+    // =========================================================================
 
-it('redirects to step1 from host fix form when session is missing', function () {
-    $this->get(route('output_destinations.fix.sftp.host'))
-        ->assertRedirect(route('output_destinations.create.step1'));
-});
+    #[Test]
+    public function renders_the_host_fix_form_when_session_is_valid(): void
+    {
+        $this->withSession($this->validSession())
+             ->get(route('output_destinations.fix.sftp.host'))
+             ->assertOk()
+             ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.host');
+    }
 
-it('saves corrected host and port and redirects to step7', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.host.submit'), [
-            'host' => 'newsftp.example.com',
-            'port' => 2222,
-        ])
-        ->assertRedirect(route('output_destinations.create.step7'));
+    #[Test]
+    public function redirects_to_step1_from_host_fix_form_when_session_is_missing(): void
+    {
+        $this->get(route('output_destinations.fix.sftp.host'))
+             ->assertRedirect(route('output_destinations.create.step1'));
+    }
 
-    expect(session('od_wizard.host'))->toBe('newsftp.example.com');
-    expect(session('od_wizard.port'))->toBe(2222);
-    expect(session('od_wizard.test_passed'))->toBeFalse();
-});
+    #[Test]
+    public function saves_corrected_host_and_port_and_redirects_to_step7(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.host.submit'), [
+                 'host' => 'newsftp.example.com',
+                 'port' => 2222,
+             ])
+             ->assertRedirect(route('output_destinations.create.step7'));
 
-it('rejects host fix with missing host', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.host.submit'), [
-            'host' => '',
-            'port' => 22,
-        ])
-        ->assertSessionHasErrors('host');
-});
+        $this->assertSame('newsftp.example.com', session('od_wizard.host'));
+        $this->assertSame(2222, session('od_wizard.port'));
+        $this->assertFalse(session('od_wizard.test_passed'));
+    }
 
-it('rejects host fix with invalid port', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.host.submit'), [
-            'host' => 'sftp.example.com',
-            'port' => 99999,
-        ])
-        ->assertSessionHasErrors('port');
-});
+    #[Test]
+    public function rejects_host_fix_with_missing_host(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.host.submit'), [
+                 'host' => '',
+                 'port' => 22,
+             ])
+             ->assertSessionHasErrors('host');
+    }
 
-// ============================================================================
-// Username fix
-// ============================================================================
+    #[Test]
+    public function rejects_host_fix_with_invalid_port(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.host.submit'), [
+                 'host' => 'sftp.example.com',
+                 'port' => 99999,
+             ])
+             ->assertSessionHasErrors('port');
+    }
 
-it('renders the username fix form when session is valid', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->get(route('output_destinations.fix.sftp.username'))
-        ->assertOk()
-        ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.username');
-});
+    // =========================================================================
+    // Username fix
+    // =========================================================================
 
-it('redirects to step1 from username fix form when session is missing', function () {
-    $this->get(route('output_destinations.fix.sftp.username'))
-        ->assertRedirect(route('output_destinations.create.step1'));
-});
+    #[Test]
+    public function renders_the_username_fix_form_when_session_is_valid(): void
+    {
+        $this->withSession($this->validSession())
+             ->get(route('output_destinations.fix.sftp.username'))
+             ->assertOk()
+             ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.username');
+    }
 
-it('saves corrected username and redirects to step7', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.username.submit'), [
-            'username' => 'newuser',
-        ])
-        ->assertRedirect(route('output_destinations.create.step7'));
+    #[Test]
+    public function redirects_to_step1_from_username_fix_form_when_session_is_missing(): void
+    {
+        $this->get(route('output_destinations.fix.sftp.username'))
+             ->assertRedirect(route('output_destinations.create.step1'));
+    }
 
-    expect(session('od_wizard.username'))->toBe('newuser');
-    expect(session('od_wizard.test_passed'))->toBeFalse();
-});
+    #[Test]
+    public function saves_corrected_username_and_redirects_to_step7(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.username.submit'), [
+                 'username' => 'newuser',
+             ])
+             ->assertRedirect(route('output_destinations.create.step7'));
 
-it('rejects username fix with missing username', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.username.submit'), [
-            'username' => '',
-        ])
-        ->assertSessionHasErrors('username');
-});
+        $this->assertSame('newuser', session('od_wizard.username'));
+        $this->assertFalse(session('od_wizard.test_passed'));
+    }
 
-// ============================================================================
-// Auth fix
-// ============================================================================
+    #[Test]
+    public function rejects_username_fix_with_missing_username(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.username.submit'), [
+                 'username' => '',
+             ])
+             ->assertSessionHasErrors('username');
+    }
 
-it('renders the auth fix form when session is valid', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->get(route('output_destinations.fix.sftp.auth'))
-        ->assertOk()
-        ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.auth');
-});
+    // =========================================================================
+    // Auth fix
+    // =========================================================================
 
-it('redirects to step1 from auth fix form when session is missing', function () {
-    $this->get(route('output_destinations.fix.sftp.auth'))
-        ->assertRedirect(route('output_destinations.create.step1'));
-});
+    #[Test]
+    public function renders_the_auth_fix_form_when_session_is_valid(): void
+    {
+        $this->withSession($this->validSession())
+             ->get(route('output_destinations.fix.sftp.auth'))
+             ->assertOk()
+             ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.auth');
+    }
 
-it('saves corrected password auth and redirects to step7', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.auth.submit'), [
-            'auth_type' => 'password',
-            'password'  => 'newpassword',
-        ])
-        ->assertRedirect(route('output_destinations.create.step7'));
+    #[Test]
+    public function redirects_to_step1_from_auth_fix_form_when_session_is_missing(): void
+    {
+        $this->get(route('output_destinations.fix.sftp.auth'))
+             ->assertRedirect(route('output_destinations.create.step1'));
+    }
 
-    expect(session('od_wizard.auth_type'))->toBe('password');
-    expect(session('od_wizard.password'))->toBe('newpassword');
-    expect(session('od_wizard.test_passed'))->toBeFalse();
-});
+    #[Test]
+    public function saves_corrected_password_auth_and_redirects_to_step7(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.auth.submit'), [
+                 'auth_type' => 'password',
+                 'password'  => 'newpassword',
+             ])
+             ->assertRedirect(route('output_destinations.create.step7'));
 
-it('preserves existing password when blank is submitted on auth fix', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.auth.submit'), [
-            'auth_type' => 'password',
-            'password'  => '',
-        ])
-        ->assertRedirect(route('output_destinations.create.step7'));
+        $this->assertSame('password', session('od_wizard.auth_type'));
+        $this->assertSame('newpassword', session('od_wizard.password'));
+        $this->assertFalse(session('od_wizard.test_passed'));
+    }
 
-    expect(session('od_wizard.password'))->toBe('secret');
-});
+    #[Test]
+    public function preserves_existing_password_when_blank_is_submitted_on_auth_fix(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.auth.submit'), [
+                 'auth_type' => 'password',
+                 'password'  => '',
+             ])
+             ->assertRedirect(route('output_destinations.create.step7'));
 
-it('rejects auth fix with invalid auth_type', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.auth.submit'), [
-            'auth_type' => 'invalid',
-        ])
-        ->assertSessionHasErrors('auth_type');
-});
+        $this->assertSame('secret', session('od_wizard.password'));
+    }
 
-// ============================================================================
-// Path fix
-// ============================================================================
+    #[Test]
+    public function rejects_auth_fix_with_invalid_auth_type(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.auth.submit'), [
+                 'auth_type' => 'invalid',
+             ])
+             ->assertSessionHasErrors('auth_type');
+    }
 
-it('renders the path fix form when session is valid', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->get(route('output_destinations.fix.sftp.path'))
-        ->assertOk()
-        ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.path');
-});
+    // =========================================================================
+    // Path fix
+    // =========================================================================
 
-it('redirects to step1 from path fix form when session is missing', function () {
-    $this->get(route('output_destinations.fix.sftp.path'))
-        ->assertRedirect(route('output_destinations.create.step1'));
-});
+    #[Test]
+    public function renders_the_path_fix_form_when_session_is_valid(): void
+    {
+        $this->withSession($this->validSession())
+             ->get(route('output_destinations.fix.sftp.path'))
+             ->assertOk()
+             ->assertViewIs('media_platform.digest.content_sources.output_destinations.fix-sftp.path');
+    }
 
-it('saves corrected path and redirects to step7', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.path.submit'), [
-            'path'     => '/new/path',
-            'base_url' => 'https://example.com/new',
-        ])
-        ->assertRedirect(route('output_destinations.create.step7'));
+    #[Test]
+    public function redirects_to_step1_from_path_fix_form_when_session_is_missing(): void
+    {
+        $this->get(route('output_destinations.fix.sftp.path'))
+             ->assertRedirect(route('output_destinations.create.step1'));
+    }
 
-    expect(session('od_wizard.path'))->toBe('/new/path');
-    expect(session('od_wizard.base_url'))->toBe('https://example.com/new');
-    expect(session('od_wizard.test_passed'))->toBeFalse();
-});
+    #[Test]
+    public function saves_corrected_path_and_redirects_to_step7(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.path.submit'), [
+                 'path'     => '/new/path',
+                 'base_url' => 'https://example.com/new',
+             ])
+             ->assertRedirect(route('output_destinations.create.step7'));
 
-it('rejects path fix with missing path', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.path.submit'), [
-            'path' => '',
-        ])
-        ->assertSessionHasErrors('path');
-});
+        $this->assertSame('/new/path', session('od_wizard.path'));
+        $this->assertSame('https://example.com/new', session('od_wizard.base_url'));
+        $this->assertFalse(session('od_wizard.test_passed'));
+    }
 
-it('rejects path fix with invalid base_url', function () use ($validSession) {
-    $this->withSession($validSession())
-        ->post(route('output_destinations.fix.sftp.path.submit'), [
-            'path'     => '/var/www',
-            'base_url' => 'not-a-url',
-        ])
-        ->assertSessionHasErrors('base_url');
-});
+    #[Test]
+    public function rejects_path_fix_with_missing_path(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.path.submit'), [
+                 'path' => '',
+             ])
+             ->assertSessionHasErrors('path');
+    }
+
+    #[Test]
+    public function rejects_path_fix_with_invalid_base_url(): void
+    {
+        $this->withSession($this->validSession())
+             ->post(route('output_destinations.fix.sftp.path.submit'), [
+                 'path'     => '/var/www',
+                 'base_url' => 'not-a-url',
+             ])
+             ->assertSessionHasErrors('base_url');
+    }
+}
