@@ -79,22 +79,6 @@
                         </div>
                     </div>
 
-                    @can('admin')
-                        <div>
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Processing &amp; Publishing</span>
-                            <div class="mt-2 space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-gray-300 font-bold">›</span>
-                                    <span class="text-gray-400">Processing <em class="text-xs">(future development)</em></span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-gray-300 font-bold">›</span>
-                                    <span class="text-gray-400">Publishing <em class="text-xs">(future development)</em></span>
-                                </div>
-                            </div>
-                        </div>
-                    @endcan
-
                 </div>
             </div>
 
@@ -127,16 +111,6 @@
                         </div>
                     </div>
 
-                </div>
-            </div>
-
-            {{-- PSN Content Manager --}}
-            <div class="border border-purple-300 rounded-lg overflow-hidden">
-                <h2 class="text-sm font-semibold text-purple-700 uppercase tracking-wider px-4 py-3 border-b border-purple-300 bg-purple-50">
-                    📡 PSN Content Manager
-                </h2>
-                <div class="p-4">
-                    <span class="text-gray-400"><em class="text-xs">(future development)</em></span>
                 </div>
             </div>
 
