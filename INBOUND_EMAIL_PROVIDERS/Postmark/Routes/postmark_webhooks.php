@@ -1,5 +1,6 @@
 <?php
 
+use InboundEmailProviders\Postmark\Controllers\PostmarkBounceWebhookController;
 use InboundEmailProviders\Postmark\Controllers\PostmarkInboundWebhookController;
 
 // -----------------------------------------------------------------------------
@@ -17,3 +18,6 @@ use InboundEmailProviders\Postmark\Controllers\PostmarkInboundWebhookController;
 
 Route::post('/webhooks/postmark/inbound', PostmarkInboundWebhookController::class)
     ->name('webhooks.postmark.inbound');
+
+Route::post('/webhooks/postmark/bounce', PostmarkBounceWebhookController::class)
+    ->name('webhooks.postmark.bounce');

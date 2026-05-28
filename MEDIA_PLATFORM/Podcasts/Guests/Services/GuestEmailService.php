@@ -20,6 +20,7 @@ namespace MediaPlatform\Podcasts\Guests\Services;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use InboundEmail\ValueObjects\BounceNotification;
 use InboundEmail\ValueObjects\ParsedInboundEmail;
 use MediaPlatform\Podcasts\Guests\Enums\GuestEmailDirection;
 use MediaPlatform\Podcasts\Guests\Mail\GuestEmailMailable;
@@ -68,6 +69,49 @@ class GuestEmailService
             'in_reply_to'      => $inbound->inReplyTo() ?: null,
             'sent_at'          => null,
             'received_at'      => $inbound->receivedAt(),
+        ]);
+    }
+
+    /**
+     * Handle a bounce notification from Postmark.
+     *
+     * All bounce types are stored in guest_emails for a complete correspondence history.
+     * HardBounce additionally flags the guest record — the address is permanently undeliverable.
+     * SoftBounce and SpamComplaint are stored only — the guest record is not flagged.
+     *
+     * Returns null silently if the bounced address does not match a known guest.
+     */
+    public function handleBounce(BounceNotification $bounce): ?GuestEmail
+    {
+        $guest = PodcastGuest::where('email_address', $bounce->bouncedAddress())->first();
+
+        if (! $guest) {
+            return null;
+        }
+
+        $direction = match (true) {
+            str_contains($bounce->bounceType(), 'Spam') => GuestEmailDirection::SpamComplaint,
+            str_starts_with($bounce->bounceType(), 'Soft') => GuestEmailDirection::SoftBounce,
+            default => GuestEmailDirection::HardBounce,
+        };
+
+        if ($direction === GuestEmailDirection::HardBounce) {
+            $guest->update([
+                'email_bounced'    => true,
+                'email_bounced_at' => $bounce->occurredAt(),
+            ]);
+        }
+
+        return GuestEmail::create([
+            'podcast_guest_id' => $guest->id,
+            'direction'        => $direction,
+            'subject'          => $bounce->bounceType(),
+            'body_stripped'    => $bounce->description(),
+            'body_full'        => $bounce->description(),
+            'message_id'       => Str::uuid() . '@bobbloominterviews.com',
+            'in_reply_to'      => null,
+            'sent_at'          => null,
+            'received_at'      => $bounce->occurredAt(),
         ]);
     }
 

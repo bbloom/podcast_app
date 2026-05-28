@@ -7,6 +7,7 @@ use MediaPlatform\Podcasts\Publishing\Models\PodcastEpisode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PodcastGuest extends Model
 {
@@ -31,13 +32,17 @@ class PodcastGuest extends Model
         'email_address',
         'internal_comment',
         'enabled',
+        'email_bounced',
+        'email_bounced_at',
     ];
 
     // -------------------------------------------------------------------------
     // Type casts.
     // -------------------------------------------------------------------------
     protected $casts = [
-        'enabled' => 'boolean',
+        'enabled'          => 'boolean',
+        'email_bounced'    => 'boolean',
+        'email_bounced_at' => 'datetime',
     ];
 
     // -------------------------------------------------------------------------
@@ -75,6 +80,14 @@ class PodcastGuest extends Model
     public function episodes(): BelongsToMany
     {
         return $this->belongsToMany(PodcastEpisode::class, 'podcast_guest_episode');
+    }
+
+    /**
+     * All email correspondence with this guest.
+     */
+    public function emails(): HasMany
+    {
+        return $this->hasMany(GuestEmail::class, 'podcast_guest_id');
     }
 
     // -------------------------------------------------------------------------

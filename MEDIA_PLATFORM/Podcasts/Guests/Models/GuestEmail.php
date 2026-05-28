@@ -4,11 +4,12 @@
 // GuestEmail
 //
 // Represents a single email record in the guest_emails table.
-// Covers both outbound (app → guest) and inbound (guest → app) messages.
+// Covers outbound (app → guest), inbound (guest → app), and bounce events.
 //
 // Thread correlation:
 //   - Outbound rows have a unique message_id; in_reply_to is null.
 //   - Inbound rows set in_reply_to to the message_id of a prior outbound row.
+//   - Bounce rows (HardBounce, SoftBounce, SpamComplaint) have in_reply_to null.
 //
 // Path: MEDIA_PLATFORM/Podcasts/Guests/Models/
 // =============================================================================

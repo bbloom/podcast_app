@@ -238,6 +238,8 @@ Postmark bounce payload key fields: `Type`, `Email`, `Description`, `BouncedAt`
 
 ## Phase 6 — Proof of Life: Full End-to-End in Production
 
+⚠️ **PENDING — Postmark account under review.** All steps below are blocked until account approval is confirmed.
+
 Work through this sequence with real email addresses:
 
 1. Use the temporary send form (Phase 3) to send an email to yourself
