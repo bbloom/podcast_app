@@ -102,3 +102,22 @@
 - Test method names are prefixed with `test_` and describe the behaviour being tested.
 - CSRF is bypassed via `defined('PHPUNIT_COMPOSER_INSTALL')` in `bootstrap/app.php`.
 - When a controller redirects instead of returning 403 for ownership failures, assert `assertRedirect()->assertSessionHas('error')` rather than `assertForbidden()`.
+
+### Http::fake() Stacking — Important Gotcha
+Calling `Http::fake()` multiple times in the same PHPUnit test method **stacks rules** rather than replacing them — the first matching rule always wins. For tests that simulate multiple sequential HTTP requests to the same URL (e.g. simulating several processor runs), set up the entire sequence upfront using `Http::sequence()` within a single `Http::fake()` call:
+
+```php
+// CORRECT — each request gets the next response in order
+Http::fake([
+    'news.example.com/feed.xml' => Http::sequence()
+        ->push($feed1)
+        ->push($feed2)
+        ->push($combinedFeed),
+]);
+
+// WRONG — second Http::fake() call does not replace the first
+Http::fake(['news.example.com/feed.xml' => Http::response($feed1)]);
+$run1 = $processor->process($listSource);
+Http::fake(['news.example.com/feed.xml' => Http::response($feed2)]); // ← silently ignored
+$run2 = $processor->process($listSource); // still receives $feed1
+```

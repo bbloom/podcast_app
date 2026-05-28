@@ -6,17 +6,30 @@ Technical mechanics reference for inbound and outbound email infrastructure. Cov
 
 ---
 
+## Provider
+
+**Postmark** handles both sending and receiving for `bobbloominterviews.com`.
+
+- Account: postmarkapp.com — on the Pro plan
+- Server name: `podcast-app`
+- Domain `bobbloominterviews.com` is verified (DKIM, SPF, Return-Path all green)
+- DNS setup documented in `INBOUND_EMAIL/POSTMARK_SETUP.md`
+
+---
+
 ## Sending Mechanics
 
-- Laravel Mailable → mail provider → guest's inbox
+- Laravel Mailable → Postmark API → guest's inbox
 - Guest sees a normal email from `@bobbloominterviews.com`
 - The app is completely invisible to the guest
+- Laravel's built-in Postmark mail driver handles outbound (`MAIL_MAILER=postmark`)
 
 ### DNS required on `bobbloominterviews.com`
-- **SPF** (TXT record) — authorises the mail provider to send on behalf of the domain
-- **DKIM** (TXT or CNAME) — cryptographic signature proving email wasn't tampered with
+- **SPF** (TXT record) — authorises Postmark to send on behalf of the domain
+- **DKIM** (CNAME) — cryptographic signature proving email wasn't tampered with
+- **Return-Path** (CNAME) — improves bounce handling and deliverability
 - **DMARC** (TXT record) — policy for what receivers do if SPF/DKIM fails
-- These are for *outbound*. Already familiar territory from SES setup on other domains.
+- All records are live and verified. See `POSTMARK_SETUP.md` for exact values.
 
 ---
 
@@ -24,33 +37,35 @@ Technical mechanics reference for inbound and outbound email infrastructure. Cov
 
 For guest replies to arrive in the app (not just in a personal inbox):
 
-- **MX record** on `bobbloominterviews.com` — points to the mail provider's inbound servers
-- Provider receives the reply, parses it, and HTTP POSTs structured JSON to a webhook in the app
-- The app's webhook endpoint receives the payload and stores/routes it
+- **MX record** on `bobbloominterviews.com` — points to `inbound.postmarkapp.com`
+- Postmark receives the reply, fully parses it, and HTTP POSTs structured JSON to a webhook in the app
+- The app's webhook endpoint receives the pre-parsed payload and stores/routes it
 
-### Inbound approach — DIY on SES
-- SES receives the email and delivers it via SNS to a webhook endpoint in the Laravel app
-- The app parses the raw email itself using PHP packages — no Postmark, no third-party parsing service
-- This keeps full control, zero extra subscription, and is customisable to exact needs
+### What Postmark delivers to the webhook
 
-### Parsing stack — two separate concerns
+Unlike raw email processing, Postmark delivers a clean, pre-parsed JSON payload. Key fields:
 
-**1. MIME parsing** — cracking the raw RFC 2822 email into fields
-- Package: `zbateson/mail-mime-parser`
-- Pure PHP, no PECL extension required, well-maintained
-- Extracts: From, To, Subject, plain text body, HTML body, headers, attachments
+```json
+{
+  "From": "guest@example.com",
+  "Subject": "Re: Interview Questions",
+  "TextBody": "Full plain text including quoted history",
+  "StrippedTextReply": "Only what the guest actually wrote",
+  "HtmlBody": "...",
+  "Headers": [
+    { "Name": "Message-ID", "Value": "<abc@mail.example.com>" },
+    { "Name": "In-Reply-To", "Value": "<xyz@bobbloominterviews.com>" }
+  ]
+}
+```
 
-**2. Stripping quoted reply** — extracting only what the guest actually wrote
-- Package: `willdurand/EmailReplyParser` — PHP port of GitHub's open-sourced reply parser
-- Handles quoting conventions of Gmail, Outlook, Apple Mail, and others
-- Returns only the guest's new content, discarding the `> On Monday Bob wrote...` chain
-- This is a separate problem from MIME parsing — two packages, each with one responsibility
+`StrippedTextReply` is what the app stores as the reply body — Postmark handles quoting-convention differences across Gmail, Outlook, Apple Mail, and Hey.com. No PHP parsing packages needed.
 
 ### Inbound pipeline (conceptual)
-1. SES receives email → delivers via SNS to webhook in Laravel app
-2. Webhook receives raw email content
-3. `mail-mime-parser` parses into discrete fields
-4. `EmailReplyParser` strips quoted history from plain text body
+1. Guest replies to an email from `@bobbloominterviews.com`
+2. MX record routes the reply to Postmark
+3. Postmark parses the email and HTTP POSTs JSON to the app's inbound webhook
+4. `PostmarkProvider` verifies the webhook credentials and extracts fields
 5. App stores result, correlates to guest and episode via `Message-ID` / `In-Reply-To`
 
 ---
@@ -106,6 +121,9 @@ Emails will be associated with one of:
 - No registration, no portal, no friction of any kind
 - The professionalism shows through the *content and timing* of the emails, not through any visible infrastructure
 
+### Hey.com note
+The first email sent from `@bobbloominterviews.com` to a Hey.com inbox will land in The Screener. The recipient must approve it once — after that, subsequent emails arrive normally. This is expected Hey behaviour, not a deliverability problem.
+
 ---
 
 ## Two Internal Packages
@@ -115,9 +133,7 @@ PSR-4: `"InboundEmail\\": "INBOUND_EMAIL/"`
 
 Contains:
 - **Contracts** — `InboundEmailProviderInterface` (the shape every provider must implement)
-- **Value objects** — `RawEmail`, `BounceNotification`, etc. (used by both core and providers)
-- **MIME parsing** — `zbateson/mail-mime-parser`
-- **Reply stripping** — `willdurand/EmailReplyParser`
+- **Value objects** — `ParsedInboundEmail`, `BounceNotification` (used by both core and providers)
 - **Bounce handling logic** — acts on a normalised `BounceNotification`; flags guest record; never knows which provider it came from
 
 **No dependency on `INBOUND_EMAIL_PROVIDERS`.** The core defines the contract; it never imports an implementation.
@@ -129,12 +145,12 @@ Depends on `INBOUND_EMAIL` (imports its interface and value objects). Contains o
 
 Each adapter is responsible for:
 - Receiving the raw HTTP POST from the provider
-- Verifying the provider's cryptographic signature
-- Unpacking the provider's envelope format
-- Determining message type (inbound email / bounce notification / subscription confirmation)
-- Returning a normalised value object (`RawEmail` or `BounceNotification`) to the core
+- Verifying the provider's webhook credentials
+- Unpacking the provider's payload format
+- Determining message type (inbound email / bounce notification)
+- Returning a normalised value object (`ParsedInboundEmail` or `BounceNotification`) to the core
 
-Current: `SesProvider`. Future: `CloudflareProvider`, etc. Switching provider = swapping one adapter. Core logic untouched.
+Current: `PostmarkProvider`. Future: other providers. Switching provider = swapping one adapter. Core logic untouched.
 
 ### Dependency direction
 `INBOUND_EMAIL_PROVIDERS` → depends on → `INBOUND_EMAIL` → depends on → nothing (domain-level)
@@ -142,51 +158,52 @@ Current: `SesProvider`. Future: `CloudflareProvider`, etc. Switching provider = 
 ### Note on outbound
 Laravel already abstracts outbound sending via its mail drivers (`config/mail.php`). Both packages are for **inbound only**.
 
-### Note on the AWS SDK
-`aws/aws-sdk-php` handles outbound API calls to SES. Inbound emails and bounce notifications arrive as plain SNS HTTP POST requests. The SDK is not involved in receiving them — `SesProvider` handles that directly.
+### No AWS SDK dependency
+Unlike the original SES design, Postmark requires no AWS SDK. The one Composer dependency is `wildbit/postmark-php` (the official Postmark PHP SDK), used for sending only. Inbound emails and bounce notifications arrive as plain HTTP POST requests from Postmark.
 
 ---
 
-## To-Do — Do First
+## Webhook Authentication
 
-### Convert lingering Pest tests to PHPUnit
-Started with Pest, hit problems, switched to PHPUnit class-based tests — but Pest tests still exist in the codebase. These should be identified and converted before building new features, so the test suite is consistent and nothing is silently not running.
+Postmark sends webhook credentials via HTTP Basic Authentication embedded in the webhook URL. The app verifies these on every inbound POST.
 
-Steps:
-1. Find all Pest-style test files (`it()`, `test()`, `describe()` — no class wrapper)
-2. Convert each to a PHPUnit class-based test following the pattern in `YoutubeChannelWizardControllerTest`
-3. Confirm full suite runs clean
-Do this before any new feature work so the full test suite runs clean against consistent conventions.
+Credentials are stored in `.env`:
+```
+POSTMARK_WEBHOOK_USER=pmhook
+POSTMARK_WEBHOOK_PASSWORD=<password>
+```
 
-Steps:
-1. `git mv Gemini/ GEMINI/`
-2. Update `composer.json` PSR-4: `"Gemini\\Laravel\\": "GEMINI/"`
-3. `composer dump-autoload`
-4. Run full test suite — no code changes should be needed (namespace string `Gemini\Laravel\` is unchanged)
+Webhook URLs registered in Postmark include the credentials:
+```
+https://pmhook:<password>@yourdomain.com/webhooks/postmark/inbound
+https://pmhook:<password>@yourdomain.com/webhooks/postmark/bounce
+```
+
+The `PostmarkProvider` extracts and compares the `Authorization` header on every request. Requests that fail verification are rejected with HTTP 403.
 
 ---
 
-### Bounce handling
-- When SES cannot deliver an email, it sends a bounce notification via SNS
-- The app must receive and handle bounce notifications — at minimum, flag `podcast_guests.email_address` as invalid on the guest record
-- Without this, a bad email address fails silently
+## Remaining To-Dos
 
-### Webhook security
-- SNS signs its POST requests cryptographically
-- The inbound webhook handler must verify the SNS signature before trusting the payload
-- Not complex, but must be present
+### Data model
+- Store both `body_stripped` (StrippedTextReply) AND `body_full` (TextBody) — if Postmark's stripping misfires on an unusual client, the original is there to fall back on
+- Data model for `guest_emails` table (columns, indexes, FK to `podcast_guests`)
+- How to handle attachments in replies (if at all)
 
 ### Outbound threading headers
 - When replying to a guest from the app, set `In-Reply-To` and `References` headers pointing to their last `Message-ID`
 - This keeps the conversation grouped as a single thread in the guest's email client
 - Without it, each outbound email appears as a new disconnected message on their end
 
-- **Data model**: store both the stripped reply body AND the full raw body — if stripping misfires on an unusual email client, the original is there to fall back on. Decide column names and types when designing the table.
-- Data model for stored emails (table structure, fields, indexes)
-- How to handle attachments in replies (if at all)
+### Deferred (features phase)
 - General vs episode-scoped email distinction in the UI
-- Milestone email templates (content, triggers) — deferred until mechanics are settled
-### SNS dead-letter queue
-- If the webhook is down or throws an exception and SNS exhausts its retry attempts, the notification is lost
-- An SQS dead-letter queue on the SNS topic catches failed deliveries for manual recovery
-- Not deferred — build it as part of the initial SES/SNS setup
+- Milestone email templates (content, triggers)
+- Guest status ENUM
+
+---
+
+## Completed
+
+- ✅ Phase 0 housekeeping — Gemini renamed, Pest tests converted to PHPUnit, PSR-4 entries added
+- ✅ Postmark account and domain setup — `bobbloominterviews.com` verified, DNS live, webhooks configured
+- ✅ Full test suite passing — 1,586 tests, 3,694 assertions

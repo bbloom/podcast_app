@@ -25,21 +25,30 @@
 - Published episodes are stored in `podcast_episodes_published`; the API serves from this table
 - Planning statuses use `PodcastEpisodePlanningStatus` enum at `MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`
 - Production statuses use `PodcastEpisodeStatus` enum at `MEDIA_PLATFORM/Podcasts/Publishing/Enums/`
-- Post-production pipeline: `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `ready_to_publish` → `published`; also `not_published`
+- Post-production pipeline (RSS Pipeline Reorder order):
+  `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_publish_website` → `website_published` → `build_triggered` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `published`; also `rss_validation_failed`, `not_published`, `ready_to_publish` (legacy)
 - Each post-production stage completion redirects to a `DoneController` page — not back to an index. The done page carries the episode forward to the next stage automatically.
 - Controllers listing podcast shows use `private const ACTIVE_SHOWS` for consistent filtering and ordering
 - Migrations live at `database/migrations/media_platform/podcasts/`
 - One table per migration file
+
+## Guest Email Context
+- Guest email feature is under active development — `INBOUND_EMAIL/` and `INBOUND_EMAIL_PROVIDERS/` are new internal packages
+- Provider: **Postmark** (not SES). Domain: `bobbloominterviews.com`
+- Reference: `INBOUND_EMAIL/EMAIL_PLUMBING.md` for mechanics, `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` for build plan
+- PSR-4 namespaces registered: `InboundEmail\\` → `INBOUND_EMAIL/`, `InboundEmailProviders\\` → `INBOUND_EMAIL_PROVIDERS/`
+- Webhook authentication uses HTTP Basic Auth embedded in the webhook URL — credentials in `.env` as `POSTMARK_WEBHOOK_USER` / `POSTMARK_WEBHOOK_PASSWORD`
 
 ## Git
 - Do not run git add, git commit, or git push — that is the developer's responsibility
 
 ## Project Documentation
 Before making any changes, read these files for context:
-- `docs/ARCHITECTURE.md`
-- `docs/CONVENTIONS.md`
+- `ARCHITECTURE.md`
+- `CONVENTIONS.md`
 - `MEDIA_PLATFORM/Podcasts/HANDOFF.md`
-- `MEDIA_PLATFORM/Podcasts/RSS_PIPELINE_REORDER_PLAN.md` — if working on the RSS pipeline reorder feature
+- `INBOUND_EMAIL/EMAIL_PLUMBING.md` — if working on the guest email feature
+- `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` — if working on the guest email feature
 
 ## Interaction
 

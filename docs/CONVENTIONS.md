@@ -10,7 +10,7 @@ A Laravel/PHP podcasting application:
 
 ## Current State
 
-**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, Post-Production flow fix, and RSS Pipeline Reorder are complete and pushed.**
+**Phases 1, 2, 3, post-Phase-3 UI pass, Planning UI pass, FinalizeScriptWizard refactor, Post-Production flow fix, RSS Pipeline Reorder, and guest email Phase 0 + infrastructure are complete and pushed.**
 
 - Phase 1: Structural reshuffle — `PodcastStudio/` → `Podcasts/`
 - Phase 2: Small standalone additions (table rename, user_id on links, show templates, enum case)
@@ -20,8 +20,9 @@ A Laravel/PHP podcasting application:
 - FinalizeScriptWizard refactor: Expanded from 7 to 9 steps — dual-textarea AI proofing, inline intro/outro template create/edit, `script_scratch` column added, dashboard advisory
 - Post-Production flow fix: Four "Done" pages added — completing a pipeline stage now lands on a "Stage Complete — what next?" page with a direct "Continue to [Next Stage] →" button. No re-selection of episode needed.
 - RSS Pipeline Reorder: Website published and static site build confirmed before RSS generation. Four new statuses. Cloudflare build status polling via `CloudflareBuildStatusService`. GenerateRssFeed split into S3-only promote + Live Validation + R2 promote. RegenerateRssFeed updated to match. Dashboard surfaces in-progress and needs-attention episodes.
+- Guest email Phase 0 + infrastructure: All Pest tests converted to PHPUnit, Gemini directory renamed, PSR-4 entries added for `INBOUND_EMAIL/` and `INBOUND_EMAIL_PROVIDERS/`. Postmark account configured, `bobbloominterviews.com` DNS verified, webhooks live.
 
-**Test suite: 1536 passing, 3503 assertions.**
+**Test suite: 1,586 passing, 3,694 assertions.**
 
 ---
 
@@ -35,6 +36,7 @@ MEDIA_PLATFORM/
     │   └── Controllers/
     ├── Guests/
     │   ├── Controllers/ / Models/ / Requests/ / Routes/
+    │   └── Mail/                         ← GuestEmail mailable (in progress)
     ├── Links/
     │   ├── Controllers/ / Models/ / Requests/ / Routes/
     ├── Planning/
@@ -87,6 +89,28 @@ MEDIA_PLATFORM/
 
 ---
 
+## Internal Packages (non-MEDIA_PLATFORM)
+
+```
+INBOUND_EMAIL/                          PSR-4: InboundEmail\
+    Contracts/
+        InboundEmailProviderInterface.php
+    ValueObjects/
+        ParsedInboundEmail.php
+        BounceNotification.php
+
+INBOUND_EMAIL_PROVIDERS/               PSR-4: InboundEmailProviders\
+    Postmark/
+        PostmarkProvider.php
+        Controllers/
+            PostmarkInboundWebhookController.php   ← Phase 4
+            PostmarkBounceWebhookController.php    ← Phase 5
+```
+
+See `INBOUND_EMAIL/EMAIL_PLUMBING.md` for full architecture and `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` for build phases.
+
+---
+
 ## Key Models and Namespaces
 
 | Model | Namespace | Table |
@@ -108,7 +132,8 @@ MEDIA_PLATFORM/
 - `podcast_episodes_published` — live published episodes. API serves from this table.
 - `podcast_shows` — has `intro_template` and `outro_template` (mandatory; wizard enforces creation)
 - `podcast_links` — has `user_id`
-- `podcast_guests`
+- `podcast_guests` — has `email_address` (required); `email_bounced` and `email_bounced_at` for bounce tracking
+- `guest_emails` — outbound and inbound emails associated with a guest; stores `direction`, `body_stripped`, `body_full`, `message_id`, `in_reply_to` *(migration: Phase 3)*
 - `podcast_guest_episode_planning` — pivot: guests ↔ planning episodes
 - `podcast_guest_episode` — pivot: guests ↔ published episodes
 - `podcast_link_episode_planning` — pivot: links ↔ planning episodes
@@ -234,6 +259,11 @@ deploy_hooks.index / .create / .store / .show / .edit / .update
 deploy_hooks.delete.confirm / .destroy
 deploy_hooks.trigger.confirm / .execute / .result
 deploy_hooks.build_status                        ← JSON endpoint; polled by Alpine.js
+
+# Guest Email (in progress — Phase 3+)
+webhooks.postmark.inbound                        ← POST, no auth middleware, CSRF exempt
+webhooks.postmark.bounce                         ← POST, no auth middleware, CSRF exempt
+dev.guest-email-test                             ← GET|POST, temporary, auth middleware only
 ```
 
 ---
@@ -303,6 +333,7 @@ views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blad
 2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will change to `ready_for_publishing`. Deferred.
 3. **UI review** — Post-Production and Publishing views not yet reviewed for consistency with Planning UI conventions.
 4. **Guest Interaction feature** — inline guest creation inside wizards. Out of scope for now.
+5. **Guest email feature** — Phases 2–7 in progress. See `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md`.
 
 ---
 

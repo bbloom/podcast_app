@@ -14,6 +14,7 @@ A Laravel/PHP podcasting application:
 - **Nightly Pipeline:** Fetches new content, generates AI summaries, publishes digests
 - **Output Destinations:** Configurable delivery — email, SFTP webpage upload, or static site (via deploy hooks + API)
 - **Lists:** Users group content sources into lists for organised digest delivery
+- **Guest Email:** Inbound and outbound email for podcast guest communication, via Postmark, with all correspondence stored in the app
 
 ## Database Tables
 
@@ -30,7 +31,8 @@ A Laravel/PHP podcasting application:
 - `podcast_episodes_planning` — planning/creative workspace for podcast episodes; records are hard-deleted (no soft deletes) when an episode is handed off to publishing. Includes `script_scratch` (nullable text) — ephemeral AI scratch pad for FinalizeScriptWizard Step 4; persisted to survive crashes; cleared on wizard completion (Step 9).
 - `podcast_episodes_published` — published podcast episodes; each maps to an RSS `<item>` element; the API serves from this table; pipeline entry status is `ready_to_upload_recording` (set by PrepareForPublishingWizard)
 - `podcast_links` — reusable links (show notes URLs, references) attached to episodes; scoped by `user_id`
-- `podcast_guests` — guest profiles for interview show episodes
+- `podcast_guests` — guest profiles for interview show episodes; includes `email_address` (required), `email_bounced`, `email_bounced_at` for bounce tracking
+- `guest_emails` — email correspondence with a guest; stores direction (outbound/inbound), `body_stripped` (Postmark's StrippedTextReply), `body_full` (full body), `message_id` (RFC 2822), `in_reply_to`; FK to `podcast_guests`
 - `podcast_guest_episode_planning` — pivot table joining guests to planning episodes
 - `podcast_guest_episode` — pivot table joining guests to published episodes
 - `podcast_link_episode_planning` — pivot table joining links to planning episodes
@@ -53,6 +55,29 @@ Deploy hooks (`DeployHook`) are polymorphic via `triggerable_type` / `triggerabl
 - A `language_models` table stores available models and providers
 - Summarisation is abstracted behind a service/interface so the provider can be changed or configured per user without touching pipeline logic
 - Future candidates: OpenAI, GitHub Copilot, Anthropic, or others
+
+## Guest Email Architecture
+
+Inbound and outbound email for guest communication. Guests experience only normal email — the app is completely invisible to them.
+
+- **Provider:** Postmark (Pro plan). Domain: `bobbloominterviews.com`
+- **Outbound:** Laravel Mailable → Postmark API → guest's inbox
+- **Inbound:** Guest replies → MX record → Postmark parses → HTTP POST to webhook → stored in `guest_emails`
+- **Correlation:** Standard `Message-ID` / `In-Reply-To` headers — no database IDs in headers
+- **Bounce handling:** Postmark notifies via webhook; hard bounces flag `podcast_guests.email_bounced`
+
+### Two internal packages
+
+**`INBOUND_EMAIL/`** (PSR-4: `InboundEmail\`) — provider-agnostic core:
+- `InboundEmailProviderInterface` contract
+- `ParsedInboundEmail` and `BounceNotification` value objects
+- Bounce handling logic (flags guest record; never knows which provider it came from)
+
+**`INBOUND_EMAIL_PROVIDERS/`** (PSR-4: `InboundEmailProviders\`) — provider adapters:
+- `PostmarkProvider` — verifies webhook credentials, unpacks Postmark JSON, returns normalised value objects
+- One adapter per provider; switching provider = swapping one adapter, core logic untouched
+
+See `INBOUND_EMAIL/EMAIL_PLUMBING.md` for full mechanics and `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` for the build plan.
 
 ## Digest Delivery Strategies
 
@@ -132,8 +157,8 @@ The app has two separate podcast-related features that must not be confused:
 ### Module Structure (`Podcasts/`)
 
 - `Dashboard/` — podcast dashboard controller and routes
-- `Shows/` — CRUD for podcast shows; includes `intro_template` and `outro_template` columns (mandatory; FinalizeScriptWizard enforces creation)
-- `Guests/` — CRUD for podcast guests, plus attach/detach to both planning and published episodes
+- `Shows/` — CRUD for podcast shows; includes `intro_template` and `outro_template` columns (mandatory; wizard enforces creation)
+- `Guests/` — CRUD for podcast guests, plus attach/detach to both planning and published episodes; `Mail/` subfolder for guest email Mailables
 - `Links/` — CRUD for podcast links, plus attach/detach to both planning and published episodes; scoped by `user_id`
 - `Planning/` — Planning module (see below)
 - `Publishing/` — Published episode CRUD and full Post-Production pipeline
@@ -244,7 +269,7 @@ Controllers that list shows use a `private const ACTIVE_SHOWS` array to filter a
 ### Status Enums
 
 - `PodcastEpisodePlanningStatus` (`MEDIA_PLATFORM/Podcasts/Planning/CRUD/Enums/`): tracks the planning lifecycle — see Planning Module section above. Includes `sortOrder(): int` for pipeline-ordered dashboard sorting and `manualStatuses()` for status-change dropdowns.
-- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_publish_website` → `website_published` → `build_triggered` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `published`; also `rss_validation_failed` and `not_published`. `ready_to_publish` is retained for backwards compatibility with episodes that entered the pipeline before the RSS Pipeline Reorder. Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue buttons.
+- `PodcastEpisodeStatus` (`MEDIA_PLATFORM/Podcasts/Publishing/Enums/`): tracks the post-production pipeline — `ready_to_upload_recording` → `ready_for_auphonic` → `processing_at_auphonic` → `auphonic_complete` → `ready_to_upload_production_file` → `ready_to_publish_website` → `website_published` → `build_triggered` → `ready_to_generate_rss_feed` → `ready_to_upload_rss_feed` → `published`; also `rss_validation_failed`, `not_published`, and `ready_to_publish` (legacy). Includes `postProductionShowRoute(): string` — maps each status to its episode-specific pipeline route, used by the dashboard Continue buttons.
 - `ready_to_upload_recording` is retained as the pipeline entry point — marked for removal once the entry point is refactored to `ready_for_publishing`.
 - These two enums are deliberately separate: planning statuses apply only to planning records, production statuses apply only to published records.
 
@@ -311,6 +336,7 @@ The following named scopes are defined on `PodcastEpisode` to avoid duplicating 
 - `DigestApiService` — queries published digests for the API endpoint
 - `DeliveryStrategyResolver` — resolves delivery strategy by OutputType
 - `DigestRetentionService` — prunes old digest data based on per-list retention_count
+- `PostmarkProvider` — verifies Postmark webhook credentials, unpacks inbound email and bounce JSON payloads, returns normalised value objects
 
 ## RAG / Vector Search (Proof of Concept)
 
