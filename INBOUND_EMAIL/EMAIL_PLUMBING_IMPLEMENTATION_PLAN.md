@@ -10,47 +10,46 @@ Features (milestone emails, guest conversation UI, guest status) are out of scop
 
 ---
 
-## Phase 0 — Housekeeping (Do First)
+## Phase 0 — Housekeeping (Do First) ✅ COMPLETE
 
 These are pre-existing to-dos from `HANDOFF.md`. Complete before any new code.
 
-### 0a — Rename Gemini directory
+### 0a — Rename Gemini directory ✅
 ```bash
 git mv Gemini/ GEMINI/
 ```
-- Update `composer.json` PSR-4: `"Gemini\\Laravel\\": "GEMINI/"`
+- Updated `composer.json` PSR-4: `"Gemini\\Laravel\\": "GEMINI/"`
 - `composer dump-autoload`
-- Run full test suite — no code changes should be needed
+- Full test suite clean
 
-### 0b — Convert Pest tests to PHPUnit
-- Find all Pest-style test files (`it()`, `test()`, `describe()` without a class wrapper)
-- Convert each to a PHPUnit class-based test following the pattern in `YoutubeChannelWizardControllerTest`
-- Run full suite clean before proceeding
+### 0b — Convert Pest tests to PHPUnit ✅
+- All Pest-style test files converted to PHPUnit class-based tests
+- Full suite clean
 
-### 0c — Register new package namespaces in composer.json
-Add to `autoload.psr-4`:
+### 0c — Register new package namespaces in composer.json ✅
+Added to `autoload.psr-4`:
 ```json
 "InboundEmail\\": "INBOUND_EMAIL/",
 "InboundEmailProviders\\": "INBOUND_EMAIL_PROVIDERS/"
 ```
-- `composer dump-autoload`
-- Confirm no autoload errors
+- `composer dump-autoload` clean
+- No autoload errors
 
 ---
 
-## Phase 1 — Postmark + DNS Infrastructure
+## Phase 1 — Postmark + DNS Infrastructure ✅ COMPLETE
 
-Complete `POSTMARK_SETUP.md` in full — all nine parts, verification checklist green — before writing any application code.
+`POSTMARK_SETUP.md` completed in full — all nine parts, verification checklist green.
 
-**Key outcomes:**
+**Outcomes:**
 - `bobbloominterviews.com` verified in Postmark (DKIM, SPF, Return-Path all green)
 - MX record live — inbound mail routes to Postmark
-- Inbound and bounce webhook URLs configured in Postmark dashboard (endpoints don't need to exist yet — just set the URLs)
-- API token and webhook authentication token noted for `.env`
+- Inbound and bounce webhook URLs configured in Postmark dashboard
+- API token and webhook authentication credentials in `.env`
 
 ---
 
-## Phase 2 — Package Scaffolding + Composer Dependency
+## Phase 2 — Package Scaffolding + Composer Dependency ✅ COMPLETE
 
 Create the directory structure and install the one required package. No logic yet — just the skeleton.
 
@@ -105,7 +104,7 @@ Returns:
 - fromAddress: string
 - subject: string
 - strippedReplyBody: string    (StrippedTextReply — what the guest wrote)
-- fullTextBody: string         (TextBody — full text including quoted history)
+- fullTextBody: string         (Postmark's TextBody)
 - messageId: string            (from Headers array — RFC 2822 Message-ID)
 - inReplyTo: string|null       (from Headers array — In-Reply-To)
 - receivedAt: Carbon
@@ -128,14 +127,23 @@ Follow the existing value object pattern (named static factories, private constr
 
 ## Phase 3 — Outbound: Send a Guest Email + Store Message-ID
 
+### Composer packages — install first
+```bash
+composer require symfony/postmark-mailer symfony/http-client
+```
+These are NOT bundled with Laravel. They provide the Symfony Postmark transport that Laravel's built-in Postmark mail driver requires. `wildbit/postmark-php` (installed in Phase 2) is separate — it handles the Postmark API SDK for sending only.
+
 ### Add `.env` values
 ```
-POSTMARK_TOKEN=your-server-api-token
-POSTMARK_WEBHOOK_TOKEN=your-webhook-auth-token
+POSTMARK_API_KEY=<rename from POSTMARK_API — must match services.php which reads env('POSTMARK_API_KEY')>
 MAIL_MAILER=postmark
+MAIL_FROM_ADDRESS=<your sending address @bobbloominterviews.com>
+MAIL_FROM_NAME="<your display name>"
 ```
 
-Laravel has built-in Postmark mail driver support. Configure `config/mail.php` to use it.
+`config/services.php` is correct as-is (`'key' => env('POSTMARK_API_KEY')`) — this is what the Laravel docs specify. Do not change it. The `.env` variable name must match.
+
+`config/mail.php` is correct as-is — the `postmark` mailer entry already exists.
 
 ### Migration — `guest_emails` table
 Path: `database/migrations/media_platform/podcasts/`
@@ -176,6 +184,9 @@ Send a real email to a real address from the production app. A row appears in `g
 ---
 
 ## Phase 4 — Inbound: Webhook + Postmark Parsing
+
+### Cloudflare risk
+Postmark POSTs to the webhook endpoints from its own servers. Cloudflare's WAF or firewall rules may block these requests — the same class of problem that affected the Auphonic webhook. If the Phase 6 end-to-end test shows emails arriving at Postmark but never hitting the app, the first thing to check is Cloudflare. Resolution: create a bypass or allow rule for `/webhooks/postmark/*`, or whitelist Postmark's published IP ranges in Cloudflare.
 
 ### Webhook endpoint
 Route: `POST /webhooks/postmark/inbound`
@@ -248,6 +259,16 @@ Once all eight steps pass, the plumbing is proven.
 - Remove the temporary views
 - Confirm test suite still passes
 - The `guest_emails` table, the mailable, and both packages remain — they are permanent
+
+---
+
+## Post-Implementation Clean-Up
+
+To be completed after the plumbing is proven end-to-end. Do not begin until Phase 7 is done and the test suite is green.
+
+1. **Remove future-development placeholders** — find and delete any folders, dashboard items, or UI elements that were placeholders for deferred features
+2. **PodcastStudio rename sweep** — search for `PodcastStudio`, `podcast_studio`, `podcast-studio`, `Podcast Studio` and any other permutations throughout the codebase (comments, URLs, config values) and update to current naming
+3. **Composer dependency audit** — update all package version constraints in `composer.json` to latest, then run `composer update` and confirm the test suite passes clean
 
 ---
 

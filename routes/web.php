@@ -46,8 +46,12 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Shows/Routes/podcast_shows.
 // Podcast Links
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Links/Routes/podcast_links.php';
 
+
 // Podcast Guests
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/podcast_guests.php';
+// TEMPORARY — remove after Phase 6 proof-of-life (Phase 7 clean-up)
+require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Guests/Routes/guest_email_dev.php';
+
 
 // Podcast Episodes Planning
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Planning/CRUD/Routes/podcast_episodes_planning.php';
@@ -83,5 +87,7 @@ require dirname(__DIR__) . '/MEDIA_PLATFORM/Podcasts/Dashboard/Routes/podcasts_d
 
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Tools/PhpServerlessProjectSponsors/Routes/phpserverlessproject_sponsors.php';
 require dirname(__DIR__) . '/MEDIA_PLATFORM/Videos/Routes/videos.php';
+
+
 
 // require dirname(__DIR__) . '/MEDIA_PLATFORM/Digest/Routes/debug_processing.php';
