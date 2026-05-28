@@ -24,6 +24,7 @@ namespace MediaPlatform\Podcasts\Guests\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
@@ -55,6 +56,7 @@ class GuestEmailMailable extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
+            from:    new Address(config('mail.guest_from.address'), config('mail.guest_from.name')),
             subject: $this->emailSubject,
         );
     }

@@ -115,4 +115,11 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+
+    // Dedicated from address for guest correspondence.
+    'guest_from' => [
+        'address' => env('MAIL_GUEST_FROM_ADDRESS', 'guests@bobbloominterviews.com'),
+        'name'    => env('MAIL_GUEST_FROM_NAME', 'Bob Bloom Interviews'),
+    ],
+
 ];
