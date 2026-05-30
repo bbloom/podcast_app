@@ -20,9 +20,9 @@ A Laravel/PHP podcasting application:
 - FinalizeScriptWizard refactor: Expanded from 7 to 9 steps — dual-textarea AI proofing, inline intro/outro template create/edit, `script_scratch` column added, dashboard advisory
 - Post-Production flow fix: Four "Done" pages added — completing a pipeline stage now lands on a "Stage Complete — what next?" page with a direct "Continue to [Next Stage] →" button. No re-selection of episode needed.
 - RSS Pipeline Reorder: Website published and static site build confirmed before RSS generation. Four new statuses. Cloudflare build status polling via `CloudflareBuildStatusService`. GenerateRssFeed split into S3-only promote + Live Validation + R2 promote. RegenerateRssFeed updated to match. Dashboard surfaces in-progress and needs-attention episodes.
-- Guest email Phase 0 + infrastructure: All Pest tests converted to PHPUnit, Gemini directory renamed, PSR-4 entries added for `INBOUND_EMAIL/` and `INBOUND_EMAIL_PROVIDERS/`. Postmark account configured, `bobbloominterviews.com` DNS verified, webhooks live.
+- Guest email Phases 0–5: All Pest tests converted to PHPUnit, Gemini directory renamed, PSR-4 entries added. Postmark account configured and approved, bobbloominterviews.com DNS verified, webhooks live. Outbound confirmed in production. Inbound and bounce handling coded and unit-tested. Phase 6 live end-to-end proof pending.
 
-**Test suite: 1,586 passing, 3,694 assertions.**
+** Test suite: 1,614 passing, 3,746 assertions. **
 
 ---
 
@@ -99,12 +99,15 @@ INBOUND_EMAIL/                          PSR-4: InboundEmail\
         ParsedInboundEmail.php
         BounceNotification.php
 
-INBOUND_EMAIL_PROVIDERS/               PSR-4: InboundEmailProviders\
+INBOUND_EMAIL_PROVIDERS/               PSR-4: 
+    InboundEmailProviders\
     Postmark/
         PostmarkProvider.php
         Controllers/
-            PostmarkInboundWebhookController.php   ← Phase 4
-            PostmarkBounceWebhookController.php    ← Phase 5
+            PostmarkInboundWebhookController.php
+            PostmarkBounceWebhookController.php
+        Routes/
+            postmark_webhooks.php
 ```
 
 See `INBOUND_EMAIL/EMAIL_PLUMBING.md` for full architecture and `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` for build phases.
@@ -260,10 +263,11 @@ deploy_hooks.delete.confirm / .destroy
 deploy_hooks.trigger.confirm / .execute / .result
 deploy_hooks.build_status                        ← JSON endpoint; polled by Alpine.js
 
-# Guest Email (in progress — Phase 3+)
+# Guest Email
 webhooks.postmark.inbound                        ← POST, no auth middleware, CSRF exempt
 webhooks.postmark.bounce                         ← POST, no auth middleware, CSRF exempt
-dev.guest-email-test                             ← GET|POST, temporary, auth middleware only
+dev.guest-email-test.create                      ← GET, temporary, auth middleware only
+dev.guest-email-test.store                       ← POST, temporary, auth middleware only
 ```
 
 ---
@@ -333,7 +337,7 @@ views/components/podcasts/planning/prepare_for_publishing_wizard/_step_dots.blad
 2. **Post-Production pipeline entry point** — currently `ready_to_upload_recording`. Will change to `ready_for_publishing`. Deferred.
 3. **UI review** — Post-Production and Publishing views not yet reviewed for consistency with Planning UI conventions.
 4. **Guest Interaction feature** — inline guest creation inside wizards. Out of scope for now.
-5. **Guest email feature** — Phases 2–7 in progress. See `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md`.
+5. **Guest email feature** — Phases 0–5 complete, Phase 6 live proof pending Postmark approval (now approved — run Phase 6 next). Phase 7 cleanup follows. See INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md.
 
 ---
 

@@ -10,147 +10,128 @@ The project knowledge attached to this project contains the key `.md` reference 
 
 ---
 
-## What This Session Accomplished
+## Current State
 
-We built the guest email feature from zero to ready for coding in two sessions:
+### Guest Email Plumbing — Phases 0–5 complete
 
-**Session 1** — Mechanics design. Decided on provider, architecture, package structure, correlation strategy. Documented in `EMAIL_PLUMBING.md`.
+| Phase | Status |
+|---|---|
+| Phase 0 — Housekeeping | ✅ Complete |
+| Phase 1 — Postmark + DNS Infrastructure | ✅ Complete |
+| Phase 2 — Package Scaffolding | ✅ Complete |
+| Phase 3 — Outbound: Send a Guest Email + Store Message-ID | ✅ Complete |
+| Phase 4 — Inbound: Webhook + Postmark Parsing | ✅ Complete |
+| Phase 5 — Bounce Handling | ✅ Complete |
+| Phase 6 — Proof of Life: Full End-to-End in Production | ⏳ Pending — see below |
+| Phase 7 — Clean Up Temporary Scaffolding | ⏳ Pending Phase 6 |
 
-**Session 2** — This session. Completed:
-1. Switched from AWS SES/SNS/SQS to **Postmark** (simpler, no AWS ceremony)
-2. Completed full **Postmark + DNS infrastructure** setup for `bobbloominterviews.com`
-3. Completed all **Phase 0 housekeeping**:
-   - `git mv Gemini/ GEMINI/` + composer.json PSR-4 updated
-   - All Pest-style tests converted to PHPUnit class-based tests
-   - `INBOUND_EMAIL/` and `INBOUND_EMAIL_PROVIDERS/` PSR-4 entries added to composer.json
-4. **Full test suite passing** — 1,586 tests, 3,694 assertions
+### Phase 6 — Current Situation
+- Postmark account is **approved** — sending restriction lifted
+- Outbound email **confirmed working** in production (email received, `guest_emails` row written with correct `message_id`)
+- Inbound and bounce **not yet live-tested** — do this next
+- Cloudflare bypass rule for `/webhooks/postmark/*` is in place (Access Controls)
+
+### Post-Implementation Clean-Up
+- ✅ Item 1 — Future-development placeholders removed
+- ✅ Item 2 — PodcastStudio rename sweep complete
+- ⏳ Item 3 — `composer update` — intentionally deferred until after Phase 7
+
+### Other
+- `lasallesoftware.ca` added as a Postmark sender domain — DNS verified, Digest emails now route through Postmark. SES env vars can be removed from the other Laravel app at any time.
+
+### Test suite
+**1,614 tests passing, 3,746 assertions.** No known failures.
 
 ---
 
-## Current State
+## What To Do Next
 
-### Infrastructure — done
-- `bobbloominterviews.com` verified in Postmark (DKIM, SPF, Return-Path green)
-- MX record live — inbound mail routes to Postmark
-- Inbound webhook URL configured in Postmark: `https://pmhook:<password>@yourdomain.com/webhooks/postmark/inbound`
-- Bounce webhook URL configured in Postmark: `https://pmhook:<password>@yourdomain.com/webhooks/postmark/bounce`
-- Webhook credentials in `.env`: `POSTMARK_WEBHOOK_USER`, `POSTMARK_WEBHOOK_PASSWORD`
+### Phase 6 — Live End-to-End Proof
 
-### `.env` values needed for coding
-```
-POSTMARK_TOKEN=<server api token>
-POSTMARK_WEBHOOK_USER=pmhook
-POSTMARK_WEBHOOK_PASSWORD=<password>
-MAIL_MAILER=postmark
-```
+1. Navigate to `/dev/guest-email-test` in production
+2. Send an email to yourself (using a guest record whose `email_address` you control)
+3. Reply to it from your inbox
+4. Hit `/dev/guest-emails` — confirm an inbound row appeared with correct `in_reply_to` matching the outbound `message_id`
+5. Confirm `body_stripped` contains only your reply text, not the quoted original
+6. Trigger a test bounce: send to `bounce@simulator.postmarkapp.com` — confirm the guest record gets `email_bounced = true`
+7. Check the Postmark dashboard activity log — all sends and receives visible
 
-### Test suite
-1,586 tests passing. No known failures.
+### Phase 7 — Clean Up Temporary Scaffolding (after Phase 6)
+- Remove `TemporarySendTestEmailController` and its routes
+- Remove the temporary views (`send_test_email.blade.php`)
+- Remove the `/dev/guest-emails` debug route from `guest_email_dev.php`
+- Remove the `require` from `routes/web.php`
+- Confirm test suite still passes
 
-**Important gotcha discovered during this session:**
-In PHPUnit, calling `Http::fake()` multiple times in the same test method **stacks rules** rather than replacing them — the first matching rule always wins. For multi-run tests (e.g. simulating 5 sequential processor runs), use `Http::sequence()` within a single `Http::fake()` call:
-```php
-Http::fake([
-    'feed.url.com/feed.xml' => Http::sequence()
-        ->push($feed1)
-        ->push($feed2)
-        ->push($feed3),
-]);
+### Post-Implementation Clean-Up Item 3 (last of all)
+```bash
+composer update
+php artisan test
 ```
 
 ---
 
 ## Reference Documents
 
-All key decisions are settled and documented. Do not re-litigate.
-
 | Document | Path | What it covers |
 |---|---|---|
 | `EMAIL_PLUMBING.md` | `INBOUND_EMAIL/EMAIL_PLUMBING.md` | Mechanics: provider, parsing, correlation, package architecture |
-| `POSTMARK_SETUP.md` | `INBOUND_EMAIL/POSTMARK_SETUP.md` | Postmark + DNS setup (complete — for reference only) |
-| `EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` | `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` | Phased build plan — Phases 0 and 1 complete |
+| `EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` | `INBOUND_EMAIL/EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md` | Phased build plan — current status |
+| `INBOUND_EMAILS_FEATURES.md` | `INBOUND_EMAIL/INBOUND_EMAILS_FEATURES.md` | Deferred feature decisions for the features phase |
+| `POSTMARK_SETUP.md` | `INBOUND_EMAIL/POSTMARK_SETUP.md` | Postmark + DNS setup (complete — reference only) |
 
 ---
 
-## What To Build Next — Phase 2
-
-Phase 0 (housekeeping) and Phase 1 (Postmark/DNS) are complete. Start on **Phase 2: Package Scaffolding**.
-
-### Phase 2 — Package Scaffolding + Composer Dependency
-
-Install the one Composer dependency:
-```bash
-composer require wildbit/postmark-php
-```
-
-Create the directory and file skeleton (no logic yet — just autoloadable classes):
+## Key Files Added This Work
 
 ```
 INBOUND_EMAIL/
-    Contracts/
-        InboundEmailProviderInterface.php
-    ValueObjects/
-        ParsedInboundEmail.php
-        BounceNotification.php
+    Contracts/InboundEmailProviderInterface.php
+    ValueObjects/ParsedInboundEmail.php
+    ValueObjects/BounceNotification.php
 
 INBOUND_EMAIL_PROVIDERS/
     Postmark/
         PostmarkProvider.php
+        Controllers/
+            PostmarkInboundWebhookController.php
+            PostmarkBounceWebhookController.php
+        Routes/
+            postmark_webhooks.php
+
+MEDIA_PLATFORM/Podcasts/Guests/
+    Enums/GuestEmailDirection.php
+    Models/GuestEmail.php
+    Mail/GuestEmailMailable.php
+    Services/GuestEmailService.php
+    Controllers/Dev/TemporarySendTestEmailController.php
+    Routes/guest_email_dev.php
+
+database/migrations/media_platform/podcasts/
+    2026_05_28_000001_create_guest_emails_table.php
+    2026_05_28_000002_add_bounce_columns_to_podcast_guests_table.php
+
+views/media_platform/podcasts/guests/
+    mail/guest_email.blade.php
+    dev/send_test_email.blade.php
+
+database/factories/Media_platform/Podcasts/Guests/
+    GuestEmailFactory.php
+
+tests/Feature/INBOUND_EMAIL_PROVIDERS/Postmark/
+    PostmarkInboundWebhookControllerTest.php
+    PostmarkBounceWebhookControllerTest.php
+
+tests/Feature/MEDIA_PLATFORM/Podcasts/Guests/
+    TemporarySendTestEmailControllerTest.php
+
+INBOUND_EMAIL/
+    INBOUND_EMAILS_FEATURES.md
+    EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md (updated)
 ```
 
-**`InboundEmailProviderInterface`**:
-```php
-namespace InboundEmail\Contracts;
-
-interface InboundEmailProviderInterface
-{
-    public function handle(Request $request): ParsedInboundEmail|BounceNotification|null;
-}
-```
-
-**`ParsedInboundEmail`** value object fields:
-```
-fromAddress: string
-subject: string
-strippedReplyBody: string    (Postmark's StrippedTextReply)
-fullTextBody: string         (Postmark's TextBody)
-messageId: string            (from Headers array)
-inReplyTo: string|null       (from Headers array)
-receivedAt: Carbon
-```
-
-**`BounceNotification`** value object fields:
-```
-bouncedAddress: string
-bounceType: string           ('HardBounce', 'SoftBounce', 'SpamComplaint', etc.)
-description: string
-occurredAt: Carbon
-```
-
-Follow the existing value object pattern — named static factories, private constructor. See `DeployHookTriggerResult` as the reference example.
-
-**Deliverable:** `composer dump-autoload` clean, all classes autoloaded, no logic yet.
-
-### Phase 3 — Outbound: Send a Guest Email + Store Message-ID
-
-After Phase 2 is clean, move to Phase 3. Full details in `EMAIL_PLUMBING_IMPLEMENTATION_PLAN.md`.
-
-Summary:
-- Migration: `guest_emails` table
-- Mailable: `GuestEmail` (sends via Postmark, captures `Message-ID` after send)
-- Temporary route + controller: `TemporarySendTestEmailController` at `GET|POST /dev/guest-email-test`
-- Deliverable: real email sent from production app, row in `guest_emails` with correct `message_id`
-
----
-
-## What Is NOT In Scope For This Coding Window
-
-The plumbing plan covers Phases 2–7 only. The following are explicitly deferred to a features conversation after the plumbing is proven:
-
-- Guest status ENUM
-- Milestone email triggers
-- Guest conversation UI (thread view)
-- Guest dashboard / action-oriented overview
-- Tadpole (pre-commitment guest ideas)
-- Reply-from-app compose UI
-- Episode association for the interview show
+### Modified files
+- `MEDIA_PLATFORM/Podcasts/Guests/Models/PodcastGuest.php` — added `email_bounced`, `email_bounced_at` to `$fillable`, `$casts`, and `emails()` relationship
+- `bootstrap/app.php` — added `/webhooks/postmark/inbound` and `/webhooks/postmark/bounce` to CSRF exceptions
+- `config/services.php` — added `postmark_webhook` credentials block
+- `routes/web.php` — added `require` for `postmark_webhooks.php` and `guest_email_dev.php`

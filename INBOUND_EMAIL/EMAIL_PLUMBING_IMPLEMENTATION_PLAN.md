@@ -125,7 +125,7 @@ Follow the existing value object pattern (named static factories, private constr
 
 ---
 
-## Phase 3 — Outbound: Send a Guest Email + Store Message-ID
+## Phase 3 — Outbound: Send a Guest Email + Store Message-ID ✅ COMPLETE
 
 ### Composer packages — install first
 ```bash
@@ -183,7 +183,7 @@ Send a real email to a real address from the production app. A row appears in `g
 
 ---
 
-## Phase 4 — Inbound: Webhook + Postmark Parsing
+## Phase 4 — Inbound: Webhook + Postmark Parsing ✅ COMPLETE
 
 ### Cloudflare risk
 Postmark POSTs to the webhook endpoints from its own servers. Cloudflare's WAF or firewall rules may block these requests — the same class of problem that affected the Auphonic webhook. If the Phase 6 end-to-end test shows emails arriving at Postmark but never hitting the app, the first thing to check is Cloudflare. Resolution: create a bypass or allow rule for `/webhooks/postmark/*`, or whitelist Postmark's published IP ranges in Cloudflare.
@@ -220,7 +220,7 @@ Reply to the test email sent in Phase 3 from a real email client. Confirm the re
 
 ---
 
-## Phase 5 — Bounce Handling
+## Phase 5 — Bounce Handling ✅ COMPLETE
 
 ### Bounce webhook endpoint
 Route: `POST /webhooks/postmark/bounce`
@@ -238,29 +238,28 @@ Postmark bounce payload key fields: `Type`, `Email`, `Description`, `BouncedAt`
 
 ## Phase 6 — Proof of Life: Full End-to-End in Production
 
-⚠️ **PENDING — Postmark account under review.** All steps below are blocked until account approval is confirmed.
+⚠️ **Postmark account approved. Outbound confirmed working in production. Inbound and bounce live tests still pending.**
 
 Work through this sequence with real email addresses:
 
-1. Use the temporary send form (Phase 3) to send an email to yourself
-2. Approve it through Hey's Screener (first time only)
-3. Reply from your Hey inbox
-4. Confirm the reply appears in `guest_emails` as an inbound row
-5. Confirm `podcast_guest_id` and `in_reply_to` are correctly populated
-6. Confirm `body_stripped` contains only your reply — no quoted original
-7. Trigger a test bounce — send to Postmark's test address `bounce@simulator.postmarkapp.com` — confirm the guest record gets flagged
-8. Check the Postmark dashboard activity log — confirm all sends and receives are visible there
+1. ✅ Use the temporary send form (Phase 3) to send an email to yourself
+2. ✅ Approve it through Hey's Screener (first time only)
+3. ⏳ Reply from your inbox
+4. ⏳ Confirm the reply appears in `guest_emails` as an inbound row
+5. ⏳ Confirm `podcast_guest_id` and `in_reply_to` are correctly populated
+6. ⏳ Confirm `body_stripped` contains only your reply — no quoted original
+7. ⏳ Trigger a test bounce — send to Postmark's test address `bounce@simulator.postmarkapp.com` — confirm the guest record gets flagged
+8. ⏳ Check the Postmark dashboard activity log — confirm all sends and receives are visible there
 
 Once all eight steps pass, the plumbing is proven.
 
 ---
 
-## Phase 7 — Clean Up Temporary Scaffolding
+## Phase 7 — Clean Up Temporary Scaffolding ✅ COMPLETE
 
-- Remove `TemporarySendTestEmailController` and its routes, or gate behind an env check
-- Remove the temporary views
-- Confirm test suite still passes
-- The `guest_emails` table, the mailable, and both packages remain — they are permanent
+Dev routes gated behind `if (! app()->isProduction())` in `web.php` — invisible in production, available in local and test environments. Full removal is deferred until Phase 6 proof-of-life is complete.
+
+**To re-enable for Phase 6:** temporarily remove the `isProduction()` gate in `web.php`. Re-apply and remove the scaffolding entirely once Phase 6 passes.
 
 ---
 
@@ -269,7 +268,7 @@ Once all eight steps pass, the plumbing is proven.
 To be completed after the plumbing is proven end-to-end. Do not begin until Phase 7 is done and the test suite is green.
 
 1. **Remove future-development placeholders** — find and delete any folders, dashboard items, or UI elements that were placeholders for deferred features
-2. **Podcasts rename sweep** — search for `Podcasts`, `podcasts`, `podcast-studio`, `Podcast Studio` and any other permutations throughout the codebase (comments, URLs, config values) and update to current naming
+2. **PodcastStudio rename sweep** — search for `PodcastStudio`, `podcast_studio`, `podcast-studio`, `Podcast Studio` and any other permutations throughout the codebase (comments, URLs, config values) and update to current naming
 3. **Composer dependency audit** — update all package version constraints in `composer.json` to latest, then run `composer update` and confirm the test suite passes clean
 
 ---
