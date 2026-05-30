@@ -81,7 +81,7 @@
 
                 <tbody>
                     @foreach ($planningByShow as $showId => $episodes)
-                        
+
                         {{-- Show header row --}}
                         <tr class="bg-purple-200 border-t border-b border-purple-200">
                             <td colspan="5" class="px-6 py-2">
@@ -115,7 +115,7 @@
                                 <td class="px-6 py-3 font-bold text-base text-gray-500 whitespace-nowrap">
                                     {{ $episode->scheduled_date?->format('D, M j, Y') ?? '—' }}
                                 </td>
-                                
+
                                 <td class="px-6 py-3 text-right">
                                     <div class="flex flex-col items-end gap-1.5">
                                         <a href="{{ route('podcast_episodes_planning.show', $episode) }}"
@@ -204,9 +204,6 @@
                                 {{ $episode->scheduled_date?->format('M d, Y') ?? '—' }}
                             </td>
                             <td class="px-6 py-3 text-right">
-                                {{-- Continue links directly to the relevant pipeline page for this status.   --}}
-                                {{-- processing_at_auphonic shows the polling UI — labelled Monitor since     --}}
-                                {{-- no user action is required, but the page shows live state.               --}}
                                 @if ($episode->status === \MediaPlatform\Podcasts\Publishing\Enums\PodcastEpisodeStatus::processing_at_auphonic)
                                     <a href="{{ route($episode->status->postProductionShowRoute(), $episode) }}"
                                        class="inline-block bg-gray-400 hover:bg-gray-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
@@ -273,6 +270,42 @@
             </table>
         @endif
     </div>
+
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    {{-- DEV — TEMPORARY SCAFFOLDING                                            --}}
+    {{-- REMOVE in Phase 7 clean-up after Phase 6 proof-of-life is complete.   --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    <details class="mb-10">
+        <summary class="cursor-pointer select-none inline-flex items-center gap-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-300 rounded-lg px-4 py-2 hover:bg-amber-100 transition">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Dev — Temporary Email Scaffolding (Phase 6)
+        </summary>
+
+        <div class="mt-3 border border-amber-300 rounded-lg overflow-hidden">
+            <div class="px-4 py-3 bg-amber-50 border-b border-amber-300">
+                <p class="text-xs text-amber-700">
+                    Temporary scaffolding for Phase 6 proof-of-life testing.
+                    Remove this section and the underlying routes, controllers, and views in Phase 7.
+                </p>
+            </div>
+            <div class="px-4 py-4 bg-white flex flex-wrap gap-3">
+                <a href="{{ route('dev.guest-email-test.create') }}"
+                   class="inline-block bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                    Send Test Email
+                </a>
+                <a href="{{ route('dev.guest-emails.index') }}"
+                   class="inline-block bg-white border border-amber-400 hover:border-amber-600 text-amber-700 text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                    Inspect guest_emails Table
+                </a>
+            </div>
+        </div>
+    </details>
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    {{-- END DEV SCAFFOLDING                                                    --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
 
 </div>
 </x-layouts.app>
